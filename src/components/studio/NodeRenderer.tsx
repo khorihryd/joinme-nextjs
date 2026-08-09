@@ -41,6 +41,7 @@ function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNode
   const intervalSec = typeof style.bgSlideshowInterval === 'number' ? style.bgSlideshowInterval : (parseInt(style.bgSlideshowInterval, 10) || 5);
   const effect = style.bgSlideshowEffect || 'fade';
   const overlayColor = style.backgroundOverlayColor || 'rgba(0, 0, 0, 0.4)';
+  const isFixed = style.bgSlideshowFixed !== undefined ? !!style.bgSlideshowFixed : true;
 
   useEffect(() => {
     if (galleryImages.length <= 1) return;
@@ -85,6 +86,7 @@ function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNode
               backgroundImage: `url(${imgUrl})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
+              backgroundAttachment: isFixed ? 'fixed' : 'scroll',
               opacity: isActive ? 1 : 0,
               transform: transformStyle,
               transition: transitionStyle,

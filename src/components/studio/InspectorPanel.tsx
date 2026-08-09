@@ -851,6 +851,19 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                       </select>
                     </div>
 
+                    <div className="form-group" style={{ margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-card)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                      <label htmlFor="inp-bgSlideshowFixed" style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>
+                        🔒 Kunci Posisi Latar (Fixed / Parallax)
+                      </label>
+                      <input
+                        type="checkbox"
+                        id="inp-bgSlideshowFixed"
+                        checked={style.bgSlideshowFixed !== undefined ? !!style.bgSlideshowFixed : true}
+                        onChange={(e) => updateStyleProp('bgSlideshowFixed', e.target.checked)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                    </div>
+
                     <div className="form-group" style={{ margin: 0 }}>
                       <label>Warna Overlay Transparan Latar (Agar Teks Jelas)</label>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
