@@ -193,7 +193,6 @@ export interface NodeStyle {
   bgSlideshowInterval?: number;
   bgSlideshowEffect?: string;
   bgSlideshowCustomUrls?: string;
-  bgSlideshowFixed?: boolean;
   // Border
   borderRadius?: string;
   borderWidth?: string;

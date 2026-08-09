@@ -274,7 +274,7 @@ export function NodeRenderer({
         containerStyle.backgroundSize = getResponsiveStyle(style, 'backgroundSize', 'cover', viewportMode);
         containerStyle.backgroundPosition = getResponsiveStyle(style, 'backgroundPosition', 'center', viewportMode);
         containerStyle.backgroundRepeat = 'no-repeat';
-        containerStyle.backgroundAttachment = style.bgSlideshowFixed !== false ? 'fixed' : 'scroll';
+        if (typeof style.backgroundAttachment === 'string') containerStyle.backgroundAttachment = style.backgroundAttachment as any;
         containerStyle.transition = 'background-image 0.8s ease-in-out, background-color 0.8s ease-in-out';
       }
     }
