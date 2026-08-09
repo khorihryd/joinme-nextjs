@@ -810,14 +810,80 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
             </div>
 
             {isContainer && (
-              <div className="form-group">
-                <label>Gambar Latar (Background Image URL)</label>
-                <input
-                  type="text"
-                  value={getResponsiveVal('backgroundImage', '')}
-                  onChange={(e) => updateStyleProp('backgroundImage', e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                />
+              <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label>Tipe Latar Belakang (Background Mode)</label>
+                  <select
+                    value={style.bgType || 'normal'}
+                    onChange={(e) => updateStyleProp('bgType', e.target.value)}
+                  >
+                    <option value="normal">🎨 Warna / Gambar Biasa</option>
+                    <option value="gradient">🌈 Warna Gradien (Gradient)</option>
+                    <option value="gallery-slideshow">🖼️ Slideshow Galeri Lightbox (Auto-Play)</option>
+                  </select>
+                </div>
+
+                {style.bgType === 'gallery-slideshow' ? (
+                  <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Interval Kecepatan Slideshow (Detik)</label>
+                      <select
+                        value={style.bgSlideshowInterval || 5}
+                        onChange={(e) => updateStyleProp('bgSlideshowInterval', parseInt(e.target.value, 10) || 5)}
+                      >
+                        <option value={3}>3 Detik (Cepat)</option>
+                        <option value={4}>4 Detik</option>
+                        <option value={5}>5 Detik (Standar)</option>
+                        <option value={8}>8 Detik (Lambat)</option>
+                        <option value={10}>10 Detik (Sangat Lambat)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Efek Transisi Animasi</label>
+                      <select
+                        value={style.bgSlideshowEffect || 'fade'}
+                        onChange={(e) => updateStyleProp('bgSlideshowEffect', e.target.value)}
+                      >
+                        <option value="fade">✨ Soft Crossfade</option>
+                        <option value="kenburns">🔍 Ken-Burns (Zoom In)</option>
+                        <option value="slide">➡️ Slide Horizontal</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Warna Overlay Transparan Latar (Agar Teks Jelas)</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          type="color"
+                          value={style.backgroundOverlayColor && style.backgroundOverlayColor.startsWith('#') ? style.backgroundOverlayColor : '#000000'}
+                          onChange={(e) => updateStyleProp('backgroundOverlayColor', e.target.value)}
+                          style={{ width: '40px', height: '36px', border: 'none', cursor: 'pointer' }}
+                        />
+                        <input
+                          type="text"
+                          value={style.backgroundOverlayColor || ''}
+                          onChange={(e) => updateStyleProp('backgroundOverlayColor', e.target.value)}
+                          placeholder="rgba(0,0,0,0.4)"
+                        />
+                      </div>
+                    </div>
+
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      💡 Container akan otomatis memutar seluruh foto yang tercentang <strong style={{ color: 'var(--primary)' }}>"Tambahkan ke Galeri Lightbox"</strong>.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Gambar Latar (Background Image URL)</label>
+                    <input
+                      type="text"
+                      value={getResponsiveVal('backgroundImage', '')}
+                      onChange={(e) => updateStyleProp('backgroundImage', e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                    />
+                  </div>
+                )}
               </div>
             )}
 

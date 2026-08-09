@@ -181,6 +181,7 @@ export interface NodeStyle {
   fontStyle?: string;
   color?: string;
   // Background
+  bgType?: string;
   backgroundColor?: string;
   backgroundImage?: string;
   backgroundSize?: string;
@@ -189,6 +190,9 @@ export interface NodeStyle {
   backgroundOverlayColor?: string;
   backgroundOverlayOpacity?: string;
   backgroundVideoUrl?: string;
+  bgSlideshowInterval?: number;
+  bgSlideshowEffect?: string;
+  bgSlideshowCustomUrls?: string;
   // Border
   borderRadius?: string;
   borderWidth?: string;
@@ -225,7 +229,7 @@ export interface NodeStyle {
   // Ken Burns
   kenBurns?: boolean;
   // Custom
-  [key: string]: string | boolean | undefined;
+  [key: string]: string | boolean | number | undefined;
 }
 
 export interface StudioNode {

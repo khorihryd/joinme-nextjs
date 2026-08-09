@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StudioNode } from '@/types';
 import { resolveTextVariables, useStudioStore } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
@@ -15,6 +15,73 @@ export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
     }
   });
   return list;
+}
+
+function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNodes?: StudioNode[] }) {
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : useStudioStore.getState().nodes;
+  const galleryImages = collectGalleryImageUrls(nodesToSearch);
+
+  const intervalSec = style.bgSlideshowInterval || 5;
+  const effect = style.bgSlideshowEffect || 'fade';
+  const overlayColor = style.backgroundOverlayColor || 'rgba(0, 0, 0, 0.4)';
+
+  useEffect(() => {
+    if (galleryImages.length <= 1) return;
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % galleryImages.length);
+    }, intervalSec * 1000);
+
+    return () => clearInterval(timer);
+  }, [galleryImages.length, intervalSec]);
+
+  if (galleryImages.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        zIndex: 0,
+        pointerEvents: 'none',
+        borderRadius: 'inherit',
+      }}
+    >
+      {galleryImages.map((imgUrl, idx) => {
+        const isActive = idx === slideIndex;
+        return (
+          <div
+            key={imgUrl + idx}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${imgUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: isActive ? 1 : 0,
+              transition: 'opacity 1.2s ease-in-out',
+              transform: effect === 'kenburns' && isActive ? 'scale(1.12)' : 'scale(1)',
+              transitionProperty: effect === 'kenburns' ? 'opacity, transform' : 'opacity',
+              transitionDuration: effect === 'kenburns' ? '1.2s, 8s' : '1.2s',
+              transitionTimingFunction: 'ease-in-out',
+            }}
+          />
+        );
+      })}
+
+      {/* Overlay for legibility */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: overlayColor,
+          zIndex: 1,
+        }}
+      />
+    </div>
+  );
 }
 
 interface NodeRendererProps {
@@ -194,6 +261,7 @@ export function NodeRenderer({
 
   // Container Rendering
   if (node.type === 'container') {
+    const isSlideshowBg = style.bgType === 'gallery-slideshow';
     const displayMode = getResponsiveStyle(style, 'display', 'flex', viewportMode);
     const containerInnerStyle: React.CSSProperties = {
       display: displayMode as any,
@@ -220,23 +288,32 @@ export function NodeRenderer({
       <div
         id={`node-dom-${node.id}`}
         onClick={handleClick}
-        style={computedStyle}
+        style={{
+          ...computedStyle,
+          position: computedStyle.position || 'relative',
+        }}
         className={nodeClassName}
       >
         {actionOverlay}
-        {style.backgroundOverlayColor && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: style.backgroundOverlayColor,
-              opacity: style.backgroundOverlayOpacity || 0.5,
-              pointerEvents: 'none',
-              borderRadius: 'inherit',
-            }}
-          />
+
+        {isSlideshowBg ? (
+          <ContainerSlideshowBackground style={style} allNodes={allNodes} />
+        ) : (
+          style.backgroundOverlayColor && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: style.backgroundOverlayColor,
+                opacity: style.backgroundOverlayOpacity || 0.5,
+                pointerEvents: 'none',
+                borderRadius: 'inherit',
+              }}
+            />
+          )
         )}
-        <div style={containerInnerStyle} className="container-inner-wrapper">
+
+        <div style={{ ...containerInnerStyle, position: 'relative', zIndex: 1 }} className="container-inner-wrapper">
           {node.children?.map((child) => (
             <NodeRenderer
               key={child.id}
