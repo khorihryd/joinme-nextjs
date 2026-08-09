@@ -17,13 +17,28 @@ export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   return list;
 }
 
+const DEFAULT_GALLERY_FALLBACKS = [
+  'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&auto=format&fit=crop&q=80',
+];
+
 function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNodes?: StudioNode[] }) {
   const [slideIndex, setSlideIndex] = useState(0);
 
-  const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : useStudioStore.getState().nodes;
-  const galleryImages = collectGalleryImageUrls(nodesToSearch);
+  const storeNodes = useStudioStore.getState().nodes;
+  const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
+  let galleryImages = collectGalleryImageUrls(nodesToSearch);
 
-  const intervalSec = style.bgSlideshowInterval || 5;
+  if (galleryImages.length === 0) {
+    if (style.backgroundImage) {
+      galleryImages = [style.backgroundImage, ...DEFAULT_GALLERY_FALLBACKS];
+    } else {
+      galleryImages = DEFAULT_GALLERY_FALLBACKS;
+    }
+  }
+
+  const intervalSec = typeof style.bgSlideshowInterval === 'number' ? style.bgSlideshowInterval : (parseInt(style.bgSlideshowInterval, 10) || 5);
   const effect = style.bgSlideshowEffect || 'fade';
   const overlayColor = style.backgroundOverlayColor || 'rgba(0, 0, 0, 0.4)';
 
@@ -35,8 +50,6 @@ function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNode
 
     return () => clearInterval(timer);
   }, [galleryImages.length, intervalSec]);
-
-  if (galleryImages.length === 0) return null;
 
   return (
     <div
@@ -51,6 +64,18 @@ function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNode
     >
       {galleryImages.map((imgUrl, idx) => {
         const isActive = idx === slideIndex;
+
+        let transformStyle = 'scale(1)';
+        let transitionStyle = 'opacity 1.2s ease-in-out';
+
+        if (effect === 'kenburns') {
+          transformStyle = isActive ? 'scale(1.15)' : 'scale(1)';
+          transitionStyle = 'opacity 1.2s ease-in-out, transform 8s ease-in-out';
+        } else if (effect === 'slide') {
+          transformStyle = isActive ? 'translateX(0)' : idx < slideIndex ? 'translateX(-100%)' : 'translateX(100%)';
+          transitionStyle = 'opacity 0.8s ease-in-out, transform 0.8s ease-in-out';
+        }
+
         return (
           <div
             key={imgUrl + idx}
@@ -61,11 +86,8 @@ function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNode
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               opacity: isActive ? 1 : 0,
-              transition: 'opacity 1.2s ease-in-out',
-              transform: effect === 'kenburns' && isActive ? 'scale(1.12)' : 'scale(1)',
-              transitionProperty: effect === 'kenburns' ? 'opacity, transform' : 'opacity',
-              transitionDuration: effect === 'kenburns' ? '1.2s, 8s' : '1.2s',
-              transitionTimingFunction: 'ease-in-out',
+              transform: transformStyle,
+              transition: transitionStyle,
             }}
           />
         );
