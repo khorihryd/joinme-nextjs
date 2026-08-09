@@ -23,94 +23,6 @@ const DEFAULT_GALLERY_FALLBACKS = [
   'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&auto=format&fit=crop&q=80',
 ];
 
-function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNodes?: StudioNode[] }) {
-  const [slideIndex, setSlideIndex] = useState(0);
-
-  const storeNodes = useStudioStore.getState().nodes;
-  const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
-  let galleryImages = collectGalleryImageUrls(nodesToSearch);
-
-  if (galleryImages.length === 0) {
-    if (style.backgroundImage) {
-      galleryImages = [style.backgroundImage, ...DEFAULT_GALLERY_FALLBACKS];
-    } else {
-      galleryImages = DEFAULT_GALLERY_FALLBACKS;
-    }
-  }
-
-  const intervalSec = typeof style.bgSlideshowInterval === 'number' ? style.bgSlideshowInterval : (parseInt(style.bgSlideshowInterval, 10) || 5);
-  const effect = style.bgSlideshowEffect || 'fade';
-  const overlayColor = style.backgroundOverlayColor || 'rgba(0, 0, 0, 0.4)';
-  const isFixed = style.bgSlideshowFixed !== undefined ? !!style.bgSlideshowFixed : true;
-
-  useEffect(() => {
-    if (galleryImages.length <= 1) return;
-    const timer = setInterval(() => {
-      setSlideIndex((prev) => (prev + 1) % galleryImages.length);
-    }, intervalSec * 1000);
-
-    return () => clearInterval(timer);
-  }, [galleryImages.length, intervalSec]);
-
-  return (
-    <div
-      style={{
-        position: isFixed ? 'fixed' : 'absolute',
-        top: 0,
-        left: 0,
-        width: isFixed ? '100vw' : '100%',
-        height: isFixed ? '100vh' : '100%',
-        minHeight: '100%',
-        overflow: 'hidden',
-        zIndex: 0,
-        pointerEvents: 'none',
-        borderRadius: 'inherit',
-      }}
-    >
-      {galleryImages.map((imgUrl, idx) => {
-        const isActive = idx === slideIndex;
-
-        let transformStyle = 'scale(1)';
-        let transitionStyle = 'opacity 1.2s ease-in-out';
-
-        if (effect === 'kenburns') {
-          transformStyle = isActive ? 'scale(1.15)' : 'scale(1)';
-          transitionStyle = 'opacity 1.2s ease-in-out, transform 8s ease-in-out';
-        } else if (effect === 'slide') {
-          transformStyle = isActive ? 'translateX(0)' : idx < slideIndex ? 'translateX(-100%)' : 'translateX(100%)';
-          transitionStyle = 'opacity 0.8s ease-in-out, transform 0.8s ease-in-out';
-        }
-
-        return (
-          <div
-            key={imgUrl + idx}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url(${imgUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              opacity: isActive ? 1 : 0,
-              transform: transformStyle,
-              transition: transitionStyle,
-            }}
-          />
-        );
-      })}
-
-      {/* Overlay for legibility */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: overlayColor,
-          zIndex: 1,
-        }}
-      />
-    </div>
-  );
-}
-
 interface NodeRendererProps {
   node: StudioNode;
   allNodes?: StudioNode[];
@@ -168,6 +80,34 @@ export function NodeRenderer({
 }: NodeRendererProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  const style = node.style || {};
+  const isSlideshowBg = node.type === 'container' && style.bgType === 'gallery-slideshow';
+  const intervalSec = typeof style.bgSlideshowInterval === 'number' ? style.bgSlideshowInterval : (style.bgSlideshowInterval ? parseInt(String(style.bgSlideshowInterval), 10) : 5);
+
+  useEffect(() => {
+    if (!isSlideshowBg) return;
+    const storeNodes = useStudioStore.getState().nodes;
+    const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
+    let gImages = collectGalleryImageUrls(nodesToSearch);
+
+    if (gImages.length === 0) {
+      if (style.backgroundImage) {
+        gImages = [style.backgroundImage, ...DEFAULT_GALLERY_FALLBACKS];
+      } else {
+        gImages = DEFAULT_GALLERY_FALLBACKS;
+      }
+    }
+
+    if (gImages.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % gImages.length);
+    }, intervalSec * 1000);
+
+    return () => clearInterval(timer);
+  }, [isSlideshowBg, allNodes, intervalSec, style.backgroundImage]);
 
   const isSelected = selectedNodeId === node.id;
 
@@ -177,7 +117,6 @@ export function NodeRenderer({
     onSelectNode(node.id);
   };
 
-  const style = node.style || {};
   const contentText = resolveTextVariables(node.content || '', eventDetails);
 
   // Compute CSS Style object for the node container wrapper
@@ -240,7 +179,7 @@ export function NodeRenderer({
     const c2 = style.gradientColor2 || '#C9A66B';
     const dir = getResponsiveStyle(style, 'gradientDirection', 'to right', viewportMode);
     computedStyle.backgroundImage = dir === 'radial' ? `radial-gradient(circle, ${c1}, ${c2})` : `linear-gradient(${dir}, ${c1}, ${c2})`;
-  } else {
+  } else if (style.bgType !== 'gallery-slideshow') {
     if (style.backgroundColor) computedStyle.backgroundColor = style.backgroundColor;
     const bgImg = getResponsiveStyle(style, 'backgroundImage', '', viewportMode);
     if (bgImg) {
@@ -288,13 +227,14 @@ export function NodeRenderer({
 
   // Container Rendering
   if (node.type === 'container') {
-    const isSlideshowBg = style.bgType === 'gallery-slideshow';
     const displayMode = getResponsiveStyle(style, 'display', 'flex', viewportMode);
     const containerInnerStyle: React.CSSProperties = {
       display: displayMode as any,
       width: '100%',
       height: '100%',
       minHeight: 'inherit',
+      position: 'relative',
+      zIndex: 1,
     };
 
     if (displayMode === 'grid') {
@@ -311,36 +251,58 @@ export function NodeRenderer({
       containerInnerStyle.gap = style.gap !== undefined ? `${getResponsiveStyle(style, 'gap', style.gap, viewportMode)}px` : '12px';
     }
 
+    const containerStyle: React.CSSProperties = {
+      ...computedStyle,
+      position: computedStyle.position || 'relative',
+    };
+
+    if (isSlideshowBg) {
+      const storeNodes = useStudioStore.getState().nodes;
+      const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
+      let gImages = collectGalleryImageUrls(nodesToSearch);
+      if (gImages.length === 0) {
+        if (style.backgroundImage) {
+          gImages = [style.backgroundImage, ...DEFAULT_GALLERY_FALLBACKS];
+        } else {
+          gImages = DEFAULT_GALLERY_FALLBACKS;
+        }
+      }
+
+      if (gImages.length > 0) {
+        const currentBgUrl = gImages[slideIndex % gImages.length];
+        containerStyle.backgroundImage = `url(${currentBgUrl})`;
+        containerStyle.backgroundSize = getResponsiveStyle(style, 'backgroundSize', 'cover', viewportMode);
+        containerStyle.backgroundPosition = getResponsiveStyle(style, 'backgroundPosition', 'center', viewportMode);
+        containerStyle.backgroundRepeat = 'no-repeat';
+        containerStyle.backgroundAttachment = style.bgSlideshowFixed !== false ? 'fixed' : 'scroll';
+        containerStyle.transition = 'background-image 0.8s ease-in-out, background-color 0.8s ease-in-out';
+      }
+    }
+
     return (
       <div
         id={`node-dom-${node.id}`}
         onClick={handleClick}
-        style={{
-          ...computedStyle,
-          position: computedStyle.position || 'relative',
-        }}
+        style={containerStyle}
         className={nodeClassName}
       >
         {actionOverlay}
 
-        {isSlideshowBg ? (
-          <ContainerSlideshowBackground style={style} allNodes={allNodes} />
-        ) : (
-          style.backgroundOverlayColor && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: style.backgroundOverlayColor,
-                opacity: style.backgroundOverlayOpacity || 0.5,
-                pointerEvents: 'none',
-                borderRadius: 'inherit',
-              }}
-            />
-          )
+        {style.backgroundOverlayColor && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: style.backgroundOverlayColor,
+              opacity: style.backgroundOverlayOpacity || 0.5,
+              pointerEvents: 'none',
+              borderRadius: 'inherit',
+              zIndex: 0,
+            }}
+          />
         )}
 
-        <div style={{ ...containerInnerStyle, position: 'relative', zIndex: 1 }} className="container-inner-wrapper">
+        <div style={containerInnerStyle} className="container-inner-wrapper">
           {node.children?.map((child) => (
             <NodeRenderer
               key={child.id}
