@@ -193,6 +193,10 @@ export interface NodeStyle {
   bgSlideshowInterval?: number;
   bgSlideshowEffect?: string;
   bgSlideshowCustomUrls?: string;
+  gradientColors?: string[];
+  gradientDirection?: string;
+  gradientColor1?: string;
+  gradientColor2?: string;
   // Border
   borderRadius?: string;
   borderWidth?: string;
@@ -229,7 +233,7 @@ export interface NodeStyle {
   // Ken Burns
   kenBurns?: boolean;
   // Custom
-  [key: string]: string | boolean | number | undefined;
+  [key: string]: string | boolean | number | string[] | undefined;
 }
 
 export interface StudioNode {

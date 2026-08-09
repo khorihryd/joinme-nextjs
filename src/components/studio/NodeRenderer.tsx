@@ -175,10 +175,19 @@ export function NodeRenderer({
   const nodeClassName = `canvas-node-item ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`;
 
   if (style.bgType === 'gradient') {
-    const c1 = style.gradientColor1 || '#8B5E3C';
-    const c2 = style.gradientColor2 || '#C9A66B';
     const dir = getResponsiveStyle(style, 'gradientDirection', 'to right', viewportMode);
-    computedStyle.backgroundImage = dir === 'radial' ? `radial-gradient(circle, ${c1}, ${c2})` : `linear-gradient(${dir}, ${c1}, ${c2})`;
+    let colorStops: string[] = [];
+
+    if (Array.isArray(style.gradientColors) && style.gradientColors.length > 0) {
+      colorStops = style.gradientColors;
+    } else {
+      const c1 = style.gradientColor1 || '#8B5E3C';
+      const c2 = style.gradientColor2 || '#C9A66B';
+      colorStops = [c1, c2];
+    }
+
+    const stopsStr = colorStops.join(', ');
+    computedStyle.backgroundImage = dir === 'radial' || dir === 'circle' ? `radial-gradient(circle, ${stopsStr})` : `linear-gradient(${dir}, ${stopsStr})`;
   } else if (style.bgType !== 'gallery-slideshow') {
     if (style.backgroundColor) computedStyle.backgroundColor = style.backgroundColor;
     const bgImg = getResponsiveStyle(style, 'backgroundImage', '', viewportMode);

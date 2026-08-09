@@ -270,6 +270,50 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
     updateNodeProp('content', current + ' ' + varTag);
   };
 
+  // Multi-Color Gradient Helpers
+  const currentGradientColors = Array.isArray(style.gradientColors) && style.gradientColors.length > 0
+    ? style.gradientColors
+    : [style.gradientColor1 || '#8B5E3C', style.gradientColor2 || '#C9A66B'];
+
+  const updateGradientColorItem = (index: number, newColor: string) => {
+    const updated = [...currentGradientColors];
+    updated[index] = newColor;
+    updateMultipleStyleProps({
+      gradientColors: updated,
+      gradientColor1: updated[0],
+      gradientColor2: updated[1] || updated[0],
+    });
+  };
+
+  const addGradientColorItem = () => {
+    const updated = [...currentGradientColors, 'rgba(255, 255, 255, 0.5)'];
+    updateMultipleStyleProps({
+      gradientColors: updated,
+      gradientColor1: updated[0],
+      gradientColor2: updated[1] || updated[0],
+    });
+  };
+
+  const removeGradientColorItem = (index: number) => {
+    if (currentGradientColors.length <= 2) return;
+    const updated = currentGradientColors.filter((_, i) => i !== index);
+    updateMultipleStyleProps({
+      gradientColors: updated,
+      gradientColor1: updated[0],
+      gradientColor2: updated[1] || updated[0],
+    });
+  };
+
+  const applyGradientPreset = (colors: string[], dir: string) => {
+    updateMultipleStyleProps({
+      bgType: 'gradient',
+      gradientColors: colors,
+      gradientDirection: dir,
+      gradientColor1: colors[0],
+      gradientColor2: colors[1] || colors[0],
+    });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Node Header Badge & Custom Label Editor */}
@@ -823,7 +867,133 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   </select>
                 </div>
 
-                {style.bgType === 'gallery-slideshow' ? (
+                {style.bgType === 'gradient' && (
+                  <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {/* Presets */}
+                    <div style={{ padding: '0.5rem', background: 'var(--bg-card)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
+                        🍧 Preset Gradien Instan:
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => applyGradientPreset(['rgba(255,241,245,0.85)', 'rgba(253,226,236,0.6)', 'rgba(244,114,182,0.3)'], '135deg')}
+                          style={{ padding: '3px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'linear-gradient(135deg, rgba(255,241,245,0.85), rgba(244,114,182,0.3))', cursor: 'pointer', textAlign: 'left', fontWeight: 600 }}
+                        >
+                          🌸 Soft Rose
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyGradientPreset(['#8B5E3C', '#C9A66B', '#E36397'], 'to right')}
+                          style={{ padding: '3px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'linear-gradient(to right, #8B5E3C, #E36397)', color: '#fff', cursor: 'pointer', textAlign: 'left', fontWeight: 600 }}
+                        >
+                          ✨ Sunset Lux
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyGradientPreset(['rgba(15,23,42,0.95)', 'rgba(30,41,59,0.9)', 'rgba(217,119,6,0.4)'], '135deg')}
+                          style={{ padding: '3px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'linear-gradient(135deg, #0f172a, #d97706)', color: '#fff', cursor: 'pointer', textAlign: 'left', fontWeight: 600 }}
+                        >
+                          🌑 Dark Gold
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyGradientPreset(['rgba(236,253,245,0.9)', 'rgba(167,243,208,0.6)', 'rgba(16,185,129,0.3)'], '135deg')}
+                          style={{ padding: '3px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'linear-gradient(135deg, #ecfdf5, #10b981)', cursor: 'pointer', textAlign: 'left', fontWeight: 600 }}
+                        >
+                          🌿 Emerald Mint
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyGradientPreset(['rgba(255,255,255,0.75)', 'rgba(255,255,255,0.2)'], '135deg')}
+                          style={{ padding: '3px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.2))', cursor: 'pointer', textAlign: 'left', fontWeight: 600 }}
+                        >
+                          💎 Glass Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyGradientPreset(['#fef3c7', '#fde68a', '#f59e0b'], 'to right')}
+                          style={{ padding: '3px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'linear-gradient(to right, #fef3c7, #f59e0b)', cursor: 'pointer', textAlign: 'left', fontWeight: 600 }}
+                        >
+                          🌅 Golden Hour
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Direction */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Arah Gradien (Direction)</label>
+                      <select
+                        value={style.gradientDirection || 'to right'}
+                        onChange={(e) => updateStyleProp('gradientDirection', e.target.value)}
+                      >
+                        <option value="to right">➡️ Horizontal (Ke Kanan)</option>
+                        <option value="to bottom">⬇️ Vertikal (Ke Bawah)</option>
+                        <option value="135deg">↘️ Diagonal Kanan Bawah (135°)</option>
+                        <option value="45deg">↗️ Diagonal Kanan Atas (45°)</option>
+                        <option value="radial">⭕ Lingkaran Tengah (Radial)</option>
+                      </select>
+                    </div>
+
+                    {/* Multi-Color List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Daftar Warna Gradien ({currentGradientColors.length} Warna)</label>
+                      {currentGradientColors.map((colorItem: string, idx: number) => {
+                        const hexVal = colorItem.startsWith('#') ? colorItem : '#e36397';
+                        return (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', width: '16px' }}>
+                              #{idx + 1}
+                            </span>
+                            <input
+                              type="color"
+                              value={hexVal.length === 7 ? hexVal : '#e36397'}
+                              onChange={(e) => updateGradientColorItem(idx, e.target.value)}
+                              style={{ width: '34px', height: '32px', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={colorItem}
+                              onChange={(e) => updateGradientColorItem(idx, e.target.value)}
+                              placeholder="rgba(255,255,255,0.5) atau #ffffff"
+                              style={{ fontSize: '0.75rem', padding: '4px 8px', flex: 1 }}
+                            />
+                            {currentGradientColors.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => removeGradientColorItem(idx)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', padding: '2px' }}
+                                title="Hapus Warna Ini"
+                              >
+                                🗑️
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      <button
+                        type="button"
+                        onClick={addGradientColorItem}
+                        style={{
+                          marginTop: '0.2rem',
+                          padding: '4px 8px',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          border: '1px dashed var(--primary)',
+                          background: 'var(--bg-body)',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ➕ Tambah Warna Gradien
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {style.bgType === 'gallery-slideshow' && (
                   <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label>Interval Kecepatan Slideshow (Detik)</label>
@@ -873,8 +1043,10 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                       💡 Container akan otomatis memutar seluruh foto yang tercentang <strong style={{ color: 'var(--primary)' }}>"Tambahkan ke Galeri Lightbox"</strong>.
                     </p>
                   </div>
-                ) : (
-                  <div className="form-group" style={{ margin: 0 }}>
+                )}
+
+                {style.bgType !== 'gradient' && style.bgType !== 'gallery-slideshow' && (
+                  <div className="form-group" style={{ margin: 0, marginTop: '0.75rem' }}>
                     <label>Gambar Latar (Background Image URL)</label>
                     <input
                       type="text"
