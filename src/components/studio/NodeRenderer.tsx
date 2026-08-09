@@ -55,8 +55,12 @@ function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNode
   return (
     <div
       style={{
-        position: 'absolute',
-        inset: 0,
+        position: isFixed ? 'fixed' : 'absolute',
+        top: 0,
+        left: 0,
+        width: isFixed ? '100vw' : '100%',
+        height: isFixed ? '100vh' : '100%',
+        minHeight: '100%',
         overflow: 'hidden',
         zIndex: 0,
         pointerEvents: 'none',
@@ -86,7 +90,6 @@ function ContainerSlideshowBackground({ style, allNodes }: { style: any; allNode
               backgroundImage: `url(${imgUrl})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              backgroundAttachment: isFixed ? 'fixed' : 'scroll',
               opacity: isActive ? 1 : 0,
               transform: transformStyle,
               transition: transitionStyle,
