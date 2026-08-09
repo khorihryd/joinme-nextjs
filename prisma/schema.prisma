@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         String        @default("user")
+  plan         String        @default("Free")
+  status       String        @default("Aktif")
+  joinedDate   DateTime      @default(now())
+  eventsCount  Int           @default(0)
+  events       Event[]
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Event {
+  id         String    @id @default(cuid())
+  title      String
+  type       String
+  subdomain  String    @unique
+  views      Int       @default(0)
+  status     String    @default("Draft")
+  date       String?
+  details    Json?
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId String?
+  template   Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  guests     Guest[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([subdomain])
+}
+
+model Guest {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name       String
+  attendance String   @default("Hadir")
+  pax        Int      @default(1)
+  wishes     String?
+  createdAt  DateTime @default(now())
+
+  @@index([eventId])
+}
+
+model Template {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  tier         String   @default("Free")
+  status       String   @default("Aktif")
+  views        Int      @default(0)
+  thumbnail    String?
+  globalStyles Json?
+  nodes        Json?
+  events       Event[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Transaction {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan   String
+  amount Int
+  method String
+  status String   @default("Menunggu Verifikasi")
+  date   DateTime @default(now())
+
+  @@index([userId])
+}
