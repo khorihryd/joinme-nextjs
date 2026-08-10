@@ -543,6 +543,7 @@ export function NodeRenderer({
     const isCoverButton = node.buttonAction === 'open-cover' || contentText.toLowerCase().includes('buka undangan');
     const isMapsButton = node.buttonAction === 'google-maps' || contentText.toLowerCase().includes('google maps');
     const isCalendarButton = node.buttonAction === 'save-calendar' || contentText.toLowerCase().includes('simpan kalender') || contentText.toLowerCase().includes('save the date');
+    const isRsvpButton = node.buttonAction === 'submit-rsvp' || contentText.toLowerCase().includes('kirim rsvp') || contentText.toLowerCase().includes('kirim konfirmasi');
 
     const handleButtonClick = (e: React.MouseEvent) => {
       if (isPreviewMode) {
@@ -558,6 +559,10 @@ export function NodeRenderer({
         if (isCalendarButton) {
           const calUrl = generateGoogleCalendarUrl(eventDetails);
           window.open(calUrl, '_blank');
+          return;
+        }
+        if (isRsvpButton) {
+          alert('✅ Terima kasih! Konfirmasi Kehadiran & Doa Restu Anda telah terkirim.');
           return;
         }
       }
@@ -787,6 +792,89 @@ export function NodeRenderer({
         <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
           <span>🗺️ Google Map: {node.content || 'Lokasi Venue'}</span>
         </div>
+      </div>
+    );
+  }
+
+  // Input Field
+  if (node.type === 'input') {
+    return (
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleClick}
+        style={{ width: computedStyle.width || '100%', position: computedStyle.position || 'relative' }}
+        className={nodeClassName}
+      >
+        {actionOverlay}
+        <input
+          type="text"
+          placeholder={node.placeholder || 'Ketik nama Anda...'}
+          name={node.inputName || 'custom_input'}
+          style={{
+            ...computedStyle,
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+          readOnly={!isPreviewMode}
+        />
+      </div>
+    );
+  }
+
+  // Select Field
+  if (node.type === 'select') {
+    const rawOptions = node.selectOptions || 'Hadir, Tidak Hadir, Ragu-ragu';
+    const optionsList = rawOptions.split(',').map((opt) => opt.trim()).filter(Boolean);
+
+    return (
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleClick}
+        style={{ width: computedStyle.width || '100%', position: computedStyle.position || 'relative' }}
+        className={nodeClassName}
+      >
+        {actionOverlay}
+        <select
+          name={node.inputName || 'custom_select'}
+          style={{
+            ...computedStyle,
+            outline: 'none',
+            boxSizing: 'border-box',
+            cursor: 'pointer',
+          }}
+          disabled={!isPreviewMode}
+        >
+          {optionsList.map((opt, idx) => (
+            <option key={idx} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  // Textarea Field
+  if (node.type === 'textarea') {
+    return (
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleClick}
+        style={{ width: computedStyle.width || '100%', position: computedStyle.position || 'relative' }}
+        className={nodeClassName}
+      >
+        {actionOverlay}
+        <textarea
+          placeholder={node.placeholder || 'Tuliskan ucapan & doa restu...'}
+          name={node.inputName || 'custom_textarea'}
+          style={{
+            ...computedStyle,
+            outline: 'none',
+            boxSizing: 'border-box',
+            resize: 'vertical',
+          }}
+          readOnly={!isPreviewMode}
+        />
       </div>
     );
   }

@@ -819,6 +819,84 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
               </div>
             )}
 
+            {node.type === 'input' && (
+              <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)' }}>
+                  📝 Pengaturan Field Input Form
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Teks Placeholder</label>
+                  <input
+                    type="text"
+                    value={node.placeholder || ''}
+                    onChange={(e) => updateNodeProp('placeholder', e.target.value)}
+                    placeholder="Masukkan nama lengkap Anda..."
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Nama Variabel Field (Input Name)</label>
+                  <input
+                    type="text"
+                    value={node.inputName || ''}
+                    onChange={(e) => updateNodeProp('inputName', e.target.value)}
+                    placeholder="guest_name"
+                  />
+                </div>
+              </div>
+            )}
+
+            {node.type === 'select' && (
+              <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)' }}>
+                  📋 Pengaturan Field Select (Pilihan Dropdown)
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Opsi Pilihan (Dipisah Koma)</label>
+                  <input
+                    type="text"
+                    value={node.selectOptions || ''}
+                    onChange={(e) => updateNodeProp('selectOptions', e.target.value)}
+                    placeholder="Hadir, Tidak Hadir, Ragu-ragu"
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Nama Variabel Field (Input Name)</label>
+                  <input
+                    type="text"
+                    value={node.inputName || ''}
+                    onChange={(e) => updateNodeProp('inputName', e.target.value)}
+                    placeholder="attendance"
+                  />
+                </div>
+              </div>
+            )}
+
+            {node.type === 'textarea' && (
+              <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)' }}>
+                  ✍️ Pengaturan Field Textarea (Pesan Multi-Line)
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Teks Placeholder</label>
+                  <input
+                    type="text"
+                    value={node.placeholder || ''}
+                    onChange={(e) => updateNodeProp('placeholder', e.target.value)}
+                    placeholder="Tuliskan ucapan & doa restu..."
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Nama Variabel Field (Input Name)</label>
+                  <input
+                    type="text"
+                    value={node.inputName || ''}
+                    onChange={(e) => updateNodeProp('inputName', e.target.value)}
+                    placeholder="message"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Typography */}
             {!isContainer && (
               <>
