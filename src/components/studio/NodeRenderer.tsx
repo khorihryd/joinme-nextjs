@@ -664,16 +664,13 @@ export function NodeRenderer({
           const attendanceVal = selectInp?.value || '✅ Hadir';
           const msgVal = msgInp?.value?.trim();
 
-          if (!msgVal) {
-            alert('Mohon tuliskan pesan ucapan & doa restu Anda terlebih dahulu.');
-            return;
+          if (msgVal) {
+            useStudioStore.getState().addWish({
+              name: nameVal,
+              attendance: attendanceVal.startsWith('✅') || attendanceVal.startsWith('🙏') || attendanceVal.startsWith('🕊️') ? attendanceVal : `✅ ${attendanceVal}`,
+              message: msgVal,
+            });
           }
-
-          useStudioStore.getState().addWish({
-            name: nameVal,
-            attendance: attendanceVal.startsWith('✅') || attendanceVal.startsWith('🙏') || attendanceVal.startsWith('🕊️') ? attendanceVal : `✅ ${attendanceVal}`,
-            message: msgVal,
-          });
 
           if (nameInp) nameInp.value = '';
           if (msgInp) msgInp.value = '';

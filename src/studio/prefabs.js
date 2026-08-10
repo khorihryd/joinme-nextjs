@@ -458,7 +458,7 @@ export function createDefaultWidget(nodeType) {
           id: `txt-msg-${timestamp}`,
           type: 'textarea',
           inputName: 'message',
-          placeholder: 'Tuliskan ucapan & doa restu untuk kedua mempelai...',
+          placeholder: 'Tuliskan ucapan & doa restu... (Opsional)',
           style: { width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 13, backgroundColor: '#f8fafc', color: '#1e293b', borderStyle: 'solid', borderWidth: 1, borderColor: '#cbd5e1', height: '80px' }
         },
         {

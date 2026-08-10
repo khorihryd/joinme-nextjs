@@ -77,11 +77,11 @@ export function RSVPForm({
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-stone-600 block mb-1">Ucapan & Doa Restu</label>
+            <label className="text-xs font-bold text-stone-600 block mb-1">Ucapan & Doa Restu <span className="font-normal text-stone-400">(Opsional)</span></label>
             <textarea
               value={rsvpWishes}
               onChange={(e) => setRsvpWishes(e.target.value)}
-              placeholder="Tuliskan ucapan untuk mempelai..."
+              placeholder="Tuliskan ucapan untuk mempelai... (Opsional)"
               className="w-full p-3 rounded-xl border border-stone-200 text-sm bg-white h-20"
             />
           </div>
