@@ -618,7 +618,7 @@ export function NodeRenderer({
     const isRsvpButton = node.buttonAction === 'submit-rsvp' || contentText.toLowerCase().includes('kirim rsvp') || contentText.toLowerCase().includes('kirim konfirmasi');
 
     const handleButtonClick = (e: React.MouseEvent) => {
-      if (isPreviewMode || node.buttonAction === 'submit-rsvp' || node.buttonAction === 'google-maps' || node.buttonAction === 'save-calendar') {
+      if (isPreviewMode) {
         if (isCoverButton && onOpenCover) {
           onOpenCover();
           return;
