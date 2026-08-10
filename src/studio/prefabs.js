@@ -258,6 +258,102 @@ export function createDefaultWidget(nodeType) {
       };
       break;
 
+    case 'event':
+      newWidget.type = 'container';
+      newWidget.widgetType = 'event-list';
+      newWidget.style = {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 16,
+        padding: '32px 20px',
+        backgroundColor: '#ffffff',
+        borderRadius: 16,
+        boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
+        width: '100%',
+        margin: '0px 0px 24px 0px'
+      };
+      newWidget.children = [
+        {
+          id: `heading-event-${timestamp}`,
+          type: 'heading',
+          content: 'Rangkaian Acara',
+          style: { fontSize: 24, color: '#e36397', textAlign: 'center', fontFamily: 'Playfair Display', fontWeight: 'bold' }
+        },
+        {
+          id: `text-event-${timestamp}`,
+          type: 'text',
+          content: 'Merupakan suatu kehormatan & kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir untuk memberikan doa restu.',
+          style: { fontSize: 12, color: '#64748b', textAlign: 'center', fontFamily: 'Inter', margin: '0px 0px 12px 0px' }
+        },
+        {
+          id: `feed-event-list-${timestamp}`,
+          type: 'container',
+          isEventFeed: true,
+          style: {
+            flexDirection: 'column',
+            gap: 16,
+            width: '100%',
+            backgroundColor: 'transparent',
+            padding: '0px'
+          },
+          children: [
+            {
+              id: `card-event-sample-1-${timestamp}`,
+              type: 'container',
+              style: {
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8,
+                padding: '20px',
+                backgroundColor: '#f8fafc',
+                borderRadius: 14,
+                borderStyle: 'solid',
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                width: '100%'
+              },
+              children: [
+                {
+                  id: `event-title-1-${timestamp}`,
+                  type: 'heading',
+                  content: 'Akad Nikah',
+                  style: { fontSize: 18, color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center' }
+                },
+                {
+                  id: `event-date-1-${timestamp}`,
+                  type: 'text',
+                  content: '📅 {{event_date}} • 🕘 {{event_time}}',
+                  style: { fontSize: 13, color: '#e36397', fontWeight: '600', fontFamily: 'Inter', textAlign: 'center' }
+                },
+                {
+                  id: `event-loc-1-${timestamp}`,
+                  type: 'text',
+                  content: '📍 {{event_location}}',
+                  style: { fontSize: 13, color: '#334155', fontWeight: 'bold', fontFamily: 'Inter', textAlign: 'center' }
+                },
+                {
+                  id: `event-addr-1-${timestamp}`,
+                  type: 'text',
+                  content: 'Jl. Asia Afrika No. 8, Bandung',
+                  style: { fontSize: 12, color: '#64748b', fontFamily: 'Inter', textAlign: 'center', margin: '0px 0px 8px 0px' }
+                },
+                {
+                  id: `btn-map-1-${timestamp}`,
+                  type: 'button',
+                  buttonAction: 'google-maps',
+                  buttonIcon: '📍',
+                  iconPosition: 'left',
+                  iconGap: 6,
+                  content: 'Buka Google Maps',
+                  style: { backgroundColor: '#e36397', color: '#ffffff', fontSize: 12, fontWeight: 'bold', padding: '8px 18px', borderRadius: 20, width: 'auto' }
+                }
+              ]
+            }
+          ]
+        }
+      ];
+      break;
+
     case 'rsvp':
       newWidget.type = 'container';
       newWidget.widgetType = 'rsvp-form';

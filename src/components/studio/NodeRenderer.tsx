@@ -17,6 +17,34 @@ export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   return list;
 }
 
+export function cloneAndBindEventData(templateNode: StudioNode, evtData: any, idx: number): StudioNode {
+  const cloned: StudioNode = JSON.parse(JSON.stringify(templateNode));
+  cloned.id = `${cloned.id}-evt-${idx}`;
+
+  const replaceEvtText = (text?: string): string => {
+    if (!text) return '';
+    return text
+      .replace(/Akad Nikah/gi, evtData.title || 'Akad Nikah')
+      .replace(/\{\{event_title\}\}/gi, evtData.title || 'Acara')
+      .replace(/\{\{nama_acara\}\}/gi, evtData.title || 'Acara')
+      .replace(/\{\{event_date\}\}/gi, evtData.date || '')
+      .replace(/\{\{event_time\}\}/gi, evtData.time || '')
+      .replace(/\{\{event_location\}\}/gi, evtData.location || '')
+      .replace(/Jl\. Asia Afrika No\. 8, Bandung/gi, evtData.address || 'Jl. Asia Afrika No. 8, Bandung')
+      .replace(/\{\{event_address\}\}/gi, evtData.address || '');
+  };
+
+  if (cloned.content) {
+    cloned.content = replaceEvtText(cloned.content);
+  }
+
+  if (cloned.children && cloned.children.length > 0) {
+    cloned.children = cloned.children.map((child) => cloneAndBindEventData(child, evtData, idx));
+  }
+
+  return cloned;
+}
+
 const DEFAULT_GALLERY_FALLBACKS = [
   'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&auto=format&fit=crop&q=80',
@@ -348,6 +376,67 @@ export function NodeRenderer({
       overflow: computedStyle.overflow || 'hidden',
     };
 
+    // Dynamic Event Feed Container (isEventFeed) Rendering in Preview Mode
+    if (node.isEventFeed && isPreviewMode) {
+      const rawEvents = Array.isArray(eventDetails?.events) && eventDetails.events.length > 0
+        ? eventDetails.events
+        : [
+            {
+              title: 'Akad Nikah',
+              date: eventDetails?.event_date || '21 September 2026',
+              time: eventDetails?.event_time || '08:00 WIB',
+              location: eventDetails?.event_location || 'Grand Ballroom Hotel Mulia, Jakarta',
+              address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+              mapUrl: eventDetails?.mapUrl || 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta',
+            },
+            {
+              title: 'Resepsi Pernikahan',
+              date: eventDetails?.event_date || '21 September 2026',
+              time: '11:00 WIB - Selesai',
+              location: eventDetails?.event_location || 'Grand Ballroom Hotel Mulia, Jakarta',
+              address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+              mapUrl: eventDetails?.mapUrl || 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta',
+            },
+          ];
+
+      const sampleCardTemplate = node.children && node.children.length > 0 ? node.children[0] : null;
+
+      return (
+        <div
+          id={`node-dom-${node.id}`}
+          onClick={handleClick}
+          style={containerStyle}
+          className={nodeClassName}
+        >
+          {actionOverlay}
+
+          <div style={containerInnerStyle} className="container-inner-wrapper">
+            {rawEvents.map((evt: any, evtIdx: number) => {
+              if (sampleCardTemplate) {
+                const boundCard = cloneAndBindEventData(sampleCardTemplate, evt, evtIdx);
+                return (
+                  <NodeRenderer
+                    key={`evt-card-${evtIdx}-${boundCard.id}`}
+                    node={boundCard}
+                    allNodes={allNodes}
+                    selectedNodeId={selectedNodeId}
+                    onSelectNode={onSelectNode}
+                    onDeleteNode={onDeleteNode}
+                    onDuplicateNode={onDuplicateNode}
+                    eventDetails={{ ...eventDetails, ...evt, mapUrl: evt.mapUrl || eventDetails?.mapUrl }}
+                    viewportMode={viewportMode}
+                    isPreviewMode={isPreviewMode}
+                    onOpenCover={onOpenCover}
+                  />
+                );
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         id={`node-dom-${node.id}`}
@@ -429,11 +518,19 @@ export function NodeRenderer({
   // Button
   if (node.type === 'button') {
     const isCoverButton = node.buttonAction === 'open-cover' || contentText.toLowerCase().includes('buka undangan');
+    const isMapsButton = node.buttonAction === 'google-maps' || contentText.toLowerCase().includes('google maps');
 
     const handleButtonClick = (e: React.MouseEvent) => {
-      if (isCoverButton && onOpenCover) {
-        onOpenCover();
-        return;
+      if (isPreviewMode) {
+        if (isCoverButton && onOpenCover) {
+          onOpenCover();
+          return;
+        }
+        if (isMapsButton) {
+          const mapUrl = eventDetails?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent((eventDetails?.event_location || '') + ' ' + (eventDetails?.event_address || ''))}`;
+          window.open(mapUrl, '_blank');
+          return;
+        }
       }
       handleClick(e);
     };
