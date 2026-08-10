@@ -23,6 +23,80 @@ const DEFAULT_GALLERY_FALLBACKS = [
   'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&auto=format&fit=crop&q=80',
 ];
 
+function ContainerSlideshowBackground({ style, allNodes, slideIndex }: { style: any; allNodes?: StudioNode[]; slideIndex: number }) {
+  const storeNodes = useStudioStore.getState().nodes;
+  const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
+  let galleryImages = collectGalleryImageUrls(nodesToSearch);
+
+  if (galleryImages.length === 0) {
+    if (style.backgroundImage) {
+      galleryImages = [style.backgroundImage, ...DEFAULT_GALLERY_FALLBACKS];
+    } else {
+      galleryImages = DEFAULT_GALLERY_FALLBACKS;
+    }
+  }
+
+  const effect = style.bgSlideshowEffect || 'fade';
+  const overlayColor = style.backgroundOverlayColor || 'rgba(0, 0, 0, 0.4)';
+  const activeIdx = galleryImages.length > 0 ? slideIndex % galleryImages.length : 0;
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        zIndex: 0,
+        pointerEvents: 'none',
+        borderRadius: 'inherit',
+      }}
+    >
+      {galleryImages.map((imgUrl, idx) => {
+        const isActive = idx === activeIdx;
+
+        let transformStyle = 'scale(1)';
+        let transitionStyle = 'opacity 1.2s ease-in-out';
+
+        if (effect === 'kenburns') {
+          transformStyle = isActive ? 'scale(1.15)' : 'scale(1)';
+          transitionStyle = 'opacity 1.2s ease-in-out, transform 8s ease-in-out';
+        } else if (effect === 'slide') {
+          transformStyle = isActive ? 'translateX(0)' : idx < activeIdx ? 'translateX(-100%)' : 'translateX(100%)';
+          transitionStyle = 'opacity 0.8s ease-in-out, transform 0.8s ease-in-out';
+        }
+
+        return (
+          <div
+            key={imgUrl + idx}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${imgUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: isActive ? 1 : 0,
+              transform: transformStyle,
+              transition: transitionStyle,
+            }}
+          />
+        );
+      })}
+
+      {/* Overlay for legibility */}
+      {overlayColor && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: overlayColor,
+            zIndex: 1,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 interface NodeRendererProps {
   node: StudioNode;
   allNodes?: StudioNode[];
@@ -263,30 +337,8 @@ export function NodeRenderer({
     const containerStyle: React.CSSProperties = {
       ...computedStyle,
       position: computedStyle.position || 'relative',
+      overflow: computedStyle.overflow || 'hidden',
     };
-
-    if (isSlideshowBg) {
-      const storeNodes = useStudioStore.getState().nodes;
-      const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
-      let gImages = collectGalleryImageUrls(nodesToSearch);
-      if (gImages.length === 0) {
-        if (style.backgroundImage) {
-          gImages = [style.backgroundImage, ...DEFAULT_GALLERY_FALLBACKS];
-        } else {
-          gImages = DEFAULT_GALLERY_FALLBACKS;
-        }
-      }
-
-      if (gImages.length > 0) {
-        const currentBgUrl = gImages[slideIndex % gImages.length];
-        containerStyle.backgroundImage = `url(${currentBgUrl})`;
-        containerStyle.backgroundSize = getResponsiveStyle(style, 'backgroundSize', 'cover', viewportMode);
-        containerStyle.backgroundPosition = getResponsiveStyle(style, 'backgroundPosition', 'center', viewportMode);
-        containerStyle.backgroundRepeat = 'no-repeat';
-        if (typeof style.backgroundAttachment === 'string') containerStyle.backgroundAttachment = style.backgroundAttachment as any;
-        containerStyle.transition = 'background-image 0.8s ease-in-out, background-color 0.8s ease-in-out';
-      }
-    }
 
     return (
       <div
@@ -297,18 +349,22 @@ export function NodeRenderer({
       >
         {actionOverlay}
 
-        {style.backgroundOverlayColor && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: style.backgroundOverlayColor,
-              opacity: style.backgroundOverlayOpacity || 0.5,
-              pointerEvents: 'none',
-              borderRadius: 'inherit',
-              zIndex: 0,
-            }}
-          />
+        {isSlideshowBg ? (
+          <ContainerSlideshowBackground style={style} allNodes={allNodes} slideIndex={slideIndex} />
+        ) : (
+          style.backgroundOverlayColor && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: style.backgroundOverlayColor,
+                opacity: style.backgroundOverlayOpacity || 0.5,
+                pointerEvents: 'none',
+                borderRadius: 'inherit',
+                zIndex: 0,
+              }}
+            />
+          )
         )}
 
         <div style={containerInnerStyle} className="container-inner-wrapper">
