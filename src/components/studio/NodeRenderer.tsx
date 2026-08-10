@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StudioNode } from '@/types';
 import { resolveTextVariables, useStudioStore, WishItem } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
+import { RsvpSuccessModal } from '@/components/studio/RsvpSuccessModal';
 
 export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   let list: string[] = [];
@@ -235,6 +236,7 @@ export function NodeRenderer({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [rsvpModalData, setRsvpModalData] = useState<{ name: string; attendance: string; message: string } | null>(null);
 
   const style = node.style || {};
   const isSlideshowBg = node.type === 'container' && style.bgType === 'gallery-slideshow';
@@ -657,7 +659,11 @@ export function NodeRenderer({
           if (nameInp) nameInp.value = '';
           if (msgInp) msgInp.value = '';
 
-          alert('✅ Terima kasih! Konfirmasi Kehadiran & Doa Restu Anda telah terkirim dan langsung muncul di Dinding Ucapan.');
+          setRsvpModalData({
+            name: nameVal,
+            attendance: attendanceVal,
+            message: msgVal,
+          });
           return;
         }
       }
@@ -665,17 +671,26 @@ export function NodeRenderer({
     };
 
     return (
-      <div
-        id={`node-dom-${node.id}`}
-        onClick={handleButtonClick}
-        style={{ cursor: 'pointer', ...computedStyle }}
-        className={`canvas-node-item btn btn-primary ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`}
-        role="button"
-        tabIndex={0}
-      >
-        {actionOverlay}
-        <span>{contentText}</span>
-      </div>
+      <>
+        <div
+          id={`node-dom-${node.id}`}
+          onClick={handleButtonClick}
+          style={{ cursor: 'pointer', ...computedStyle }}
+          className={`canvas-node-item btn btn-primary ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`}
+          role="button"
+          tabIndex={0}
+        >
+          {actionOverlay}
+          <span>{contentText}</span>
+        </div>
+
+        {rsvpModalData && (
+          <RsvpSuccessModal
+            data={rsvpModalData}
+            onClose={() => setRsvpModalData(null)}
+          />
+        )}
+      </>
     );
   }
 
