@@ -11,6 +11,7 @@ import { GalleryGrid } from '@/components/invitation/GalleryGrid';
 import { RSVPForm } from '@/components/invitation/RSVPForm';
 import { GiftSection } from '@/components/invitation/GiftSection';
 import { MusicPlayer } from '@/components/invitation/MusicPlayer';
+import { RsvpSuccessModal } from '@/components/studio/RsvpSuccessModal';
 
 export default function PublicInvitationPage({ params }: { params: Promise<{ subdomain: string }> }) {
   const { subdomain } = use(params);
@@ -29,6 +30,7 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
   const [rsvpWishes, setRsvpWishes] = useState('');
   const [wishesList, setWishesList] = useState<any[]>([]);
   const [submittingRsvp, setSubmittingRsvp] = useState(false);
+  const [rsvpModalData, setRsvpModalData] = useState<{ name: string; attendance: string; message: string } | null>(null);
 
   useEffect(() => {
     async function loadEvent() {
@@ -88,8 +90,12 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
       if (res.ok) {
         const newGuest = await res.json();
         setWishesList((prev) => [newGuest, ...prev]);
+        setRsvpModalData({
+          name: rsvpName || 'Tamu Undangan',
+          attendance: rsvpAttendance || 'Hadir',
+          message: rsvpWishes,
+        });
         setRsvpWishes('');
-        alert('Terima kasih atas konfirmasi RSVP & doa Anda! 🙏');
       }
     } catch (err) {
       alert('Gagal mengirim RSVP');
@@ -194,6 +200,14 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
         {/* Gift Section */}
         <GiftSection details={details} />
       </div>
+
+      {/* RSVP Success Modal */}
+      {rsvpModalData && (
+        <RsvpSuccessModal
+          data={rsvpModalData}
+          onClose={() => setRsvpModalData(null)}
+        />
+      )}
     </div>
   );
 }

@@ -618,7 +618,7 @@ export function NodeRenderer({
     const isRsvpButton = node.buttonAction === 'submit-rsvp' || contentText.toLowerCase().includes('kirim rsvp') || contentText.toLowerCase().includes('kirim konfirmasi');
 
     const handleButtonClick = (e: React.MouseEvent) => {
-      if (isPreviewMode) {
+      if (isPreviewMode || node.buttonAction === 'submit-rsvp' || node.buttonAction === 'google-maps' || node.buttonAction === 'save-calendar') {
         if (isCoverButton && onOpenCover) {
           onOpenCover();
           return;
@@ -634,12 +634,13 @@ export function NodeRenderer({
           return;
         }
         if (isRsvpButton) {
+          e.stopPropagation();
           const btnEl = document.getElementById(`node-dom-${node.id}`);
           const formWrapper = btnEl?.closest('.container-inner-wrapper') || btnEl?.parentElement;
 
-          const nameInp = (formWrapper?.querySelector('input[name="guest_name"], input[placeholder*="nama" i], input[type="text"]') || document.querySelector('input[name="guest_name"]')) as HTMLInputElement;
-          const selectInp = (formWrapper?.querySelector('select[name="attendance"], select') || document.querySelector('select[name="attendance"]')) as HTMLSelectElement;
-          const msgInp = (formWrapper?.querySelector('textarea[name="message"], textarea[placeholder*="ucapan" i], textarea') || document.querySelector('textarea[name="message"]')) as HTMLTextAreaElement;
+          const nameInp = (formWrapper?.querySelector('input[name="guest_name"], input[placeholder*="nama" i], input[type="text"]') || document.querySelector('input[name="guest_name"], input[placeholder*="nama" i]')) as HTMLInputElement;
+          const selectInp = (formWrapper?.querySelector('select[name="attendance"], select') || document.querySelector('select[name="attendance"], select')) as HTMLSelectElement;
+          const msgInp = (formWrapper?.querySelector('textarea[name="message"], textarea[placeholder*="ucapan" i], textarea') || document.querySelector('textarea[name="message"], textarea')) as HTMLTextAreaElement;
 
           const nameVal = nameInp?.value?.trim() || 'Tamu Undangan';
           const attendanceVal = selectInp?.value || '✅ Hadir';
@@ -652,7 +653,7 @@ export function NodeRenderer({
 
           useStudioStore.getState().addWish({
             name: nameVal,
-            attendance: attendanceVal.startsWith('✅') || attendanceVal.startsWith('🙏') ? attendanceVal : `✅ ${attendanceVal}`,
+            attendance: attendanceVal.startsWith('✅') || attendanceVal.startsWith('🙏') || attendanceVal.startsWith('🕊️') ? attendanceVal : `✅ ${attendanceVal}`,
             message: msgVal,
           });
 
