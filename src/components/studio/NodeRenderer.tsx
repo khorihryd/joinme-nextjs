@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StudioNode } from '@/types';
-import { resolveTextVariables, useStudioStore } from '@/store/studio-store';
+import { resolveTextVariables, useStudioStore, WishItem } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
 
 export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
@@ -66,6 +66,35 @@ export function generateGoogleCalendarUrl(eventDetails: any): string {
   }
 
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateStr}/${endDateStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+}
+
+export function cloneAndBindWishData(templateNode: StudioNode, wishItem: WishItem, idx: number): StudioNode {
+  const cloned: StudioNode = JSON.parse(JSON.stringify(templateNode));
+  cloned.id = `${cloned.id}-wish-${idx}`;
+
+  const replaceWishText = (text?: string): string => {
+    if (!text) return '';
+    return text
+      .replace(/Budi & Partner/gi, wishItem.name)
+      .replace(/\{\{wish_name\}\}/gi, wishItem.name)
+      .replace(/\{\{nama_tamu\}\}/gi, wishItem.name)
+      .replace(/✅ Hadir/gi, wishItem.attendance)
+      .replace(/\{\{wish_attendance\}\}/gi, wishItem.attendance)
+      .replace(/\{\{status_kehadiran\}\}/gi, wishItem.attendance)
+      .replace(/Selamat ya Roni & Anti! Semoga menjadi keluarga yang sakinah, mawaddah, warahmah. Aamiin./gi, wishItem.message)
+      .replace(/\{\{wish_message\}\}/gi, wishItem.message)
+      .replace(/\{\{pesan_ucapan\}\}/gi, wishItem.message);
+  };
+
+  if (cloned.content) {
+    cloned.content = replaceWishText(cloned.content);
+  }
+
+  if (cloned.children && cloned.children.length > 0) {
+    cloned.children = cloned.children.map((child) => cloneAndBindWishData(child, wishItem, idx));
+  }
+
+  return cloned;
 }
 
 const DEFAULT_GALLERY_FALLBACKS = [
@@ -460,6 +489,47 @@ export function NodeRenderer({
       );
     }
 
+    // Dynamic Wishes Feed Container (isWishesFeed) Rendering in Preview Mode
+    if (node.isWishesFeed && isPreviewMode) {
+      const activeWishes = useStudioStore.getState().wishes;
+      const sampleCardTemplate = node.children && node.children.length > 0 ? node.children[0] : null;
+
+      return (
+        <div
+          id={`node-dom-${node.id}`}
+          onClick={handleClick}
+          style={containerStyle}
+          className={nodeClassName}
+        >
+          {actionOverlay}
+
+          <div style={containerInnerStyle} className="container-inner-wrapper">
+            {activeWishes.map((wish: WishItem, wishIdx: number) => {
+              if (sampleCardTemplate) {
+                const boundCard = cloneAndBindWishData(sampleCardTemplate, wish, wishIdx);
+                return (
+                  <NodeRenderer
+                    key={`wish-card-${wishIdx}-${boundCard.id}`}
+                    node={boundCard}
+                    allNodes={allNodes}
+                    selectedNodeId={selectedNodeId}
+                    onSelectNode={onSelectNode}
+                    onDeleteNode={onDeleteNode}
+                    onDuplicateNode={onDuplicateNode}
+                    eventDetails={eventDetails}
+                    viewportMode={viewportMode}
+                    isPreviewMode={isPreviewMode}
+                    onOpenCover={onOpenCover}
+                  />
+                );
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         id={`node-dom-${node.id}`}
@@ -562,7 +632,32 @@ export function NodeRenderer({
           return;
         }
         if (isRsvpButton) {
-          alert('✅ Terima kasih! Konfirmasi Kehadiran & Doa Restu Anda telah terkirim.');
+          const btnEl = document.getElementById(`node-dom-${node.id}`);
+          const formWrapper = btnEl?.closest('.container-inner-wrapper') || btnEl?.parentElement;
+
+          const nameInp = (formWrapper?.querySelector('input[name="guest_name"], input[placeholder*="nama" i], input[type="text"]') || document.querySelector('input[name="guest_name"]')) as HTMLInputElement;
+          const selectInp = (formWrapper?.querySelector('select[name="attendance"], select') || document.querySelector('select[name="attendance"]')) as HTMLSelectElement;
+          const msgInp = (formWrapper?.querySelector('textarea[name="message"], textarea[placeholder*="ucapan" i], textarea') || document.querySelector('textarea[name="message"]')) as HTMLTextAreaElement;
+
+          const nameVal = nameInp?.value?.trim() || 'Tamu Undangan';
+          const attendanceVal = selectInp?.value || '✅ Hadir';
+          const msgVal = msgInp?.value?.trim();
+
+          if (!msgVal) {
+            alert('Mohon tuliskan pesan ucapan & doa restu Anda terlebih dahulu.');
+            return;
+          }
+
+          useStudioStore.getState().addWish({
+            name: nameVal,
+            attendance: attendanceVal.startsWith('✅') || attendanceVal.startsWith('🙏') ? attendanceVal : `✅ ${attendanceVal}`,
+            message: msgVal,
+          });
+
+          if (nameInp) nameInp.value = '';
+          if (msgInp) msgInp.value = '';
+
+          alert('✅ Terima kasih! Konfirmasi Kehadiran & Doa Restu Anda telah terkirim dan langsung muncul di Dinding Ucapan.');
           return;
         }
       }

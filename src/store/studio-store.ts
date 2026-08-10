@@ -107,6 +107,38 @@ export function findParentNode(nodes: StudioNode[], targetId: string): StudioNod
   return null;
 }
 
+export interface WishItem {
+  id: string;
+  name: string;
+  attendance: string;
+  message: string;
+  createdAt: string;
+}
+
+const DEFAULT_SAMPLE_WISHES: WishItem[] = [
+  {
+    id: 'sample-1',
+    name: 'Budi & Partner',
+    attendance: '✅ Hadir',
+    message: 'Selamat ya Roni & Anti! Semoga menjadi keluarga yang sakinah, mawaddah, warahmah. Aamiin.',
+    createdAt: '10 menit lalu',
+  },
+  {
+    id: 'sample-2',
+    name: 'Siti & Keluarga',
+    attendance: '✅ Hadir',
+    message: 'Selamat menempuh hidup baru! Semoga bahagia dan diberikan keturunan yang soleh & solehah.',
+    createdAt: '1 jam lalu',
+  },
+  {
+    id: 'sample-3',
+    name: 'Andi Pratama',
+    attendance: '🙏 Maaf Tidak Bisa Hadir',
+    message: 'Selamat bro! Maaf belum bisa hadir langsung karena tugas, doa terbaik untuk kalian berdua.',
+    createdAt: '3 jam lalu',
+  },
+];
+
 interface StudioStore {
   nodes: StudioNode[];
   globalStyles: GlobalStyles;
@@ -115,6 +147,8 @@ interface StudioStore {
   sidebarTab: 'widgets' | 'navigator' | 'properties';
   activeInspectorTab: 'layout' | 'style' | 'advanced';
   lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null;
+  wishes: WishItem[];
+  addWish: (wish: Omit<WishItem, 'id' | 'createdAt'>) => void;
   setNodes: (nodes: StudioNode[]) => void;
   setGlobalStyles: (styles: GlobalStyles) => void;
   updateGlobalStyles: (updatedStyles: Partial<GlobalStyles>) => void;
@@ -143,6 +177,20 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
   sidebarTab: 'widgets',
   activeInspectorTab: 'layout',
   lastFocusedInput: null,
+  wishes: DEFAULT_SAMPLE_WISHES,
+  addWish: (newWish) =>
+    set((state) => ({
+      wishes: [
+        {
+          id: `wish-${Date.now()}`,
+          name: newWish.name,
+          attendance: newWish.attendance,
+          message: newWish.message,
+          createdAt: 'Baru saja',
+        },
+        ...state.wishes,
+      ],
+    })),
   setNodes: (nodes: StudioNode[]) => {
     loadNodeFonts(nodes);
     set({ nodes });
