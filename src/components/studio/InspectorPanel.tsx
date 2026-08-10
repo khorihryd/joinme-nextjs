@@ -748,6 +748,8 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   <option value="none">Tanpa Aksi (Tombol Biasa)</option>
                   <option value="submit-rsvp">✉️ Kirim Form RSVP &amp; Ucapan</option>
                   <option value="open-cover">💌 Buka Undangan (Sampul)</option>
+                  <option value="google-maps">📍 Buka Peta (Google Maps)</option>
+                  <option value="save-calendar">📅 Simpan ke Google Calendar (Save the Date)</option>
                 </select>
               </div>
             )}

@@ -338,14 +338,42 @@ export function createDefaultWidget(nodeType) {
                   style: { fontSize: 12, color: '#64748b', fontFamily: 'Inter', textAlign: 'center', margin: '0px 0px 8px 0px' }
                 },
                 {
-                  id: `btn-map-1-${timestamp}`,
-                  type: 'button',
-                  buttonAction: 'google-maps',
-                  buttonIcon: '📍',
-                  iconPosition: 'left',
-                  iconGap: 6,
-                  content: 'Buka Google Maps',
-                  style: { backgroundColor: '#e36397', color: '#ffffff', fontSize: 12, fontWeight: 'bold', padding: '8px 18px', borderRadius: 20, width: 'auto' }
+                  id: `action-row-1-${timestamp}`,
+                  type: 'container',
+                  style: {
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    width: '100%',
+                    backgroundColor: 'transparent',
+                    padding: '0px',
+                    margin: '6px 0px 0px 0px'
+                  },
+                  children: [
+                    {
+                      id: `btn-map-1-${timestamp}`,
+                      type: 'button',
+                      buttonAction: 'google-maps',
+                      buttonIcon: '📍',
+                      iconPosition: 'left',
+                      iconGap: 6,
+                      content: 'Google Maps',
+                      style: { backgroundColor: '#e36397', color: '#ffffff', fontSize: 12, fontWeight: 'bold', padding: '8px 16px', borderRadius: 20, width: 'auto' }
+                    },
+                    {
+                      id: `btn-cal-1-${timestamp}`,
+                      type: 'button',
+                      buttonAction: 'save-calendar',
+                      buttonIcon: '📅',
+                      iconPosition: 'left',
+                      iconGap: 6,
+                      content: 'Simpan Kalender',
+                      style: { backgroundColor: '#3b82f6', color: '#ffffff', fontSize: 12, fontWeight: 'bold', padding: '8px 16px', borderRadius: 20, width: 'auto' }
+                    }
+                  ]
                 }
               ]
             }

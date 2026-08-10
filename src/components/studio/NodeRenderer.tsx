@@ -45,6 +45,29 @@ export function cloneAndBindEventData(templateNode: StudioNode, evtData: any, id
   return cloned;
 }
 
+export function generateGoogleCalendarUrl(eventDetails: any): string {
+  const title = eventDetails?.title || eventDetails?.couple_name || 'Acara Pernikahan';
+  const location = [eventDetails?.location, eventDetails?.address].filter(Boolean).join(', ') || 'Lokasi Acara';
+  const details = `Undangan Pernikahan ${title}. Diharapkan hadir memberikan doa restu.`;
+
+  let startDateStr = '20260921T080000Z';
+  let endDateStr = '20260921T110000Z';
+
+  if (eventDetails?.date) {
+    const rawDate = String(eventDetails.date);
+    const match = rawDate.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
+    if (match) {
+      const yyyy = match[1];
+      const mm = match[2];
+      const dd = match[3];
+      startDateStr = `${yyyy}${mm}${dd}T080000Z`;
+      endDateStr = `${yyyy}${mm}${dd}T110000Z`;
+    }
+  }
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateStr}/${endDateStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+}
+
 const DEFAULT_GALLERY_FALLBACKS = [
   'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&auto=format&fit=crop&q=80',
@@ -519,6 +542,7 @@ export function NodeRenderer({
   if (node.type === 'button') {
     const isCoverButton = node.buttonAction === 'open-cover' || contentText.toLowerCase().includes('buka undangan');
     const isMapsButton = node.buttonAction === 'google-maps' || contentText.toLowerCase().includes('google maps');
+    const isCalendarButton = node.buttonAction === 'save-calendar' || contentText.toLowerCase().includes('simpan kalender') || contentText.toLowerCase().includes('save the date');
 
     const handleButtonClick = (e: React.MouseEvent) => {
       if (isPreviewMode) {
@@ -527,8 +551,13 @@ export function NodeRenderer({
           return;
         }
         if (isMapsButton) {
-          const mapUrl = eventDetails?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent((eventDetails?.event_location || '') + ' ' + (eventDetails?.event_address || ''))}`;
+          const mapUrl = eventDetails?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent((eventDetails?.location || eventDetails?.event_location || '') + ' ' + (eventDetails?.address || eventDetails?.event_address || ''))}`;
           window.open(mapUrl, '_blank');
+          return;
+        }
+        if (isCalendarButton) {
+          const calUrl = generateGoogleCalendarUrl(eventDetails);
+          window.open(calUrl, '_blank');
           return;
         }
       }
