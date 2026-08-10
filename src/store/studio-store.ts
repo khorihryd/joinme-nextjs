@@ -139,6 +139,13 @@ const DEFAULT_SAMPLE_WISHES: WishItem[] = [
   },
 ];
 
+export interface SubmittedRsvpData {
+  name: string;
+  attendance: string;
+  pax?: string;
+  message?: string;
+}
+
 interface StudioStore {
   nodes: StudioNode[];
   globalStyles: GlobalStyles;
@@ -148,6 +155,8 @@ interface StudioStore {
   activeInspectorTab: 'layout' | 'style' | 'advanced';
   lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null;
   wishes: WishItem[];
+  submittedRsvp: SubmittedRsvpData | null;
+  setSubmittedRsvp: (data: SubmittedRsvpData | null) => void;
   addWish: (wish: Omit<WishItem, 'id' | 'createdAt'>) => void;
   setNodes: (nodes: StudioNode[]) => void;
   setGlobalStyles: (styles: GlobalStyles) => void;
@@ -178,6 +187,8 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
   activeInspectorTab: 'layout',
   lastFocusedInput: null,
   wishes: DEFAULT_SAMPLE_WISHES,
+  submittedRsvp: null,
+  setSubmittedRsvp: (submittedRsvp) => set({ submittedRsvp }),
   addWish: (newWish) =>
     set((state) => ({
       wishes: [

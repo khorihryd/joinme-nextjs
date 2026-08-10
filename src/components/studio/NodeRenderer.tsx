@@ -236,7 +236,7 @@ export function NodeRenderer({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
-  const [submittedRsvp, setSubmittedRsvp] = useState<{ name: string; attendance: string; pax?: string; message?: string } | null>(null);
+  const submittedRsvp = useStudioStore((s) => s.submittedRsvp);
 
   const style = node.style || {};
   const isSlideshowBg = node.type === 'container' && style.bgType === 'gallery-slideshow';
@@ -442,7 +442,7 @@ export function NodeRenderer({
           {actionOverlay}
           <RsvpResultCard
             data={submittedRsvp}
-            onReset={() => setSubmittedRsvp(null)}
+            onReset={() => useStudioStore.getState().setSubmittedRsvp(null)}
           />
         </div>
       );
@@ -678,7 +678,7 @@ export function NodeRenderer({
           if (nameInp) nameInp.value = '';
           if (msgInp) msgInp.value = '';
 
-          setSubmittedRsvp({
+          useStudioStore.getState().setSubmittedRsvp({
             name: nameVal,
             attendance: attendanceVal,
             message: msgVal,
