@@ -158,17 +158,25 @@ export function NodeRenderer({
 
   const style = node.style || {};
   const isSlideshowBg = node.type === 'container' && style.bgType === 'gallery-slideshow';
-  const intervalSec = typeof style.bgSlideshowInterval === 'number' ? style.bgSlideshowInterval : (style.bgSlideshowInterval ? parseInt(String(style.bgSlideshowInterval), 10) : 5);
+  const isSliderWidget = node.type === 'slider';
+
+  const rawInterval = isSliderWidget
+    ? style.sliderInterval
+    : style.bgSlideshowInterval;
+
+  const intervalSec = typeof rawInterval === 'number'
+    ? rawInterval
+    : (rawInterval ? parseInt(String(rawInterval), 10) : 5);
 
   useEffect(() => {
-    if (!isSlideshowBg) return;
+    if (!isSlideshowBg && !isSliderWidget) return;
     const storeNodes = useStudioStore.getState().nodes;
     const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
     let gImages = collectGalleryImageUrls(nodesToSearch);
 
     if (gImages.length === 0) {
-      if (style.backgroundImage) {
-        gImages = [style.backgroundImage, ...DEFAULT_GALLERY_FALLBACKS];
+      if (style.backgroundImage || node.content) {
+        gImages = [style.backgroundImage || node.content || '', ...DEFAULT_GALLERY_FALLBACKS].filter(Boolean);
       } else {
         gImages = DEFAULT_GALLERY_FALLBACKS;
       }
@@ -181,7 +189,7 @@ export function NodeRenderer({
     }, intervalSec * 1000);
 
     return () => clearInterval(timer);
-  }, [isSlideshowBg, allNodes, intervalSec, style.backgroundImage]);
+  }, [isSlideshowBg, isSliderWidget, allNodes, intervalSec, style.backgroundImage, node.content]);
 
   const isSelected = selectedNodeId === node.id;
 
@@ -519,6 +527,96 @@ export function NodeRenderer({
           />
         )}
       </>
+    );
+  }
+
+  // Slider Widget (Slide Gambar - Auto Rotating Gallery Images)
+  if (node.type === 'slider') {
+    const storeNodes = useStudioStore.getState().nodes;
+    const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
+    let gImages = collectGalleryImageUrls(nodesToSearch);
+
+    if (gImages.length === 0) {
+      if (node.content) {
+        gImages = [node.content, ...DEFAULT_GALLERY_FALLBACKS];
+      } else {
+        gImages = DEFAULT_GALLERY_FALLBACKS;
+      }
+    }
+
+    const sliderEffect = style.sliderEffect || 'fade';
+    const activeIdx = gImages.length > 0 ? slideIndex % gImages.length : 0;
+
+    return (
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleClick}
+        style={{
+          ...computedStyle,
+          position: computedStyle.position || 'relative',
+          overflow: 'hidden',
+          minHeight: computedStyle.height && computedStyle.height !== 'auto' ? computedStyle.height : '240px',
+        }}
+        className={nodeClassName}
+      >
+        {actionOverlay}
+
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 'inherit' }}>
+          {gImages.map((imgUrl, idx) => {
+            const isActive = idx === activeIdx;
+
+            let transformStyle = 'scale(1)';
+            let transitionStyle = 'opacity 1.2s ease-in-out';
+
+            if (sliderEffect === 'kenburns') {
+              transformStyle = isActive ? 'scale(1.15)' : 'scale(1)';
+              transitionStyle = 'opacity 1.2s ease-in-out, transform 8s ease-in-out';
+            } else if (sliderEffect === 'slide') {
+              transformStyle = isActive ? 'translateX(0)' : idx < activeIdx ? 'translateX(-100%)' : 'translateX(100%)';
+              transitionStyle = 'opacity 0.8s ease-in-out, transform 0.8s ease-in-out';
+            }
+
+            return (
+              <div
+                key={imgUrl + idx}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundImage: `url(${imgUrl})`,
+                  backgroundSize: style.objectFit === 'contain' ? 'contain' : 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  opacity: isActive ? 1 : 0,
+                  transform: transformStyle,
+                  transition: transitionStyle,
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Small badge in editor indicating slider */}
+        {!isPreviewMode && (
+          <span
+            style={{
+              position: 'absolute',
+              top: '6px',
+              left: '6px',
+              backgroundColor: 'rgba(0,0,0,0.65)',
+              color: '#fff',
+              fontSize: '0.62rem',
+              fontWeight: 700,
+              padding: '2px 6px',
+              borderRadius: '4px',
+              pointerEvents: 'none',
+              zIndex: 3,
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            🎠 Slide Gambar ({gImages.length} Foto Galeri)
+          </span>
+        )}
+      </div>
     );
   }
 

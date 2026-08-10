@@ -779,6 +779,44 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
               </>
             )}
 
+            {node.type === 'slider' && (
+              <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)' }}>
+                  🎠 Pengaturan Slide Gambar (Carousel Auto-Play)
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Interval Rotasi (Detik)</label>
+                  <select
+                    value={style.sliderInterval || 5}
+                    onChange={(e) => updateStyleProp('sliderInterval', parseInt(e.target.value, 10) || 5)}
+                  >
+                    <option value={3}>3 Detik (Cepat)</option>
+                    <option value={4}>4 Detik</option>
+                    <option value={5}>5 Detik (Standar)</option>
+                    <option value={8}>8 Detik (Lambat)</option>
+                    <option value={10}>10 Detik (Sangat Lambat)</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Efek Transisi Animasi</label>
+                  <select
+                    value={style.sliderEffect || 'fade'}
+                    onChange={(e) => updateStyleProp('sliderEffect', e.target.value)}
+                  >
+                    <option value="fade">✨ Soft Crossfade</option>
+                    <option value="kenburns">🔍 Ken-Burns (Zoom In)</option>
+                    <option value="slide">➡️ Slide Horizontal</option>
+                  </select>
+                </div>
+
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  💡 Slide Gambar otomatis memutar seluruh gambar dari widget Gambar yang tercentang <strong style={{ color: 'var(--primary)' }}>"Tambahkan ke Galeri Lightbox"</strong>.
+                </p>
+              </div>
+            )}
+
             {/* Typography */}
             {!isContainer && (
               <>

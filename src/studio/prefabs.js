@@ -459,6 +459,18 @@ export function createDefaultWidget(nodeType) {
     case 'spacer':
       newWidget.style = { height: 24, width: '100%' };
       break;
+    case 'slider':
+      newWidget.type = 'slider';
+      newWidget.style = {
+        width: '100%',
+        height: '260px',
+        borderRadius: 12,
+        margin: '0px 0px 16px 0px',
+        sliderInterval: 5,
+        sliderEffect: 'fade',
+        boxShadow: '0 6px 20px rgba(0,0,0,0.08)'
+      };
+      break;
     default:
       break;
   }

@@ -193,6 +193,8 @@ export interface NodeStyle {
   bgSlideshowInterval?: number;
   bgSlideshowEffect?: string;
   bgSlideshowCustomUrls?: string;
+  sliderInterval?: number;
+  sliderEffect?: string;
   gradientColors?: string[];
   gradientDirection?: string;
   gradientColor1?: string;
