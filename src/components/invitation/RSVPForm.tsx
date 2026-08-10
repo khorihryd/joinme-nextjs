@@ -1,4 +1,4 @@
-'use client';
+import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
 
 interface RSVPFormProps {
   rsvpName: string;
@@ -12,6 +12,8 @@ interface RSVPFormProps {
   submittingRsvp: boolean;
   onSubmit: (e: React.FormEvent) => void;
   wishesList: any[];
+  submittedResult?: { name: string; attendance: string; pax?: string; message?: string } | null;
+  onResetResult?: () => void;
 }
 
 export function RSVPForm({
@@ -26,11 +28,16 @@ export function RSVPForm({
   submittingRsvp,
   onSubmit,
   wishesList,
+  submittedResult,
+  onResetResult,
 }: RSVPFormProps) {
   return (
     <section className="px-6 space-y-6">
-      <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 space-y-4">
-        <h2 className="text-xl font-serif font-bold text-center text-amber-900">Konfirmasi RSVP & Doa</h2>
+      {submittedResult && onResetResult ? (
+        <RsvpResultCard data={submittedResult} onReset={onResetResult} />
+      ) : (
+        <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 space-y-4">
+          <h2 className="text-xl font-serif font-bold text-center text-amber-900">Konfirmasi RSVP & Doa</h2>
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <label className="text-xs font-bold text-stone-600 block mb-1">Nama Anda</label>
@@ -87,6 +94,7 @@ export function RSVPForm({
           </button>
         </form>
       </div>
+      )}
 
       {/* Wishes Feed */}
       {wishesList.length > 0 && (

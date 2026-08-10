@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StudioNode } from '@/types';
 import { resolveTextVariables, useStudioStore, WishItem } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
-import { RsvpSuccessModal } from '@/components/studio/RsvpSuccessModal';
+import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
 
 export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   let list: string[] = [];
@@ -236,7 +236,7 @@ export function NodeRenderer({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
-  const [rsvpModalData, setRsvpModalData] = useState<{ name: string; attendance: string; message: string } | null>(null);
+  const [submittedRsvp, setSubmittedRsvp] = useState<{ name: string; attendance: string; pax?: string; message?: string } | null>(null);
 
   const style = node.style || {};
   const isSlideshowBg = node.type === 'container' && style.bgType === 'gallery-slideshow';
@@ -429,6 +429,24 @@ export function NodeRenderer({
       position: computedStyle.position || 'relative',
       overflow: computedStyle.overflow || 'hidden',
     };
+
+    // Dynamic RSVP Form Container Transformation to QR Code E-Ticket / Decision Card
+    if (node.widgetType === 'rsvp-form' && isPreviewMode && submittedRsvp) {
+      return (
+        <div
+          id={`node-dom-${node.id}`}
+          onClick={handleClick}
+          style={containerStyle}
+          className={nodeClassName}
+        >
+          {actionOverlay}
+          <RsvpResultCard
+            data={submittedRsvp}
+            onReset={() => setSubmittedRsvp(null)}
+          />
+        </div>
+      );
+    }
 
     // Dynamic Event Feed Container (isEventFeed) Rendering in Preview Mode
     if (node.isEventFeed && isPreviewMode) {
@@ -660,7 +678,7 @@ export function NodeRenderer({
           if (nameInp) nameInp.value = '';
           if (msgInp) msgInp.value = '';
 
-          setRsvpModalData({
+          setSubmittedRsvp({
             name: nameVal,
             attendance: attendanceVal,
             message: msgVal,
@@ -672,26 +690,17 @@ export function NodeRenderer({
     };
 
     return (
-      <>
-        <div
-          id={`node-dom-${node.id}`}
-          onClick={handleButtonClick}
-          style={{ cursor: 'pointer', ...computedStyle }}
-          className={`canvas-node-item btn btn-primary ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`}
-          role="button"
-          tabIndex={0}
-        >
-          {actionOverlay}
-          <span>{contentText}</span>
-        </div>
-
-        {rsvpModalData && (
-          <RsvpSuccessModal
-            data={rsvpModalData}
-            onClose={() => setRsvpModalData(null)}
-          />
-        )}
-      </>
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleButtonClick}
+        style={{ cursor: 'pointer', ...computedStyle }}
+        className={`canvas-node-item btn btn-primary ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`}
+        role="button"
+        tabIndex={0}
+      >
+        {actionOverlay}
+        <span>{contentText}</span>
+      </div>
     );
   }
 

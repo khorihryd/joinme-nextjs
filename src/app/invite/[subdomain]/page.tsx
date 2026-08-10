@@ -195,19 +195,13 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
           submittingRsvp={submittingRsvp}
           onSubmit={handleRsvpSubmit}
           wishesList={wishesList}
+          submittedResult={rsvpModalData}
+          onResetResult={() => setRsvpModalData(null)}
         />
 
         {/* Gift Section */}
         <GiftSection details={details} />
       </div>
-
-      {/* RSVP Success Modal */}
-      {rsvpModalData && (
-        <RsvpSuccessModal
-          data={rsvpModalData}
-          onClose={() => setRsvpModalData(null)}
-        />
-      )}
     </div>
   );
 }
