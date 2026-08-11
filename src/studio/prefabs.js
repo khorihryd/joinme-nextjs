@@ -579,6 +579,8 @@ export function createDefaultWidget(nodeType) {
       break;
     case 'social-media':
       newWidget.type = 'container';
+      newWidget.widgetType = 'social-media';
+      newWidget.socialProfileTarget = 'wanita';
       newWidget.style = {
         display: 'flex',
         flexDirection: 'column',

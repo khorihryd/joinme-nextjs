@@ -245,7 +245,8 @@ export interface StudioNode {
   content?: string;
   children?: StudioNode[];
   style: NodeStyle;
-  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list';
+  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'social-media';
+  socialProfileTarget?: 'pria' | 'wanita' | 'couple' | 'organizer';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
   isDynamic?: boolean;

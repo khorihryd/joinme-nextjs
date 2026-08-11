@@ -18,6 +18,52 @@ export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   return list;
 }
 
+export function filterSocialMediaChildren(children: StudioNode[] | undefined, targetProfile: string, eventDetails?: any): StudioNode[] {
+  if (!children || !Array.isArray(children)) return [];
+  if (!eventDetails) return children;
+
+  const hasHandle = (val?: string) => typeof val === 'string' && val.trim().length > 0;
+
+  const availableHandles: Record<string, boolean> = {
+    ig_wanita: hasHandle(eventDetails.ig_wanita || eventDetails.instagram_wanita),
+    tiktok_wanita: hasHandle(eventDetails.tiktok_wanita || eventDetails.tt_wanita),
+    fb_wanita: hasHandle(eventDetails.fb_wanita || eventDetails.facebook_wanita),
+    ig_pria: hasHandle(eventDetails.ig_pria || eventDetails.instagram_pria),
+    tiktok_pria: hasHandle(eventDetails.tiktok_pria || eventDetails.tt_pria),
+    fb_pria: hasHandle(eventDetails.fb_pria || eventDetails.facebook_pria),
+    ig_organizer: hasHandle(eventDetails.ig_organizer || eventDetails.instagram),
+    yt_organizer: hasHandle(eventDetails.yt_organizer || eventDetails.youtube),
+    fb_organizer: hasHandle(eventDetails.fb_organizer || eventDetails.facebook),
+    wa_contact: hasHandle(eventDetails.wa_contact || eventDetails.whatsapp || eventDetails.phone),
+  };
+
+  return children
+    .map((child) => {
+      const cloned = JSON.parse(JSON.stringify(child));
+      if (cloned.children && cloned.children.length > 0) {
+        cloned.children = filterSocialMediaChildren(cloned.children, targetProfile, eventDetails);
+        if (cloned.children.length === 0) return null;
+      }
+
+      const content = cloned.content || '';
+      if (content.includes('{ig_wanita}') && !availableHandles.ig_wanita) return null;
+      if (content.includes('{tiktok_wanita}') && !availableHandles.tiktok_wanita) return null;
+      if (content.includes('{fb_wanita}') && !availableHandles.fb_wanita) return null;
+
+      if (content.includes('{ig_pria}') && !availableHandles.ig_pria) return null;
+      if (content.includes('{tiktok_pria}') && !availableHandles.tiktok_pria) return null;
+      if (content.includes('{fb_pria}') && !availableHandles.fb_pria) return null;
+
+      if (content.includes('{ig_organizer}') && !availableHandles.ig_organizer) return null;
+      if (content.includes('{yt_organizer}') && !availableHandles.yt_organizer) return null;
+      if (content.includes('{fb_organizer}') && !availableHandles.fb_organizer) return null;
+      if (content.includes('{wa_contact}') && !availableHandles.wa_contact) return null;
+
+      return cloned;
+    })
+    .filter(Boolean) as StudioNode[];
+}
+
 export function cloneAndBindEventData(templateNode: StudioNode, evtData: any, idx: number): StudioNode {
   const cloned: StudioNode = JSON.parse(JSON.stringify(templateNode));
   cloned.id = `${cloned.id}-evt-${idx}`;
@@ -550,6 +596,16 @@ export function NodeRenderer({
       );
     }
 
+    // Dynamic Social Media Container Filter Rendering in Preview Mode
+    if (node.widgetType === 'social-media' && isPreviewMode && eventDetails) {
+      const activeSocialChildren = filterSocialMediaChildren(node.children, node.socialProfileTarget || 'wanita', eventDetails);
+
+      // If ALL social handles for target profile are empty, hide the entire widget container!
+      if (activeSocialChildren.length === 0) {
+        return null;
+      }
+    }
+
     return (
       <div
         id={`node-dom-${node.id}`}
@@ -578,7 +634,10 @@ export function NodeRenderer({
         )}
 
         <div style={containerInnerStyle} className="container-inner-wrapper">
-          {node.children?.map((child) => (
+          {(node.widgetType === 'social-media' && isPreviewMode && eventDetails
+            ? filterSocialMediaChildren(node.children, node.socialProfileTarget || 'wanita', eventDetails)
+            : node.children
+          )?.map((child) => (
             <NodeRenderer
               key={child.id}
               node={child}

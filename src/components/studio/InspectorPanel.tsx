@@ -702,6 +702,27 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
         {/* STYLE TAB */}
         {activeInspectorTab === 'style' && (
           <div>
+            {node.type === 'container' && node.widgetType === 'social-media' && (
+              <div className="form-group" style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <label style={{ fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                  📱 Target Profil Medsos (Profile Target)
+                </label>
+                <select
+                  value={node.socialProfileTarget || 'wanita'}
+                  onChange={(e) => updateNodeProp('socialProfileTarget', e.target.value)}
+                  style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.8rem', fontWeight: 600, borderRadius: '8px' }}
+                >
+                  <option value="wanita">👰 Mempelai Wanita ({'{ig_wanita}'}, {'{tiktok_wanita}'}, {'{fb_wanita}'})</option>
+                  <option value="pria">🤵 Mempelai Pria ({'{ig_pria}'}, {'{tiktok_pria}'}, {'{fb_pria}'})</option>
+                  <option value="couple">💑 Pasangan (Mempelai Pria &amp; Wanita)</option>
+                  <option value="organizer">🏢 Penyelenggara / Perusahaan ({'{ig_organizer}'}, {'{yt_organizer}'}, {'{wa_contact}'})</option>
+                </select>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginTop: '0.35rem' }}>
+                  ℹ️ Di mode pratinjau/undangan akhir, hanya akun sosial media yang diisi oleh pengguna yang akan ditampilkan.
+                </span>
+              </div>
+            )}
+
             {(node.type === 'heading' || node.type === 'button' || node.type === 'text') && (
               <div className="form-group">
                 <label>Isi Konten Teks</label>
