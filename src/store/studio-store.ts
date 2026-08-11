@@ -54,22 +54,46 @@ export function resolveTextVariables(text: string, eventDetails?: any): string {
   const vars: Record<string, string> = { ...SAMPLE_VARIABLES };
 
   if (eventDetails) {
-    if (eventDetails.mempelaiPria) vars.groom_name = eventDetails.mempelaiPria;
+    if (eventDetails.guestName || eventDetails.guest_name) vars.guest_name = eventDetails.guestName || eventDetails.guest_name;
+    if (eventDetails.guestName || eventDetails.guest_name) vars.nama_tamu = eventDetails.guestName || eventDetails.guest_name;
+    if (eventDetails.mempelaiPria) {
+      vars.groom_name = eventDetails.mempelaiPria;
+      vars.groom_full = eventDetails.mempelaiPria;
+    }
     if (eventDetails.panggilanPria) vars.nama_pria = eventDetails.panggilanPria;
-    if (eventDetails.mempelaiWanita) vars.bride_name = eventDetails.mempelaiWanita;
+    if (eventDetails.mempelaiWanita) {
+      vars.bride_name = eventDetails.mempelaiWanita;
+      vars.bride_full = eventDetails.mempelaiWanita;
+    }
     if (eventDetails.panggilanWanita) vars.nama_wanita = eventDetails.panggilanWanita;
     if (eventDetails.panggilanPria && eventDetails.panggilanWanita) {
       vars.couple_name = `${eventDetails.panggilanPria} & ${eventDetails.panggilanWanita}`;
       vars.nama_mempelai = `${eventDetails.panggilanPria} & ${eventDetails.panggilanWanita}`;
     }
-    if (eventDetails.event_date) vars.event_date = eventDetails.event_date;
-    if (eventDetails.tanggal_acara) vars.tanggal_acara = eventDetails.tanggal_acara;
-    if (eventDetails.event_time) vars.event_time = eventDetails.event_time;
-    if (eventDetails.waktu_acara) vars.waktu_acara = eventDetails.waktu_acara;
-    if (eventDetails.event_location) vars.event_location = eventDetails.event_location;
-    if (eventDetails.lokasi_acara) vars.lokasi_acara = eventDetails.lokasi_acara;
-    if (eventDetails.organizer_name) vars.organizer_name = eventDetails.organizer_name;
-    if (eventDetails.nama_penyelenggara) vars.nama_penyelenggara = eventDetails.nama_penyelenggara;
+    if (eventDetails.ortuPria) vars.ortu_pria = eventDetails.ortuPria;
+    if (eventDetails.ortuWanita) vars.ortu_wanita = eventDetails.ortuWanita;
+
+    if (eventDetails.event_date) {
+      vars.event_date = eventDetails.event_date;
+      vars.tanggal_acara = eventDetails.event_date;
+    }
+    if (eventDetails.event_time) {
+      vars.event_time = eventDetails.event_time;
+      vars.waktu_acara = eventDetails.event_time;
+    }
+    if (eventDetails.event_location) {
+      vars.event_location = eventDetails.event_location;
+      vars.lokasi_acara = eventDetails.event_location;
+      vars.nama_lokasi = eventDetails.event_location;
+    }
+    if (eventDetails.address) vars.alamat_lengkap = eventDetails.address;
+    if (eventDetails.city) vars.kota_acara = eventDetails.city;
+
+    if (eventDetails.childName) vars.nama_anak = eventDetails.childName;
+    if (eventDetails.birthdayName) vars.nama_yang_ultah = eventDetails.birthdayName;
+    if (eventDetails.age) vars.umur = eventDetails.age;
+    if (eventDetails.eventName) vars.nama_event = eventDetails.eventName;
+    if (eventDetails.speakerName) vars.nama_narasumber = eventDetails.speakerName;
   }
 
   Object.keys(vars).forEach((k) => {

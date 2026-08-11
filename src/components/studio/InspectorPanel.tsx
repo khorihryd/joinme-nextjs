@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { StudioNode } from '@/types';
+import React, { useState } from 'react';
+import { StudioNode, DYNAMIC_VARIABLE_CATEGORIES } from '@/types';
 import { useStudioStore, findParentNode } from '@/store/studio-store';
 import { FontEngineSelect } from './FontEngine';
 
@@ -12,6 +12,7 @@ interface InspectorPanelProps {
 }
 
 export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
+  const [selectedVarCat, setSelectedVarCat] = useState<string>('general');
   const {
     activeInspectorTab,
     setActiveInspectorTab,
@@ -717,20 +718,63 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     onChange={(e) => updateNodeProp('content', e.target.value)}
                   />
                 )}
-                {/* Variable Inserter */}
-                <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'var(--bg-body)', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', display: 'block', marginBottom: '0.4rem' }}>
-                    ✨ Sisipkan Variabel Dinamis
+                {/* Categorized Variable Inserter */}
+                <div style={{ marginTop: '0.65rem', padding: '0.65rem', background: 'var(--bg-body)', border: '1px dashed var(--border-color)', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.5rem' }}>
+                    ✨ Sisipkan Variabel Dinamis (Kategori Undangan)
                   </span>
+
+                  {/* Pill Filters */}
+                  <div style={{ display: 'flex', gap: '0.3rem', overflowX: 'auto', paddingBottom: '0.4rem', marginBottom: '0.5rem', scrollbarWidth: 'none' }}>
+                    {DYNAMIC_VARIABLE_CATEGORIES.map((cat) => {
+                      const isActive = selectedVarCat === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setSelectedVarCat(cat.id)}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            borderRadius: '12px',
+                            border: isActive ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                            backgroundColor: isActive ? 'var(--primary)' : '#ffffff',
+                            color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {cat.icon} {cat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Variable Chips for active category */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {['{nama_tamu}', '{nama_mempelai}', '{nama_pria}', '{nama_wanita}', '{tanggal_acara}', '{waktu_acara}', '{lokasi_acara}'].map((v) => (
+                    {DYNAMIC_VARIABLE_CATEGORIES.find((c) => c.id === selectedVarCat)?.variables.map((item) => (
                       <button
-                        key={v}
+                        key={item.tag}
                         type="button"
-                        onClick={() => insertVarTag(v)}
-                        style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
+                        onClick={() => insertVarTag(item.tag)}
+                        title={`${item.label} - ${item.desc}`}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          background: '#ffffff',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                        }}
                       >
-                        {v}
+                        <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{item.tag}</span>
+                        <span style={{ fontSize: '0.62rem', color: '#64748b' }}>({item.label})</span>
                       </button>
                     ))}
                   </div>

@@ -270,27 +270,138 @@ export interface StudioState {
   lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null;
 }
 
-// ===== Sample Variables =====
+// ===== Sample Variables & Dynamic Variable Categories =====
 export interface SampleVariables {
   [key: string]: string;
 }
 
 export const SAMPLE_VARIABLES: SampleVariables = {
+  // General & Guest
   guest_name: 'Budi Santoso & Partner',
   nama_tamu: 'Budi Santoso & Partner',
-  groom_name: 'Roni Wijaya',
-  nama_pria: 'Roni Wijaya',
-  bride_name: 'Anti Rahmawati',
-  nama_wanita: 'Anti Rahmawati',
+  kode_tamu: 'JM-8821',
+  kuota_tamu: '2 Pax',
+  organizer_name: 'Keluarga Besar Wijaya & Kartika',
+  nama_penyelenggara: 'Keluarga Besar Wijaya & Kartika',
+  penyelenggara: 'Keluarga Besar Wijaya & Kartika',
+
+  // Wedding & Couples
+  groom_name: 'Roni Wijaya, S.Kom.',
+  nama_pria: 'Roni',
+  groom_full: 'Roni Wijaya, S.Kom.',
+  bride_name: 'Anti Kartika, S.T.',
+  nama_wanita: 'Anti',
+  bride_full: 'Anti Kartika, S.T.',
   couple_name: 'Roni & Anti',
   nama_mempelai: 'Roni & Anti',
+  ortu_pria: 'Bpk. H. Bambang Wijaya & Ibu Hj. Siti Rahma',
+  ortu_wanita: 'Bpk. Ir. H. Ahmad Kartika & Ibu Hj. Nurbaeti',
+
+  // Date & Time
   event_date: '21 September 2026',
   tanggal_acara: '21 September 2026',
-  event_time: '09:00 WIB - Selesai',
-  waktu_acara: '09:00 WIB - Selesai',
+  event_time: '08:00 - 14:00 WIB',
+  waktu_acara: '08:00 - 14:00 WIB',
+  hari_acara: 'Sabtu',
+  bulan_acara: 'September',
+  tahun_acara: '2026',
+
+  // Location & Venue
   event_location: 'Grand Ballroom Hotel Mulia, Jakarta',
-  lokasi_acara: 'Grand Ballroom Hotel Mulia, Jakarta',
-  organizer_name: 'Denny Sumargo',
-  nama_penyelenggara: 'Denny Sumargo',
+  lokasi_acara: 'Grand Ballroom Hotel Mulia',
+  nama_lokasi: 'Grand Ballroom Hotel Mulia',
+  alamat_lengkap: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+  kota_acara: 'Jakarta Pusat',
+
+  // Circumcision & Aqiqah
+  nama_anak: 'Muhammad Rayhan Wijaya',
+  nama_ortu_anak: 'Bpk. Roni Wijaya & Ibu Anti Kartika',
+
+  // Birthday / Party
+  nama_yang_ultah: 'Aisha Az-Zahra',
+  umur: '17 Tahun',
+
+  // Formal & Corporate
+  nama_event: 'National Tech Summit 2026',
+  nama_narasumber: 'Dr. Eng. Ir. H. Pratama',
+
+  // Media
   cover_photo: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
 };
+
+export interface VariableCategory {
+  id: string;
+  label: string;
+  icon: string;
+  variables: { tag: string; label: string; desc: string }[];
+}
+
+export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
+  {
+    id: 'general',
+    label: 'Umum & Tamu',
+    icon: '📌',
+    variables: [
+      { tag: '{nama_tamu}', label: 'Nama Tamu', desc: 'Nama Tamu Undangan' },
+      { tag: '{kode_tamu}', label: 'Kode Tamu', desc: 'Kode Unik Check-In' },
+      { tag: '{kuota_tamu}', label: 'Kuota Tamu', desc: 'Jumlah Pax Tamu' },
+      { tag: '{penyelenggara}', label: 'Penyelenggara', desc: 'Nama Sohibul Hajat' },
+    ],
+  },
+  {
+    id: 'wedding',
+    label: 'Pernikahan',
+    icon: '💍',
+    variables: [
+      { tag: '{nama_mempelai}', label: 'Mempelai Singkat', desc: 'Nama Pasangan (Pria & Wanita)' },
+      { tag: '{nama_pria}', label: 'Panggilan Pria', desc: 'Nama Panggilan Mempelai Pria' },
+      { tag: '{nama_wanita}', label: 'Panggilan Wanita', desc: 'Nama Panggilan Mempelai Wanita' },
+      { tag: '{groom_full}', label: 'Lengkap Pria', desc: 'Nama Lengkap & Gelar Pria' },
+      { tag: '{bride_full}', label: 'Lengkap Wanita', desc: 'Nama Lengkap & Gelar Wanita' },
+      { tag: '{ortu_pria}', label: 'Orang Tua Pria', desc: 'Nama Orang Tua Mempelai Pria' },
+      { tag: '{ortu_wanita}', label: 'Orang Tua Wanita', desc: 'Nama Orang Tua Mempelai Wanita' },
+    ],
+  },
+  {
+    id: 'datetime',
+    label: 'Waktu & Tempat',
+    icon: '📅',
+    variables: [
+      { tag: '{tanggal_acara}', label: 'Tanggal Acara', desc: 'Tanggal Pelaksanaan Acara' },
+      { tag: '{waktu_acara}', label: 'Waktu Acara', desc: 'Jam / Waktu Pelaksanaan' },
+      { tag: '{hari_acara}', label: 'Hari Acara', desc: 'Nama Hari' },
+      { tag: '{bulan_acara}', label: 'Bulan Acara', desc: 'Nama Bulan' },
+      { tag: '{tahun_acara}', label: 'Tahun Acara', desc: 'Tahun Pelaksanaan' },
+      { tag: '{nama_lokasi}', label: 'Nama Lokasi', desc: 'Nama Gedung / Tempat' },
+      { tag: '{alamat_lengkap}', label: 'Alamat Lengkap', desc: 'Detail Alamat Gedung' },
+      { tag: '{kota_acara}', label: 'Kota Acara', desc: 'Kota Tempat Acara' },
+    ],
+  },
+  {
+    id: 'khitan',
+    label: 'Khitan & Aqiqah',
+    icon: '🌙',
+    variables: [
+      { tag: '{nama_anak}', label: 'Nama Anak', desc: 'Nama Anak Yang Dikhitan / Diaqiqahkan' },
+      { tag: '{nama_ortu_anak}', label: 'Orang Tua Anak', desc: 'Nama Ayah & Ibu Sang Anak' },
+    ],
+  },
+  {
+    id: 'birthday',
+    label: 'Ulang Tahun',
+    icon: '🎂',
+    variables: [
+      { tag: '{nama_yang_ultah}', label: 'Nama Ultah', desc: 'Nama Yang Ulang Tahun' },
+      { tag: '{umur}', label: 'Usia / Umur', desc: 'Usia Ulang Tahun Ke-' },
+    ],
+  },
+  {
+    id: 'formal',
+    label: 'Formal & Seminar',
+    icon: '💼',
+    variables: [
+      { tag: '{nama_event}', label: 'Nama Event', desc: 'Judul Acara / Seminar / Summit' },
+      { tag: '{nama_narasumber}', label: 'Nama Narasumber', desc: 'Keynote Speaker / Pembicara' },
+    ],
+  },
+];
