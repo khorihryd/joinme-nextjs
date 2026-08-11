@@ -273,6 +273,8 @@ export interface StudioNode {
   buttonAction?: ButtonAction;
   buttonUrl?: string;
   icon?: string;
+  iconPosition?: 'left' | 'right';
+  iconGap?: number;
   showInGallery?: boolean;
   hideDots?: boolean;
   kenBurns?: boolean;

@@ -844,6 +844,77 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     </div>
                   </div>
                 )}
+
+                {/* Button Icon & Placement Properties */}
+                <div className="form-group" style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.4rem' }}>
+                    🎨 Ikon Tombol &amp; Posisi Penempatan
+                  </label>
+
+                  {/* Icon Input */}
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Ikon / Emoji Tombol:</label>
+                    <input
+                      type="text"
+                      value={node.icon || ''}
+                      onChange={(e) => updateNodeProp('icon', e.target.value)}
+                      placeholder="Contoh: 📸, 🎵, 💬, 📍, ✉️"
+                      style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                    />
+                  </div>
+
+                  {/* Quick Icon Picker Bar */}
+                  <div style={{ marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.66rem', color: '#64748b', display: 'block', marginBottom: '0.3rem' }}>Pilih Ikon Cepat:</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {['📸', '🎵', '📘', '💬', '🎥', '✉️', '💌', '📍', '📅', '🔗', '❤️', '⭐', '🎉', '✨', '🎁', '🗺️', '🔔', '🚀'].map((ic) => (
+                        <button
+                          key={ic}
+                          type="button"
+                          onClick={() => updateNodeProp('icon', ic)}
+                          style={{
+                            padding: '3px 7px',
+                            fontSize: '0.85rem',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            backgroundColor: node.icon === ic ? 'var(--primary)' : '#ffffff',
+                            color: node.icon === ic ? '#ffffff' : 'inherit',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {ic}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Icon Position & Gap Controls */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Posisi Penempatan:</label>
+                      <select
+                        value={node.iconPosition || 'left'}
+                        onChange={(e) => updateNodeProp('iconPosition', e.target.value)}
+                        style={{ width: '100%', padding: '0.45rem', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#ffffff' }}
+                      >
+                        <option value="left">⬅️ Kiri Teks</option>
+                        <option value="right">➡️ Kanan Teks</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Jarak Ikon (px):</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={40}
+                        value={node.iconGap ?? 6}
+                        onChange={(e) => updateNodeProp('iconGap', parseInt(e.target.value, 10) || 0)}
+                        style={{ width: '100%', padding: '0.45rem', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 

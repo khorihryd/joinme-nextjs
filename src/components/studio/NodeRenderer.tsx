@@ -735,17 +735,39 @@ export function NodeRenderer({
       handleClick(e);
     };
 
+    const buttonIcon = node.icon?.trim();
+    const iconPos = node.iconPosition || 'left';
+    const gapPx = node.iconGap ?? 6;
+
+    const buttonFlexStyle: React.CSSProperties = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: computedStyle.justifyContent || 'center',
+      cursor: 'pointer',
+      ...computedStyle,
+    };
+
     return (
       <div
         id={`node-dom-${node.id}`}
         onClick={handleButtonClick}
-        style={{ cursor: 'pointer', ...computedStyle }}
+        style={buttonFlexStyle}
         className={`canvas-node-item btn btn-primary ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`}
         role="button"
         tabIndex={0}
       >
         {actionOverlay}
+        {buttonIcon && iconPos === 'left' && (
+          <span style={{ marginRight: `${gapPx}px`, display: 'inline-flex', alignItems: 'center' }}>
+            {buttonIcon}
+          </span>
+        )}
         <span>{contentText}</span>
+        {buttonIcon && iconPos === 'right' && (
+          <span style={{ marginLeft: `${gapPx}px`, display: 'inline-flex', alignItems: 'center' }}>
+            {buttonIcon}
+          </span>
+        )}
       </div>
     );
   }
