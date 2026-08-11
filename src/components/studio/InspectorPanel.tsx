@@ -12,7 +12,7 @@ interface InspectorPanelProps {
 }
 
 export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
-  const [selectedVarCat, setSelectedVarCat] = useState<string>('general');
+  const [selectedVarCat, setSelectedVarCat] = useState<string>('all');
   const {
     activeInspectorTab,
     setActiveInspectorTab,
@@ -724,36 +724,39 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     ✨ Sisipkan Variabel Dinamis (Kategori Undangan)
                   </span>
 
-                  {/* Pill Filters */}
-                  <div style={{ display: 'flex', gap: '0.3rem', overflowX: 'auto', paddingBottom: '0.4rem', marginBottom: '0.5rem', scrollbarWidth: 'none' }}>
-                    {DYNAMIC_VARIABLE_CATEGORIES.map((cat) => {
-                      const isActive = selectedVarCat === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setSelectedVarCat(cat.id)}
-                          style={{
-                            padding: '3px 8px',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            whiteSpace: 'nowrap',
-                            borderRadius: '12px',
-                            border: isActive ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                            backgroundColor: isActive ? 'var(--primary)' : '#ffffff',
-                            color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                            cursor: 'pointer',
-                          }}
-                        >
+                  {/* Category Dropdown Selector */}
+                  <div style={{ marginBottom: '0.6rem' }}>
+                    <select
+                      value={selectedVarCat}
+                      onChange={(e) => setSelectedVarCat(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem 0.65rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: '#ffffff',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <option value="all">🌐 Semua Kategori (Tampilkan Semua)</option>
+                      {DYNAMIC_VARIABLE_CATEGORIES.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
                           {cat.icon} {cat.label}
-                        </button>
-                      );
-                    })}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Variable Chips for active category */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {DYNAMIC_VARIABLE_CATEGORIES.find((c) => c.id === selectedVarCat)?.variables.map((item) => (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '180px', overflowY: 'auto' }}>
+                    {(selectedVarCat === 'all'
+                      ? DYNAMIC_VARIABLE_CATEGORIES.flatMap((c) => c.variables)
+                      : DYNAMIC_VARIABLE_CATEGORIES.find((c) => c.id === selectedVarCat)?.variables || []
+                    ).map((item) => (
                       <button
                         key={item.tag}
                         type="button"
