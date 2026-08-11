@@ -577,74 +577,7 @@ export function createDefaultWidget(nodeType) {
       newWidget.content = 'Bandung, Indonesia';
       newWidget.style = { borderRadius: 8, width: '100%', height: '200px' };
       break;
-    case 'social-media':
-      newWidget.type = 'container';
-      newWidget.widgetType = 'social-media';
-      newWidget.socialProfileTarget = 'wanita';
-      newWidget.style = {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 14,
-        padding: '20px',
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
-        borderStyle: 'solid',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        width: '100%',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-      };
-      newWidget.children = [
-        {
-          id: `sm-title-${timestamp}`,
-          type: 'heading',
-          content: 'Media Sosial & Contact',
-          style: { fontSize: 16, color: '#0f172a', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '0px' },
-        },
-        {
-          id: `sm-subtitle-${timestamp}`,
-          type: 'text',
-          content: 'Ikuti momen kebahagiaan dan terhubung dengan kami melalui media sosial.',
-          style: { fontSize: 12, color: '#64748b', textAlign: 'center', fontFamily: 'Inter', margin: '0px 0px 6px 0px' },
-        },
-        {
-          id: `sm-buttons-row-${timestamp}`,
-          type: 'container',
-          style: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, width: '100%', backgroundColor: 'transparent', padding: '0px' },
-          children: [
-            {
-              id: `sm-ig-pria-${timestamp}`,
-              type: 'button',
-              content: '📸 Instagram {nama_pria}',
-              buttonAction: 'none',
-              style: { backgroundColor: '#e1306c', color: '#ffffff', fontSize: 12, padding: '8px 14px', borderRadius: 20, fontWeight: 'bold' },
-            },
-            {
-              id: `sm-ig-wanita-${timestamp}`,
-              type: 'button',
-              content: '📸 Instagram {nama_wanita}',
-              buttonAction: 'none',
-              style: { backgroundColor: '#c13584', color: '#ffffff', fontSize: 12, padding: '8px 14px', borderRadius: 20, fontWeight: 'bold' },
-            },
-            {
-              id: `sm-tiktok-${timestamp}`,
-              type: 'button',
-              content: '🎵 TikTok {nama_pria}',
-              buttonAction: 'none',
-              style: { backgroundColor: '#000000', color: '#ffffff', fontSize: 12, padding: '8px 14px', borderRadius: 20, fontWeight: 'bold' },
-            },
-            {
-              id: `sm-wa-${timestamp}`,
-              type: 'button',
-              content: '💬 WhatsApp RSVP',
-              buttonAction: 'none',
-              style: { backgroundColor: '#25d366', color: '#ffffff', fontSize: 12, padding: '8px 14px', borderRadius: 20, fontWeight: 'bold' },
-            },
-          ],
-        },
-      ];
-      break;
+
 
     case 'divider':
       newWidget.style = { borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', width: '100%', margin: '12px 0px' };

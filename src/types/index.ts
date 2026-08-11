@@ -133,9 +133,9 @@ export interface Transaction {
 }
 
 // ===== Studio Types =====
-export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'social-media';
+export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes';
 
-export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar';
+export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar' | 'open-instagram' | 'open-tiktok' | 'open-facebook' | 'open-whatsapp' | 'open-youtube' | 'open-url';
 
 export type AnimationType = 'none' | 'anim-fade-in' | 'anim-fade-in-up' | 'anim-fade-in-down' | 'anim-fade-in-left' | 'anim-fade-in-right' | 'anim-zoom-in' | 'anim-bounce-in' | 'anim-pulse';
 
@@ -183,49 +183,66 @@ export interface NodeStyle {
   // Background
   bgType?: string;
   backgroundColor?: string;
+  backgroundColorMobile?: string;
+  backgroundColorTablet?: string;
   backgroundImage?: string;
+  backgroundImageMobile?: string;
+  backgroundImageTablet?: string;
   backgroundSize?: string;
   backgroundPosition?: string;
   backgroundRepeat?: string;
   backgroundOverlayColor?: string;
-  backgroundOverlayOpacity?: string;
-  backgroundVideoUrl?: string;
-  bgSlideshowInterval?: number;
-  bgSlideshowEffect?: string;
-  bgSlideshowCustomUrls?: string;
-  sliderInterval?: number;
-  sliderEffect?: string;
+  backgroundOverlayOpacity?: number;
   gradientColors?: string[];
-  gradientDirection?: string;
   gradientColor1?: string;
   gradientColor2?: string;
+  gradientDirection?: string;
+  // Slideshow Background
+  bgSlideshowImages?: string[];
+  bgSlideshowInterval?: number;
+  bgSlideshowTransition?: 'fade' | 'slide-left' | 'zoom' | 'ken-burns';
+  bgSlideshowEffect?: string;
+  sliderInterval?: number;
+  sliderEffect?: string;
+  hideScrollbar?: boolean;
   // Border
-  borderRadius?: string;
-  borderWidth?: string;
   borderStyle?: string;
+  borderWidth?: number;
   borderColor?: string;
-  // Shadow & Glassmorphism
+  borderRadius?: number;
+  borderTopLeftRadius?: number;
+  borderTopRightRadius?: number;
+  borderBottomLeftRadius?: number;
+  borderBottomRightRadius?: number;
+  // Effects & Shadow
+  opacity?: string | number;
   boxShadow?: string;
+  boxShadowColor?: string;
+  boxShadowX?: number;
+  boxShadowY?: number;
+  boxShadowBlur?: number;
+  boxShadowSpread?: number;
   backdropFilter?: string;
-  // Position
   position?: string;
   top?: string;
   left?: string;
   right?: string;
   bottom?: string;
-  zIndex?: string;
-  // Overflow
-  overflow?: string;
-  overflowX?: string;
-  overflowY?: string;
-  hideScrollbar?: boolean;
-  // Opacity & Visibility
-  opacity?: string;
+  zIndex?: string | number;
+  overflow?: 'visible' | 'hidden' | 'auto' | 'scroll';
+  overflowX?: 'visible' | 'hidden' | 'auto' | 'scroll';
+  overflowY?: 'visible' | 'hidden' | 'auto' | 'scroll';
+  // Grid Container Properties
+  gridCols?: number;
+  gridColsMobile?: number;
+  gridColsTablet?: number;
   // Animation
+  animationName?: AnimationType;
   animationType?: AnimationType;
   animationDuration?: string;
   animationDelay?: string;
-  // Shape Divider
+  animationIteration?: '1' | 'infinite';
+  // Shape Dividers
   shapeDividerTop?: string;
   shapeDividerBottom?: string;
   shapeDividerTopColor?: string;
@@ -245,8 +262,7 @@ export interface StudioNode {
   content?: string;
   children?: StudioNode[];
   style: NodeStyle;
-  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'social-media';
-  socialProfileTarget?: 'pria' | 'wanita' | 'couple' | 'organizer';
+  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
   isDynamic?: boolean;
@@ -255,6 +271,7 @@ export interface StudioNode {
   inputName?: string;
   selectOptions?: string;
   buttonAction?: ButtonAction;
+  buttonUrl?: string;
   icon?: string;
   showInGallery?: boolean;
   hideDots?: boolean;

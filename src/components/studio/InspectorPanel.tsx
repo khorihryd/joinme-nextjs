@@ -702,26 +702,6 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
         {/* STYLE TAB */}
         {activeInspectorTab === 'style' && (
           <div>
-            {node.type === 'container' && node.widgetType === 'social-media' && (
-              <div className="form-group" style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                <label style={{ fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
-                  📱 Target Profil Medsos (Profile Target)
-                </label>
-                <select
-                  value={node.socialProfileTarget || 'wanita'}
-                  onChange={(e) => updateNodeProp('socialProfileTarget', e.target.value)}
-                  style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.8rem', fontWeight: 600, borderRadius: '8px' }}
-                >
-                  <option value="wanita">👰 Mempelai Wanita ({'{ig_wanita}'}, {'{tiktok_wanita}'}, {'{fb_wanita}'})</option>
-                  <option value="pria">🤵 Mempelai Pria ({'{ig_pria}'}, {'{tiktok_pria}'}, {'{fb_pria}'})</option>
-                  <option value="couple">💑 Pasangan (Mempelai Pria &amp; Wanita)</option>
-                  <option value="organizer">🏢 Penyelenggara / Perusahaan ({'{ig_organizer}'}, {'{yt_organizer}'}, {'{wa_contact}'})</option>
-                </select>
-                <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginTop: '0.35rem' }}>
-                  ℹ️ Di mode pratinjau/undangan akhir, hanya akun sosial media yang diisi oleh pengguna yang akan ditampilkan.
-                </span>
-              </div>
-            )}
 
             {(node.type === 'heading' || node.type === 'button' || node.type === 'text') && (
               <div className="form-group">
@@ -807,19 +787,64 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
             )}
 
             {node.type === 'button' && (
-              <div className="form-group">
-                <label>Aksi Tombol (Button Action)</label>
-                <select
-                  value={node.buttonAction || 'none'}
-                  onChange={(e) => updateNodeProp('buttonAction', e.target.value)}
-                >
-                  <option value="none">Tanpa Aksi (Tombol Biasa)</option>
-                  <option value="submit-rsvp">✉️ Kirim Form RSVP &amp; Ucapan</option>
-                  <option value="open-cover">💌 Buka Undangan (Sampul)</option>
-                  <option value="google-maps">📍 Buka Peta (Google Maps)</option>
-                  <option value="save-calendar">📅 Simpan ke Google Calendar (Save the Date)</option>
-                </select>
-              </div>
+              <>
+                <div className="form-group">
+                  <label>Aksi Tombol (Button Action)</label>
+                  <select
+                    value={node.buttonAction || 'none'}
+                    onChange={(e) => updateNodeProp('buttonAction', e.target.value)}
+                  >
+                    <option value="none">Tanpa Aksi (Tombol Biasa)</option>
+                    <option value="submit-rsvp">✉️ Kirim Form RSVP &amp; Ucapan</option>
+                    <option value="open-cover">💌 Buka Undangan (Sampul)</option>
+                    <option value="google-maps">📍 Buka Peta (Google Maps)</option>
+                    <option value="save-calendar">📅 Simpan ke Google Calendar (Save the Date)</option>
+                    <option value="open-instagram">📸 Buka Instagram ({'{ig_wanita}'}, {'{ig_pria}'}, dll.)</option>
+                    <option value="open-tiktok">🎵 Buka TikTok ({'{tiktok_wanita}'}, {'{tiktok_pria}'})</option>
+                    <option value="open-facebook">📘 Buka Facebook ({'{fb_wanita}'}, {'{fb_pria}'})</option>
+                    <option value="open-whatsapp">💬 Chat WhatsApp ({'{wa_contact}'})</option>
+                    <option value="open-youtube">🎥 Buka YouTube ({'{yt_organizer}'})</option>
+                    <option value="open-url">🔗 Buka Link URL Kustom</option>
+                  </select>
+                </div>
+
+                {['open-instagram', 'open-tiktok', 'open-facebook', 'open-whatsapp', 'open-youtube', 'open-url'].includes(node.buttonAction || '') && (
+                  <div className="form-group" style={{ marginTop: '0.65rem', padding: '0.65rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                      Target Username / Link URL (Mendukung Variabel Dinamis)
+                    </label>
+                    <input
+                      type="text"
+                      value={node.buttonUrl || ''}
+                      onChange={(e) => updateNodeProp('buttonUrl', e.target.value)}
+                      placeholder={
+                        node.buttonAction === 'open-instagram' ? 'Contoh: {ig_wanita} atau username' :
+                        node.buttonAction === 'open-tiktok' ? 'Contoh: {tiktok_wanita} atau username' :
+                        node.buttonAction === 'open-whatsapp' ? 'Contoh: {wa_contact} atau 081234567890' :
+                        'Contoh: https://... atau {variabel}'
+                      }
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                    />
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '0.35rem' }}>
+                      ℹ️ Di mode pratinjau/undangan akhir, tombol ini akan otomatis disembunyikan jika akun/variabel di atas tidak diisi oleh pengguna.
+                    </span>
+
+                    {/* Quick Variable Insert Helper Bar for Social Handles */}
+                    <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {['{ig_wanita}', '{ig_pria}', '{tiktok_wanita}', '{tiktok_pria}', '{fb_wanita}', '{fb_pria}', '{wa_contact}', '{ig_organizer}'].map((varTag) => (
+                        <button
+                          key={varTag}
+                          type="button"
+                          onClick={() => updateNodeProp('buttonUrl', varTag)}
+                          style={{ fontSize: '0.66rem', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#ffffff', color: 'var(--primary)', cursor: 'pointer', fontWeight: 700 }}
+                        >
+                          + {varTag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {node.type === 'image' && (

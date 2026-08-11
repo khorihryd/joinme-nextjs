@@ -18,50 +18,38 @@ export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   return list;
 }
 
-export function filterSocialMediaChildren(children: StudioNode[] | undefined, targetProfile: string, eventDetails?: any): StudioNode[] {
-  if (!children || !Array.isArray(children)) return [];
-  if (!eventDetails) return children;
+export function resolveSocialButtonUrl(action: string, rawUrlOrTag: string, eventDetails?: any): string | null {
+  if (!rawUrlOrTag && !action) return null;
 
-  const hasHandle = (val?: string) => typeof val === 'string' && val.trim().length > 0;
+  let resolvedVal = rawUrlOrTag || '';
+  if (resolvedVal.includes('{') && resolvedVal.includes('}')) {
+    resolvedVal = resolveTextVariables(resolvedVal, eventDetails);
+  }
 
-  const availableHandles: Record<string, boolean> = {
-    ig_wanita: hasHandle(eventDetails.ig_wanita || eventDetails.instagram_wanita),
-    tiktok_wanita: hasHandle(eventDetails.tiktok_wanita || eventDetails.tt_wanita),
-    fb_wanita: hasHandle(eventDetails.fb_wanita || eventDetails.facebook_wanita),
-    ig_pria: hasHandle(eventDetails.ig_pria || eventDetails.instagram_pria),
-    tiktok_pria: hasHandle(eventDetails.tiktok_pria || eventDetails.tt_pria),
-    fb_pria: hasHandle(eventDetails.fb_pria || eventDetails.facebook_pria),
-    ig_organizer: hasHandle(eventDetails.ig_organizer || eventDetails.instagram),
-    yt_organizer: hasHandle(eventDetails.yt_organizer || eventDetails.youtube),
-    fb_organizer: hasHandle(eventDetails.fb_organizer || eventDetails.facebook),
-    wa_contact: hasHandle(eventDetails.wa_contact || eventDetails.whatsapp || eventDetails.phone),
-  };
+  resolvedVal = resolvedVal.trim();
+  if (!resolvedVal || resolvedVal.startsWith('{')) return null;
 
-  return children
-    .map((child) => {
-      const cloned = JSON.parse(JSON.stringify(child));
-      if (cloned.children && cloned.children.length > 0) {
-        cloned.children = filterSocialMediaChildren(cloned.children, targetProfile, eventDetails);
-        if (cloned.children.length === 0) return null;
-      }
+  const cleanHandle = resolvedVal.replace(/^@/, '');
 
-      const content = cloned.content || '';
-      if (content.includes('{ig_wanita}') && !availableHandles.ig_wanita) return null;
-      if (content.includes('{tiktok_wanita}') && !availableHandles.tiktok_wanita) return null;
-      if (content.includes('{fb_wanita}') && !availableHandles.fb_wanita) return null;
-
-      if (content.includes('{ig_pria}') && !availableHandles.ig_pria) return null;
-      if (content.includes('{tiktok_pria}') && !availableHandles.tiktok_pria) return null;
-      if (content.includes('{fb_pria}') && !availableHandles.fb_pria) return null;
-
-      if (content.includes('{ig_organizer}') && !availableHandles.ig_organizer) return null;
-      if (content.includes('{yt_organizer}') && !availableHandles.yt_organizer) return null;
-      if (content.includes('{fb_organizer}') && !availableHandles.fb_organizer) return null;
-      if (content.includes('{wa_contact}') && !availableHandles.wa_contact) return null;
-
-      return cloned;
-    })
-    .filter(Boolean) as StudioNode[];
+  switch (action) {
+    case 'open-instagram':
+      return `https://instagram.com/${cleanHandle}`;
+    case 'open-tiktok':
+      return `https://tiktok.com/@${cleanHandle}`;
+    case 'open-facebook':
+      return `https://facebook.com/${cleanHandle}`;
+    case 'open-whatsapp': {
+      const cleanPhone = resolvedVal.replace(/[^0-9]/g, '');
+      const formattedPhone = cleanPhone.startsWith('0') ? `62${cleanPhone.slice(1)}` : cleanPhone;
+      return `https://wa.me/${formattedPhone}`;
+    }
+    case 'open-youtube':
+      return `https://youtube.com/${cleanHandle}`;
+    case 'open-url':
+      return resolvedVal.startsWith('http://') || resolvedVal.startsWith('https://') ? resolvedVal : `https://${resolvedVal}`;
+    default:
+      return resolvedVal;
+  }
 }
 
 export function cloneAndBindEventData(templateNode: StudioNode, evtData: any, idx: number): StudioNode {
@@ -353,14 +341,14 @@ export function NodeRenderer({
     letterSpacing: style.letterSpacing || undefined,
     textTransform: style.textTransform as any || undefined,
     borderRadius: style.borderRadius ? `${style.borderRadius}px` : undefined,
-    opacity: style.opacity ? parseFloat(style.opacity) : undefined,
+    opacity: style.opacity ? parseFloat(String(style.opacity)) : undefined,
     boxShadow: getResponsiveStyle(style, 'boxShadow', undefined, viewportMode),
     position: (posVal || undefined) as any,
     top: posVal && posVal !== 'static' ? getResponsiveStyle(style, 'top', undefined, viewportMode) : undefined,
     right: posVal && posVal !== 'static' ? getResponsiveStyle(style, 'right', undefined, viewportMode) : undefined,
     bottom: posVal && posVal !== 'static' ? getResponsiveStyle(style, 'bottom', undefined, viewportMode) : undefined,
     left: posVal && posVal !== 'static' ? getResponsiveStyle(style, 'left', undefined, viewportMode) : undefined,
-    zIndex: posVal && posVal !== 'static' && style.zIndex ? (parseInt(style.zIndex, 10) || style.zIndex) : undefined,
+    zIndex: posVal && posVal !== 'static' && style.zIndex ? (parseInt(String(style.zIndex), 10) || style.zIndex) : undefined,
     scrollbarWidth: style.hideScrollbar ? 'none' : undefined,
     msOverflowStyle: style.hideScrollbar ? 'none' : undefined,
   };
@@ -596,16 +584,6 @@ export function NodeRenderer({
       );
     }
 
-    // Dynamic Social Media Container Filter Rendering in Preview Mode
-    if (node.widgetType === 'social-media' && isPreviewMode && eventDetails) {
-      const activeSocialChildren = filterSocialMediaChildren(node.children, node.socialProfileTarget || 'wanita', eventDetails);
-
-      // If ALL social handles for target profile are empty, hide the entire widget container!
-      if (activeSocialChildren.length === 0) {
-        return null;
-      }
-    }
-
     return (
       <div
         id={`node-dom-${node.id}`}
@@ -634,10 +612,7 @@ export function NodeRenderer({
         )}
 
         <div style={containerInnerStyle} className="container-inner-wrapper">
-          {(node.widgetType === 'social-media' && isPreviewMode && eventDetails
-            ? filterSocialMediaChildren(node.children, node.socialProfileTarget || 'wanita', eventDetails)
-            : node.children
-          )?.map((child) => (
+          {node.children?.map((child) => (
             <NodeRenderer
               key={child.id}
               node={child}
@@ -694,8 +669,23 @@ export function NodeRenderer({
     const isCalendarButton = node.buttonAction === 'save-calendar' || contentText.toLowerCase().includes('simpan kalender') || contentText.toLowerCase().includes('save the date');
     const isRsvpButton = node.buttonAction === 'submit-rsvp' || contentText.toLowerCase().includes('kirim rsvp') || contentText.toLowerCase().includes('kirim konfirmasi');
 
+    const isSocialAction = ['open-instagram', 'open-tiktok', 'open-facebook', 'open-whatsapp', 'open-youtube', 'open-url'].includes(node.buttonAction || '');
+    const resolvedSocialUrl = isSocialAction ? resolveSocialButtonUrl(node.buttonAction || '', node.buttonUrl || '', eventDetails) : null;
+
+    // In Preview Mode, automatically hide the button if the social account handle is empty!
+    if (isPreviewMode && isSocialAction && !resolvedSocialUrl) {
+      return null;
+    }
+
     const handleButtonClick = (e: React.MouseEvent) => {
       if (isPreviewMode) {
+        if (isSocialAction) {
+          e.stopPropagation();
+          if (resolvedSocialUrl) {
+            window.open(resolvedSocialUrl, '_blank');
+          }
+          return;
+        }
         if (isCoverButton && onOpenCover) {
           onOpenCover();
           return;
