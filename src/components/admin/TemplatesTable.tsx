@@ -1,6 +1,6 @@
-'use client';
-
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { CreateTemplateModal } from '@/components/admin/CreateTemplateModal';
 
 interface TemplatesTableProps {
   templates: any[];
@@ -8,6 +8,8 @@ interface TemplatesTableProps {
 }
 
 export function TemplatesTable({ templates, onDelete }: TemplatesTableProps) {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   return (
     <div className="admin-table-container">
       {/* Table Header Controls */}
@@ -22,13 +24,14 @@ export function TemplatesTable({ templates, onDelete }: TemplatesTableProps) {
         </div>
 
         <div>
-          <Link
-            href="/studio/new"
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
             className="btn btn-primary"
-            style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', border: 'none', cursor: 'pointer' }}
           >
             ✨ Buat Template Undangan Baru
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -104,6 +107,12 @@ export function TemplatesTable({ templates, onDelete }: TemplatesTableProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Create Template Modal */}
+      <CreateTemplateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 }
