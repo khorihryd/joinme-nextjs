@@ -755,7 +755,7 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   {/* Variable Chips for active category */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '180px', overflowY: 'auto' }}>
                     {(selectedVarCat === 'all'
-                      ? DYNAMIC_VARIABLE_CATEGORIES.flatMap((c) => c.variables)
+                      ? Array.from(new Map(DYNAMIC_VARIABLE_CATEGORIES.flatMap((c) => c.variables).map((v) => [v.tag, v])).values())
                       : DYNAMIC_VARIABLE_CATEGORIES.find((c) => c.id === selectedVarCat)?.variables || []
                     ).map((item) => (
                       <button
