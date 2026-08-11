@@ -24,6 +24,7 @@ export function WidgetsPanel({ onAddWidget, onAddRootContainer, onInsertVariable
     { type: 'slider' as const, label: 'Slide Gambar', icon: '🎠' },
     { type: 'rsvp' as const, label: 'Form RSVP', icon: '💌' },
     { type: 'wishes' as const, label: 'Dinding Ucapan', icon: '💬' },
+    { type: 'social-media' as const, label: 'Medsos & Contact', icon: '📱' },
     { type: 'container' as const, label: 'Inner Container', icon: '📦' },
   ];
 

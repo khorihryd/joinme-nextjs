@@ -133,7 +133,7 @@ export interface Transaction {
 }
 
 // ===== Studio Types =====
-export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes';
+export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'social-media';
 
 export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar';
 
@@ -325,6 +325,18 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   nama_event: 'National Tech Summit 2026',
   nama_narasumber: 'Dr. Eng. Ir. H. Pratama',
 
+  // Social Media
+  ig_pria: '@roni_wijaya',
+  tiktok_pria: '@roni_official',
+  fb_pria: 'Roni Wijaya',
+  ig_wanita: '@anti_kartika',
+  tiktok_wanita: '@antikartika',
+  fb_wanita: 'Anti Kartika',
+  ig_organizer: '@joinme_id',
+  yt_organizer: 'JoinMe Studio',
+  fb_organizer: 'JoinMe Digital',
+  wa_contact: '081234567890',
+
   // Media
   cover_photo: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
 };
@@ -346,11 +358,12 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
       { tag: '{kode_tamu}', label: 'Kode Tamu', desc: 'Kode Unik Check-In' },
       { tag: '{kuota_tamu}', label: 'Kuota Tamu', desc: 'Jumlah Pax Tamu' },
       { tag: '{penyelenggara}', label: 'Penyelenggara', desc: 'Nama Sohibul Hajat' },
+      { tag: '{wa_contact}', label: 'WhatsApp Contact', desc: 'Nomor WhatsApp Acara / Contact Person' },
     ],
   },
   {
     id: 'wedding',
-    label: 'Pernikahan',
+    label: 'Pernikahan & Medsos Mempelai',
     icon: '💍',
     variables: [
       { tag: '{nama_mempelai}', label: 'Mempelai Singkat', desc: 'Nama Pasangan (Pria & Wanita)' },
@@ -360,6 +373,12 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
       { tag: '{bride_full}', label: 'Lengkap Wanita', desc: 'Nama Lengkap & Gelar Wanita' },
       { tag: '{ortu_pria}', label: 'Orang Tua Pria', desc: 'Nama Orang Tua Mempelai Pria' },
       { tag: '{ortu_wanita}', label: 'Orang Tua Wanita', desc: 'Nama Orang Tua Mempelai Wanita' },
+      { tag: '{ig_pria}', label: 'Instagram Pria', desc: 'Username Instagram Pria (@username)' },
+      { tag: '{tiktok_pria}', label: 'TikTok Pria', desc: 'Username TikTok Pria (@username)' },
+      { tag: '{fb_pria}', label: 'Facebook Pria', desc: 'Nama Akun Facebook Pria' },
+      { tag: '{ig_wanita}', label: 'Instagram Wanita', desc: 'Username Instagram Wanita (@username)' },
+      { tag: '{tiktok_wanita}', label: 'TikTok Wanita', desc: 'Username TikTok Wanita (@username)' },
+      { tag: '{fb_wanita}', label: 'Facebook Wanita', desc: 'Nama Akun Facebook Wanita' },
     ],
   },
   {
@@ -397,11 +416,15 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
   },
   {
     id: 'formal',
-    label: 'Formal & Seminar',
+    label: 'Formal, Seminar & Medsos Brand',
     icon: '💼',
     variables: [
       { tag: '{nama_event}', label: 'Nama Event', desc: 'Judul Acara / Seminar / Summit' },
       { tag: '{nama_narasumber}', label: 'Nama Narasumber', desc: 'Keynote Speaker / Pembicara' },
+      { tag: '{ig_organizer}', label: 'Instagram Brand', desc: 'Instagram Perusahaan / Event' },
+      { tag: '{yt_organizer}', label: 'YouTube Channel', desc: 'YouTube Channel Perusahaan' },
+      { tag: '{fb_organizer}', label: 'Facebook Page', desc: 'Facebook Page Perusahaan' },
+      { tag: '{wa_contact}', label: 'WhatsApp Contact', desc: 'Nomor WhatsApp Official / Admin' },
     ],
   },
 ];
