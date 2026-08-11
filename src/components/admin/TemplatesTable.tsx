@@ -23,11 +23,11 @@ export function TemplatesTable({ templates, onDelete }: TemplatesTableProps) {
 
         <div>
           <Link
-            href="/studio/tmpl-sage"
+            href="/studio/new"
             className="btn btn-primary"
             style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            ✨ Buka JoinMe Studio Builder
+            ✨ Buat Template Undangan Baru
           </Link>
         </div>
       </div>
