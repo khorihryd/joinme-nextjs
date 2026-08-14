@@ -499,39 +499,45 @@ export function NodeRenderer({
         >
           {actionOverlay}
 
-          <div style={containerInnerStyle} className="container-inner-wrapper">
-            {/* Guarantee Section Headline Title & Subtitle Text if no heading child is present */}
-            {(!node.children || node.children.length === 0 || !hasHeadingChild) && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '12px', width: '100%' }}>
-                <h3 style={{ fontSize: '1.38rem', color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display, serif', margin: '0 0 4px 0' }}>
+          {/* Section Outer Column Wrapper (Guarantees Headline & Subtitle placed at TOP) */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            {/* Section Headline Title & Subtitle Text */}
+            {!hasHeadingChild && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '16px', width: '100%' }}>
+                <h3 style={{ fontSize: '1.38rem', color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display, serif', margin: '0 0 6px 0' }}>
                   Galeri Foto Bahagia
                 </h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748b', fontFamily: 'Inter, sans-serif', margin: '0 0 8px 0', lineHeight: '1.5' }}>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', fontFamily: 'Inter, sans-serif', margin: 0, lineHeight: '1.5', maxWidth: '480px' }}>
                   Momen-momen indah kebersamaan kami yang terekam dalam kenangan abadi.
                 </p>
               </div>
             )}
 
-            {node.children?.map((child) => (
-              <NodeRenderer
-                key={child.id}
-                node={child}
-                allNodes={allNodes}
-                selectedNodeId={selectedNodeId}
-                onSelectNode={onSelectNode}
-                onDeleteNode={onDeleteNode}
-                onDuplicateNode={onDuplicateNode}
-                eventDetails={eventDetails}
-                viewportMode={viewportMode}
-                isPreviewMode={isPreviewMode}
-                onOpenCover={onOpenCover}
-              />
-            ))}
-
-            <PhotoGalleryGrid
-              images={userPhotos}
-              isPreviewMode={isPreviewMode}
-            />
+            <div style={containerInnerStyle} className="container-inner-wrapper">
+              {node.children && node.children.length > 0 ? (
+                node.children.map((child) => (
+                  <NodeRenderer
+                    key={child.id}
+                    node={child}
+                    allNodes={allNodes}
+                    selectedNodeId={selectedNodeId}
+                    onSelectNode={onSelectNode}
+                    onDeleteNode={onDeleteNode}
+                    onDuplicateNode={onDuplicateNode}
+                    eventDetails={eventDetails}
+                    viewportMode={viewportMode}
+                    isPreviewMode={isPreviewMode}
+                    onOpenCover={onOpenCover}
+                  />
+                ))
+              ) : (
+                <PhotoGalleryGrid
+                  images={userPhotos}
+                  isPreviewMode={isPreviewMode}
+                  showHeadline={false}
+                />
+              )}
+            </div>
           </div>
         </div>
       );
