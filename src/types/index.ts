@@ -133,7 +133,7 @@ export interface Transaction {
 }
 
 // ===== Studio Types =====
-export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes';
+export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride';
 
 export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar' | 'open-instagram' | 'open-tiktok' | 'open-facebook' | 'open-whatsapp' | 'open-youtube' | 'open-url';
 
@@ -262,7 +262,7 @@ export interface StudioNode {
   content?: string;
   children?: StudioNode[];
   style: NodeStyle;
-  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list';
+  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
   isDynamic?: boolean;

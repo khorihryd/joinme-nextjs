@@ -19,6 +19,7 @@ export function WidgetsPanel({ onAddWidget, onAddRootContainer, onInsertVariable
     { type: 'divider' as const, label: 'Divider', icon: '➖' },
     { type: 'spacer' as const, label: 'Spacer', icon: '↕️' },
     { type: 'event' as const, label: 'Event', icon: '📅' },
+    { type: 'groom-bride' as const, label: 'Profil Mempelai', icon: '💍' },
     { type: 'lovestory' as const, label: 'Love Story', icon: '💖' },
     { type: 'gallery' as const, label: 'Galeri Foto', icon: '📸' },
     { type: 'slider' as const, label: 'Slide Gambar', icon: '🎠' },

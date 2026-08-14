@@ -578,6 +578,192 @@ export function createDefaultWidget(nodeType) {
       newWidget.style = { borderRadius: 8, width: '100%', height: '200px' };
       break;
 
+    case 'groom-bride':
+      newWidget.type = 'container';
+      newWidget.widgetType = 'groom-bride';
+      newWidget.style = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 20,
+        padding: '28px 20px',
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        width: '100%',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+      };
+      newWidget.children = [
+        // Section Title Header
+        {
+          id: `gb-header-title-${timestamp}`,
+          type: 'heading',
+          content: 'Mempelai Wanita & Pria',
+          style: { fontSize: 22, color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '0px 0px 4px 0px' },
+        },
+        {
+          id: `gb-header-sub-${timestamp}`,
+          type: 'text',
+          content: 'Maha Suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Ya Allah semoga berkenan mempertemukan kami dalam ikatan pernikahan yang suci.',
+          style: { fontSize: 13, color: '#64748b', textAlign: 'center', fontFamily: 'Inter', margin: '0px 0px 12px 0px', lineHeight: '1.6' },
+        },
+
+        // --- 1. MEMPELAI WANITA CARD (ON TOP) ---
+        {
+          id: `bride-card-container-${timestamp}`,
+          type: 'container',
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 10,
+            width: '100%',
+            backgroundColor: '#fff0f5',
+            padding: '22px 16px',
+            borderRadius: 16,
+            borderStyle: 'solid',
+            borderWidth: 1,
+            borderColor: '#fbcfe8',
+          },
+          children: [
+            // Bride Photo Avatar
+            {
+              id: `bride-photo-${timestamp}`,
+              type: 'image',
+              content: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+              style: { width: '110px', height: '110px', borderRadius: '50%', borderStyle: 'solid', borderWidth: 3, borderColor: '#ffffff', boxShadow: '0 4px 12px rgba(227,99,151,0.25)' },
+            },
+            // Bride Full Name
+            {
+              id: `bride-name-${timestamp}`,
+              type: 'heading',
+              content: '{bride_full}',
+              style: { fontSize: 20, color: '#9d174d', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '4px 0px 0px 0px' },
+            },
+            // Bride Parents Text
+            {
+              id: `bride-parents-${timestamp}`,
+              type: 'text',
+              content: 'Putri dari {ortu_wanita}',
+              style: { fontSize: 13, color: '#475569', textAlign: 'center', fontFamily: 'Inter', margin: '0px' },
+            },
+            // Bride Social Buttons Row
+            {
+              id: `bride-social-row-${timestamp}`,
+              type: 'container',
+              style: { display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: '6px', backgroundColor: 'transparent', padding: '0px' },
+              children: [
+                {
+                  id: `bride-ig-btn-${timestamp}`,
+                  type: 'button',
+                  content: 'Instagram',
+                  buttonAction: 'open-instagram',
+                  buttonUrl: '{ig_wanita}',
+                  icon: '📸',
+                  iconPosition: 'left',
+                  iconGap: 6,
+                  style: { backgroundColor: '#e1306c', color: '#ffffff', fontSize: 12, padding: '6px 14px', borderRadius: 20, fontWeight: 'bold' },
+                },
+                {
+                  id: `bride-tiktok-btn-${timestamp}`,
+                  type: 'button',
+                  content: 'TikTok',
+                  buttonAction: 'open-tiktok',
+                  buttonUrl: '{tiktok_wanita}',
+                  icon: '🎵',
+                  iconPosition: 'left',
+                  iconGap: 6,
+                  style: { backgroundColor: '#000000', color: '#ffffff', fontSize: 12, padding: '6px 14px', borderRadius: 20, fontWeight: 'bold' },
+                },
+              ],
+            },
+          ],
+        },
+
+        // --- ORNAMENT DIVIDER (& / 🤍) ---
+        {
+          id: `gb-divider-symbol-${timestamp}`,
+          type: 'heading',
+          content: '&',
+          style: { fontSize: 28, color: '#e36397', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '4px 0px' },
+        },
+
+        // --- 2. MEMPELAI PRIA CARD (ON BOTTOM) ---
+        {
+          id: `groom-card-container-${timestamp}`,
+          type: 'container',
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 10,
+            width: '100%',
+            backgroundColor: '#f0f9ff',
+            padding: '22px 16px',
+            borderRadius: 16,
+            borderStyle: 'solid',
+            borderWidth: 1,
+            borderColor: '#bae6fd',
+          },
+          children: [
+            // Groom Photo Avatar
+            {
+              id: `groom-photo-${timestamp}`,
+              type: 'image',
+              content: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+              style: { width: '110px', height: '110px', borderRadius: '50%', borderStyle: 'solid', borderWidth: 3, borderColor: '#ffffff', boxShadow: '0 4px 12px rgba(14,165,233,0.25)' },
+            },
+            // Groom Full Name
+            {
+              id: `groom-name-${timestamp}`,
+              type: 'heading',
+              content: '{groom_full}',
+              style: { fontSize: 20, color: '#0369a1', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '4px 0px 0px 0px' },
+            },
+            // Groom Parents Text
+            {
+              id: `groom-parents-${timestamp}`,
+              type: 'text',
+              content: 'Putra dari {ortu_pria}',
+              style: { fontSize: 13, color: '#475569', textAlign: 'center', fontFamily: 'Inter', margin: '0px' },
+            },
+            // Groom Social Buttons Row
+            {
+              id: `groom-social-row-${timestamp}`,
+              type: 'container',
+              style: { display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: '6px', backgroundColor: 'transparent', padding: '0px' },
+              children: [
+                {
+                  id: `groom-ig-btn-${timestamp}`,
+                  type: 'button',
+                  content: 'Instagram',
+                  buttonAction: 'open-instagram',
+                  buttonUrl: '{ig_pria}',
+                  icon: '📸',
+                  iconPosition: 'left',
+                  iconGap: 6,
+                  style: { backgroundColor: '#e1306c', color: '#ffffff', fontSize: 12, padding: '6px 14px', borderRadius: 20, fontWeight: 'bold' },
+                },
+                {
+                  id: `groom-tiktok-btn-${timestamp}`,
+                  type: 'button',
+                  content: 'TikTok',
+                  buttonAction: 'open-tiktok',
+                  buttonUrl: '{tiktok_pria}',
+                  icon: '🎵',
+                  iconPosition: 'left',
+                  iconGap: 6,
+                  style: { backgroundColor: '#000000', color: '#ffffff', fontSize: 12, padding: '6px 14px', borderRadius: 20, fontWeight: 'bold' },
+                },
+              ],
+            },
+          ],
+        },
+      ];
+      break;
+
 
     case 'divider':
       newWidget.style = { borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', width: '100%', margin: '12px 0px' };
