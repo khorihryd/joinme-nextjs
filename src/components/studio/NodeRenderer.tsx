@@ -3,6 +3,7 @@ import { StudioNode } from '@/types';
 import { resolveTextVariables, useStudioStore, WishItem } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
 import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
+import { GiftRegistryCards } from '@/components/studio/GiftRegistryCards';
 
 export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   let list: string[] = [];
@@ -463,6 +464,47 @@ export function NodeRenderer({
       position: computedStyle.position || 'relative',
       overflow: computedStyle.overflow || 'hidden',
     };
+
+    // Dynamic Gift Registry Widget Container Rendering
+    if (node.widgetType === 'gift-widget') {
+      const activeBanks = eventDetails?.bankAccounts || eventDetails?.rekening || undefined;
+      const activeGiftAddr = eventDetails?.giftAddress || eventDetails?.gift_address || eventDetails?.alamat_kado || undefined;
+
+      return (
+        <div
+          id={`node-dom-${node.id}`}
+          onClick={handleClick}
+          style={containerStyle}
+          className={nodeClassName}
+        >
+          {actionOverlay}
+
+          <div style={containerInnerStyle} className="container-inner-wrapper">
+            {node.children?.map((child) => (
+              <NodeRenderer
+                key={child.id}
+                node={child}
+                allNodes={allNodes}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={onSelectNode}
+                onDeleteNode={onDeleteNode}
+                onDuplicateNode={onDuplicateNode}
+                eventDetails={eventDetails}
+                viewportMode={viewportMode}
+                isPreviewMode={isPreviewMode}
+                onOpenCover={onOpenCover}
+              />
+            ))}
+
+            <GiftRegistryCards
+              bankAccounts={activeBanks}
+              giftAddress={activeGiftAddr}
+              isPreviewMode={isPreviewMode}
+            />
+          </div>
+        </div>
+      );
+    }
 
     // Dynamic RSVP Form Container Transformation to QR Code E-Ticket / Decision Card
     if (node.widgetType === 'rsvp-form' && isPreviewMode && submittedRsvp) {

@@ -133,7 +133,14 @@ export interface Transaction {
 }
 
 // ===== Studio Types =====
-export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride';
+export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride' | 'gift-widget';
+
+export interface BankAccountItem {
+  id?: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+}
 
 export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar' | 'open-instagram' | 'open-tiktok' | 'open-facebook' | 'open-whatsapp' | 'open-youtube' | 'open-url';
 
@@ -262,7 +269,7 @@ export interface StudioNode {
   content?: string;
   children?: StudioNode[];
   style: NodeStyle;
-  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride';
+  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
   isDynamic?: boolean;
@@ -357,6 +364,10 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   fb_organizer: 'JoinMe Digital',
   wa_contact: '081234567890',
 
+  // Gifts & Physical Delivery
+  gift_address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat (u.p. Anti Kartika & Roni)',
+  alamat_kado: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat (u.p. Anti Kartika & Roni)',
+
   // Media
   cover_photo: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
 };
@@ -379,6 +390,7 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
       { tag: '{kuota_tamu}', label: 'Kuota Tamu', desc: 'Jumlah Pax Tamu' },
       { tag: '{penyelenggara}', label: 'Penyelenggara', desc: 'Nama Sohibul Hajat' },
       { tag: '{wa_contact}', label: 'WhatsApp Contact', desc: 'Nomor WhatsApp Acara / Contact Person' },
+      { tag: '{alamat_kado}', label: 'Alamat Kado Fisik', desc: 'Alamat Pengiriman Kado Fisik' },
     ],
   },
   {

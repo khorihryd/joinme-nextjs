@@ -765,6 +765,45 @@ export function createDefaultWidget(nodeType) {
       break;
 
 
+    case 'gift-widget':
+      newWidget.type = 'container';
+      newWidget.widgetType = 'gift-widget';
+      newWidget.style = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 16,
+        padding: '24px 20px',
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        width: '100%',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+      };
+      newWidget.children = [
+        {
+          id: `gift-header-title-${timestamp}`,
+          type: 'heading',
+          content: 'Tanda Kasih & Hadiah Digital',
+          style: { fontSize: 20, color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '0px 0px 4px 0px' },
+        },
+        {
+          id: `gift-header-sub-${timestamp}`,
+          type: 'text',
+          content: 'Doa restu Anda merupakan karunia yang sangat berarti bagi kami. Namun jika Anda ingin memberikan tanda kasih, Anda dapat mengirimi hadiah melalui:',
+          style: { fontSize: 12, color: '#64748b', textAlign: 'center', fontFamily: 'Inter', margin: '0px 0px 12px 0px', lineHeight: '1.6' },
+        },
+        {
+          id: `gift-cards-wrapper-${timestamp}`,
+          type: 'container',
+          style: { width: '100%', backgroundColor: 'transparent', padding: '0px' },
+          children: [],
+        },
+      ];
+      break;
+
     case 'divider':
       newWidget.style = { borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', width: '100%', margin: '12px 0px' };
       break;
