@@ -194,6 +194,7 @@ interface StudioStore {
   deleteNode: (id: string) => void;
   duplicateNode: (id: string) => void;
   moveNode: (id: string, direction: 'up' | 'down') => void;
+  nestNodeIntoContainer: (nodeId: string, targetContainerId: string | null) => void;
   resetNodes: () => void;
 }
 
@@ -308,6 +309,50 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
     };
 
     set({ nodes: moveInList(get().nodes) });
+  },
+  nestNodeIntoContainer: (nodeId: string, targetContainerId: string | null) => {
+    const currentNodes = get().nodes;
+
+    let movedNode: StudioNode | null = null;
+
+    const extractNode = (list: StudioNode[]): StudioNode[] => {
+      const result: StudioNode[] = [];
+      for (const item of list) {
+        if (item.id === nodeId) {
+          movedNode = item;
+        } else {
+          if (item.children) {
+            result.push({ ...item, children: extractNode(item.children) });
+          } else {
+            result.push(item);
+          }
+        }
+      }
+      return result;
+    };
+
+    const treeWithoutNode = extractNode(currentNodes);
+    if (!movedNode) return;
+
+    if (targetContainerId === null) {
+      set({ nodes: [...treeWithoutNode, movedNode], selectedNodeId: nodeId });
+      return;
+    }
+
+    const insertIntoTarget = (list: StudioNode[]): StudioNode[] => {
+      return list.map((item) => {
+        if (item.id === targetContainerId) {
+          const currentChildren = Array.isArray(item.children) ? item.children : [];
+          return { ...item, children: [...currentChildren, movedNode!] };
+        }
+        if (item.children) {
+          return { ...item, children: insertIntoTarget(item.children) };
+        }
+        return item;
+      });
+    };
+
+    set({ nodes: insertIntoTarget(treeWithoutNode), selectedNodeId: nodeId });
   },
   resetNodes: () =>
     set({
