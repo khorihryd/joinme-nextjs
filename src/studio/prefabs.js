@@ -921,6 +921,16 @@ export function createDefaultWidget(nodeType) {
       ];
       break;
 
+    case 'thank-you':
+      newWidget.type = 'thank-you';
+      newWidget.content = 'Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu kepada kami. Atas kehadiran dan doa restunya, kami ucapkan terima kasih.';
+      newWidget.style = {
+        width: '100%',
+        padding: '0px',
+        margin: '0px 0px 16px 0px',
+      };
+      break;
+
     case 'divider':
       newWidget.style = { borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', width: '100%', margin: '12px 0px' };
       break;

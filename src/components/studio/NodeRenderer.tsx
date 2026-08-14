@@ -6,6 +6,7 @@ import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
 import { GiftRegistryCards } from '@/components/studio/GiftRegistryCards';
 import { LoveStoryTimeline } from '@/components/studio/LoveStoryTimeline';
 import { PhotoGalleryGrid } from '@/components/studio/PhotoGalleryGrid';
+import { ThankYouClosing } from '@/components/studio/ThankYouClosing';
 
 export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   let list: string[] = [];
@@ -1072,6 +1073,29 @@ export function NodeRenderer({
           images={userPhotos}
           isPreviewMode={isPreviewMode}
           title={node.content || undefined}
+        />
+      </div>
+    );
+  }
+
+  // Closing Thank You Widget (node.type === 'thank-you' || node.widgetType === 'thank-you')
+  if (node.type === 'thank-you' || node.widgetType === 'thank-you') {
+    return (
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleClick}
+        style={{
+          ...computedStyle,
+          width: '100%',
+          position: computedStyle.position || 'relative',
+        }}
+        className={nodeClassName}
+      >
+        {actionOverlay}
+        <ThankYouClosing
+          content={contentText}
+          eventDetails={eventDetails}
+          isPreviewMode={isPreviewMode}
         />
       </div>
     );

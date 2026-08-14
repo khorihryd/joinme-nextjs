@@ -62,6 +62,29 @@ export const VERSE_PRESETS = [
   },
 ];
 
+export const THANK_YOU_PRESETS = [
+  {
+    id: 'islamic-1',
+    label: '🌙 Islami (Kehormatan, Kehadiran & Doa Restu)',
+    text: 'Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu kepada kedua mempelai. Wassalamu’alaikum Warahmatullahi Wabarakatuh.',
+  },
+  {
+    id: 'general-1',
+    label: '✨ Umum / Nasional (Rasa Terima Kasih Kebersamaan)',
+    text: 'Atas kehadiran dan doa restu Bapak/Ibu/Saudara/i sekalian, kami mengucapkan terima kasih yang sebesar-besarnya. Semoga kebaikan dan kebahagiaan senantiasa menyertai kita semua.',
+  },
+  {
+    id: 'christian-1',
+    label: '✝️ Kristiani (Kasih & Karunia Tuhan)',
+    text: 'Kiranya Kasih dan Karunia Tuhan Kita Yesus Kristus senantiasa menyertai kita sekalian. Terima kasih atas kehadiran, kasih, dan doa restu Bapak/Ibu/Saudara/i.',
+  },
+  {
+    id: 'english-1',
+    label: '🌐 English (Warm Closing Message)',
+    text: 'Your presence and prayers at our wedding will bring us immense joy. Thank you for being a part of our special journey.',
+  },
+];
+
 export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
   const [selectedVarCat, setSelectedVarCat] = useState<string>('all');
   const {
@@ -784,10 +807,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
               </div>
             )}
 
-            {(node.type === 'heading' || node.type === 'button' || node.type === 'text') && (
+            {(node.type === 'thank-you' || node.widgetType === 'thank-you') && (
+              <div className="form-group" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+                <label style={{ fontWeight: 800, color: 'var(--primary)', marginBottom: '0.4rem', display: 'block' }}>
+                  📜 Preset Kalimat Ucapan Terima Kasih
+                </label>
+                <select
+                  style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.78rem', fontWeight: 600, borderRadius: '8px', border: '1px solid var(--border-color)', background: '#ffffff' }}
+                  onChange={(e) => {
+                    const found = THANK_YOU_PRESETS.find((p) => p.id === e.target.value);
+                    if (found) {
+                      updateNodeProp('content', found.text);
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>-- Pilih Preset Ucapan Penutup --</option>
+                  {THANK_YOU_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '0.35rem' }}>
+                  💡 Memilih preset akan otomatis mengganti teks ucapan penutup pada widget ini.
+                </span>
+              </div>
+            )}
+
+            {(node.type === 'heading' || node.type === 'button' || node.type === 'text' || node.type === 'thank-you') && (
               <div className="form-group">
-                <label>Isi Konten Teks</label>
-                {node.type === 'text' ? (
+                <label>Isi Konten Teks Penutup</label>
+                {node.type === 'text' || node.type === 'thank-you' ? (
                   <textarea
                     rows={3}
                     value={node.content || ''}

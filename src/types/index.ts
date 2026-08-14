@@ -133,7 +133,7 @@ export interface Transaction {
 }
 
 // ===== Studio Types =====
-export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride' | 'gift-widget' | 'opening-prayer';
+export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride' | 'gift-widget' | 'opening-prayer' | 'thank-you';
 
 export interface BankAccountItem {
   id?: string;
@@ -282,7 +282,7 @@ export interface StudioNode {
   content?: string;
   children?: StudioNode[];
   style: NodeStyle;
-  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget' | 'opening-prayer' | 'lovestory' | 'gallery-feed';
+  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget' | 'opening-prayer' | 'lovestory' | 'gallery-feed' | 'thank-you';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
   isDynamic?: boolean;
@@ -350,6 +350,8 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   nama_mempelai: 'Roni & Anti',
   ortu_pria: 'Bpk. H. Bambang Wijaya & Ibu Hj. Siti Rahma',
   ortu_wanita: 'Bpk. Ir. H. Ahmad Kartika & Ibu Hj. Nurbaeti',
+  keluarga_pria: 'Kel. Bpk. H. Bambang Wijaya & Ibu Hj. Siti Rahma',
+  keluarga_wanita: 'Kel. Bpk. Ir. H. Ahmad Kartika & Ibu Hj. Nurbaeti',
 
   // Date & Time
   event_date: '21 September 2026',
