@@ -179,6 +179,10 @@ export interface NodeStyle {
   flexWrap?: string;
   gap?: string;
   gapMobile?: string;
+  flexShrink?: number | string;
+  flexShrinkMobile?: number | string;
+  flexShrinkTablet?: number | string;
+  flexGrow?: number | string;
   // Spacing
   padding?: string;
   paddingMobile?: string;

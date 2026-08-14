@@ -394,6 +394,16 @@ export function NodeRenderer({
     if (overflowYVal) computedStyle.overflowY = overflowYVal as any;
   }
 
+  const flexShrinkVal = getResponsiveStyle(style, 'flexShrink', style.flexShrink !== undefined ? style.flexShrink : 0, viewportMode);
+  if (flexShrinkVal !== undefined) {
+    computedStyle.flexShrink = Number(flexShrinkVal);
+  }
+
+  const flexGrowVal = getResponsiveStyle(style, 'flexGrow', style.flexGrow !== undefined ? style.flexGrow : undefined, viewportMode);
+  if (flexGrowVal !== undefined) {
+    computedStyle.flexGrow = Number(flexGrowVal);
+  }
+
   const nodeClassName = `canvas-node-item ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`;
 
   if (style.bgType === 'gradient') {

@@ -526,6 +526,78 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
               </>
             )}
 
+            {/* Flex Shrink & Flex Grow Controls (All Nodes) */}
+            <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                🗜️ Perilaku Fleksibel (Flex Shrink / Grow)
+              </div>
+
+              {/* Quick Toggle Button for flexShrink */}
+              <div className="form-group" style={{ marginBottom: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ margin: 0 }}>Penyusutan Fleksibel (Flex Shrink)</label>
+                  <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{deviceIcon}</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => updateStyleProp('flexShrink', 0)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      border: Number(getResponsiveVal('flexShrink', 0)) === 0 ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                      backgroundColor: Number(getResponsiveVal('flexShrink', 0)) === 0 ? 'var(--primary-light, #fff0f5)' : 'var(--bg-card)',
+                      color: Number(getResponsiveVal('flexShrink', 0)) === 0 ? 'var(--primary)' : 'var(--text-main)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    🔒 Cegah Menyusut (0)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateStyleProp('flexShrink', 1)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      border: Number(getResponsiveVal('flexShrink', 0)) === 1 ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                      backgroundColor: Number(getResponsiveVal('flexShrink', 0)) === 1 ? 'var(--primary-light, #fff0f5)' : 'var(--bg-card)',
+                      color: Number(getResponsiveVal('flexShrink', 0)) === 1 ? 'var(--primary)' : 'var(--text-main)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    ↕️ Izinkan Menyusut (1)
+                  </button>
+                </div>
+
+                <select
+                  value={Number(getResponsiveVal('flexShrink', 0))}
+                  onChange={(e) => updateStyleProp('flexShrink', parseInt(e.target.value) || 0)}
+                  style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
+                >
+                  <option value={0}>0 — Cegah Menyusut (Tinggi/Lebar Alami Utuh &amp; Stabil)</option>
+                  <option value={1}>1 — Izinkan Menyusut (Default Flex Behavior)</option>
+                </select>
+                <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '0.35rem' }}>
+                  💡 Pilih <strong>0 (Cegah Menyusut)</strong> agar kontainer/elemen anak tidak pernah gepeng saat tinggi kontainer induknya sempit.
+                </span>
+              </div>
+            </div>
+
             {/* Dimension & Spacing Section */}
             <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>

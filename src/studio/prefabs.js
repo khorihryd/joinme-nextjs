@@ -175,7 +175,7 @@ export function createDefaultWidget(nodeType) {
   let newWidget = {
     id: newId,
     type: nodeType,
-    style: { margin: '0px 0px 12px 0px' }
+    style: { margin: '0px 0px 12px 0px', flexShrink: 0 }
   };
 
   switch (nodeType) {
