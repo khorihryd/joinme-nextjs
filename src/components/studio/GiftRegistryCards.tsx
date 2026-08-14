@@ -7,6 +7,7 @@ interface GiftRegistryCardsProps {
   bankAccounts?: BankAccountItem[];
   giftAddress?: string;
   isPreviewMode?: boolean;
+  isStudioContext?: boolean;
 }
 
 const DEFAULT_SAMPLE_BANKS: BankAccountItem[] = [
@@ -27,14 +28,21 @@ function getBankBadgeColor(bankName: string): { bg: string; color: string; borde
   return { bg: '#f8fafc', color: '#334155', border: '#e2e8f0' };
 }
 
-export function GiftRegistryCards({ bankAccounts, giftAddress, isPreviewMode }: GiftRegistryCardsProps) {
+export function GiftRegistryCards({
+  bankAccounts,
+  giftAddress,
+  isPreviewMode,
+  isStudioContext = true,
+}: GiftRegistryCardsProps) {
   const [copiedToast, setCopiedToast] = useState<string | null>(null);
 
-  const activeAccounts = Array.isArray(bankAccounts) && bankAccounts.length > 0
-    ? bankAccounts
-    : (!isPreviewMode ? DEFAULT_SAMPLE_BANKS : []);
+  // In Studio Context (both editor & studio preview), fallback to sample mock cards if user bank data is empty
+  const hasRealAccounts = Array.isArray(bankAccounts) && bankAccounts.length > 0;
+  const activeAccounts = hasRealAccounts
+    ? bankAccounts!
+    : (isStudioContext ? DEFAULT_SAMPLE_BANKS : []);
 
-  const activeAddress = giftAddress || (!isPreviewMode ? DEFAULT_SAMPLE_ADDRESS : '');
+  const activeAddress = giftAddress || (isStudioContext ? DEFAULT_SAMPLE_ADDRESS : '');
 
   const showToast = (message: string) => {
     setCopiedToast(message);
@@ -60,8 +68,8 @@ export function GiftRegistryCards({ bankAccounts, giftAddress, isPreviewMode }: 
   }
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
-      {/* Toast Feedback Notification */}
+    <div style={{ width: '100%', position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Toast Notification Banner */}
       {copiedToast && (
         <div
           style={{
@@ -72,171 +80,160 @@ export function GiftRegistryCards({ bankAccounts, giftAddress, isPreviewMode }: 
             backgroundColor: '#0f172a',
             color: '#ffffff',
             padding: '10px 20px',
-            borderRadius: '24px',
-            fontSize: '0.8rem',
+            borderRadius: '30px',
+            fontSize: '0.82rem',
             fontWeight: 700,
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-            zIndex: 99999,
+            boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
+            zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            animation: 'fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            animation: 'fadeIn 0.2s ease',
           }}
         >
           {copiedToast}
         </div>
       )}
 
-      {/* 1. DYNAMIC BANK ACCOUNT CARDS (Automatically generated matching user inputs) */}
-      {activeAccounts.map((acc, idx) => {
-        const badgeStyle = getBankBadgeColor(acc.bankName || 'Bank');
-        return (
+      {/* Grid Cards Container */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '14px',
+          width: '100%',
+        }}
+      >
+        {/* Bank Account Cards */}
+        {activeAccounts.map((item, idx) => {
+          const badgeStyle = getBankBadgeColor(item.bankName);
+
+          return (
+            <div
+              key={`bank-card-${idx}-${item.accountNumber}`}
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                padding: '20px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                position: 'relative',
+              }}
+            >
+              {/* Top Row: Bank Badge & Copy Button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    backgroundColor: badgeStyle.bg,
+                    color: badgeStyle.color,
+                    border: `1px solid ${badgeStyle.border}`,
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  💳 {item.bankName}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopy(item.accountNumber, `Nomor Rekening ${item.bankName}`)}
+                  style={{
+                    backgroundColor: 'var(--primary-light, #fff0f5)',
+                    color: 'var(--primary, #e36397)',
+                    border: '1px solid #fbcfe8',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  📋 Salin Rekening
+                </button>
+              </div>
+
+              {/* Account Details */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', letterSpacing: '1px', fontFamily: 'monospace' }}>
+                  {item.accountNumber}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                  a.n. <strong style={{ color: '#334155' }}>{item.accountHolder}</strong>
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Physical Gift Delivery Card (Optional) */}
+        {activeAddress && (
           <div
-            key={`bank-card-${idx}-${acc.accountNumber}`}
             style={{
+              backgroundColor: '#fafafa',
+              borderRadius: '16px',
+              padding: '20px',
+              border: '1px dashed #cbd5e1',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '20px 18px',
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              borderStyle: 'solid',
-              borderWidth: '1px',
-              borderColor: badgeStyle.border,
-              width: '100%',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
-              boxSizing: 'border-box',
+              gap: '12px',
+              position: 'relative',
             }}
           >
-            {/* Bank Name Badge */}
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 14px',
-                borderRadius: '20px',
-                backgroundColor: badgeStyle.bg,
-                color: badgeStyle.color,
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                border: `1px solid ${badgeStyle.border}`,
-              }}
-            >
-              💳 {acc.bankName || 'Rekening Bank'}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  backgroundColor: '#f1f5f9',
+                  color: '#475569',
+                  border: '1px solid #cbd5e1',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                📦 Alamat Pengiriman Kado Fisik
+              </span>
+
+              <button
+                type="button"
+                onClick={() => handleCopy(activeAddress, 'Alamat Pengiriman')}
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                📋 Salin Alamat
+              </button>
             </div>
 
-            {/* Account Number */}
-            <div
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 900,
-                color: '#0f172a',
-                letterSpacing: '0.08em',
-                fontFamily: 'monospace',
-                marginTop: '4px',
-              }}
-            >
-              {acc.accountNumber || '0000000000'}
-            </div>
-
-            {/* Account Holder */}
-            <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>
-              a.n. <span style={{ color: '#334155', fontWeight: 700 }}>{acc.accountHolder || 'Nama Pemilik'}</span>
-            </div>
-
-            {/* Copy Button */}
-            <button
-              type="button"
-              onClick={() => handleCopy(acc.accountNumber, `Nomor rekening ${acc.bankName}`)}
-              style={{
-                marginTop: '6px',
-                padding: '8px 18px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                backgroundColor: 'var(--primary, #e36397)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 3px 10px rgba(227,99,151,0.25)',
-                transition: 'transform 0.15s ease',
-              }}
-            >
-              📋 Salin Nomor Rekening
-            </button>
+            <p style={{ fontSize: '0.82rem', color: '#334155', lineHeight: '1.6', margin: 0, textAlign: 'left', fontWeight: 500 }}>
+              {activeAddress}
+            </p>
           </div>
-        );
-      })}
-
-      {/* 2. PHYSICAL GIFT DELIVERY ADDRESS CARD */}
-      {activeAddress && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '20px 18px',
-            backgroundColor: '#fdf2f8',
-            borderRadius: '16px',
-            borderStyle: 'solid',
-            borderWidth: '1px',
-            borderColor: '#fbcfe8',
-            width: '100%',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 14px',
-              borderRadius: '20px',
-              backgroundColor: '#ffffff',
-              color: '#9d174d',
-              fontSize: '0.82rem',
-              fontWeight: 800,
-              border: '1px solid #fbcfe8',
-            }}
-          >
-            📦 Kirim Kado Fisik
-          </div>
-
-          <div style={{ fontSize: '0.84rem', color: '#475569', textAlign: 'center', lineHeight: '1.5', padding: '0 8px' }}>
-            {activeAddress}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => handleCopy(activeAddress, 'Alamat pengiriman kado')}
-            style={{
-              marginTop: '4px',
-              padding: '8px 18px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              backgroundColor: '#9d174d',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 3px 10px rgba(157,23,77,0.25)',
-              transition: 'transform 0.15s ease',
-            }}
-          >
-            📋 Salin Alamat Pengiriman
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
