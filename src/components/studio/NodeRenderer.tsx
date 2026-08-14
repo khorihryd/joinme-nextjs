@@ -1013,6 +1013,42 @@ export function NodeRenderer({
     );
   }
 
+  // Standalone Gallery Widget (node.type === 'gallery')
+  if (node.type === 'gallery') {
+    const userPhotos =
+      eventDetails?.galleryImages ||
+      eventDetails?.gallery ||
+      eventDetails?.photos ||
+      eventDetails?.images ||
+      undefined;
+
+    const hasUserPhotos = Array.isArray(userPhotos) && userPhotos.length > 0;
+
+    if (isPreviewMode && !hasUserPhotos) {
+      return null;
+    }
+
+    return (
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleClick}
+        style={{
+          ...computedStyle,
+          width: '100%',
+          position: computedStyle.position || 'relative',
+        }}
+        className={nodeClassName}
+      >
+        {actionOverlay}
+        <PhotoGalleryGrid
+          images={userPhotos}
+          isPreviewMode={isPreviewMode}
+          title={node.content || undefined}
+        />
+      </div>
+    );
+  }
+
   // Slider Widget (Slide Gambar - Auto Rotating Gallery Images)
   if (node.type === 'slider') {
     const storeNodes = useStudioStore.getState().nodes;

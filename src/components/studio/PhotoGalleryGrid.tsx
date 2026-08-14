@@ -6,6 +6,8 @@ import { LightboxModal } from '@/components/studio/LightboxModal';
 interface PhotoGalleryGridProps {
   images?: string[];
   isPreviewMode?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
 const DEFAULT_SAMPLE_GALLERY: string[] = [
@@ -17,7 +19,7 @@ const DEFAULT_SAMPLE_GALLERY: string[] = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
 ];
 
-export function PhotoGalleryGrid({ images, isPreviewMode }: PhotoGalleryGridProps) {
+export function PhotoGalleryGrid({ images, isPreviewMode, title, subtitle }: PhotoGalleryGridProps) {
   const [selectedPhotoIdx, setSelectedPhotoIdx] = useState<number | null>(null);
 
   const rawImages = Array.isArray(images) && images.length > 0
@@ -32,6 +34,9 @@ export function PhotoGalleryGrid({ images, isPreviewMode }: PhotoGalleryGridProp
     return null;
   }
 
+  const sectionTitle = title || 'Galeri Foto Bahagia';
+  const sectionSub = subtitle || 'Momen-momen indah kebersamaan kami yang terekam dalam kenangan abadi.';
+
   const handleImageClick = (e: React.MouseEvent, idx: number) => {
     if (isPreviewMode) {
       e.stopPropagation();
@@ -40,7 +45,17 @@ export function PhotoGalleryGrid({ images, isPreviewMode }: PhotoGalleryGridProp
   };
 
   return (
-    <div style={{ width: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {/* Section Headline Title & Subtitle Description */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '16px', width: '100%' }}>
+        <h3 style={{ fontSize: '1.38rem', color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display, serif', margin: '0 0 6px 0' }}>
+          {sectionTitle}
+        </h3>
+        <p style={{ fontSize: '0.82rem', color: '#64748b', fontFamily: 'Inter, sans-serif', margin: 0, lineHeight: '1.6', maxWidth: '480px' }}>
+          {sectionSub}
+        </p>
+      </div>
+
       {/* 2-3 Column Responsive Image Grid */}
       <div
         style={{
