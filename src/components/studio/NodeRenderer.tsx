@@ -21,6 +21,26 @@ export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   return list;
 }
 
+export function isGallerySectionNode(node: StudioNode): boolean {
+  if (!node) return false;
+
+  const wType = String(node.widgetType || '').toLowerCase();
+  const nType = String(node.type || '').toLowerCase();
+  const nLabel = String(node.label || '').toLowerCase();
+  const nId = String(node.id || '').toLowerCase();
+
+  if (wType === 'gallery' || wType === 'gallery-feed') return true;
+  if (nType === 'gallery' || nType === 'gallery-feed') return true;
+  if (nLabel.includes('gallery') || nLabel.includes('galeri')) return true;
+  if (nId.includes('gallery') || nId.includes('galeri')) return true;
+
+  if (Array.isArray(node.children) && node.children.some((c) => c.showInGallery || String(c.widgetType).includes('gallery') || String(c.type).includes('gallery'))) {
+    return true;
+  }
+
+  return false;
+}
+
 export function resolveSocialButtonUrl(action: string, rawUrlOrTag: string, eventDetails?: any): string | null {
   if (!rawUrlOrTag && !action) return null;
 
@@ -468,11 +488,9 @@ export function NodeRenderer({
     };
 
     // Dynamic Photo Gallery Feed Container Rendering & Auto-Hiding
-    if (
-      (node.widgetType as string) === 'gallery-feed' ||
-      (node.widgetType as string) === 'gallery' ||
-      (node.type as string) === 'gallery'
-    ) {
+    const isGalleryContainer = isGallerySectionNode(node);
+
+    if (isGalleryContainer) {
       const userPhotos =
         eventDetails?.galleryImages ||
         eventDetails?.gallery ||
@@ -481,9 +499,13 @@ export function NodeRenderer({
         undefined;
 
       const hasUserPhotos = Array.isArray(userPhotos) && userPhotos.length > 0;
+      const isExplicitlyDisabled =
+        eventDetails?.enableGallery === false ||
+        eventDetails?.enable_gallery === false ||
+        eventDetails?.hasGallery === false;
 
-      // In Preview Mode, if user uploaded NO photos, automatically hide entire section
-      if (isPreviewMode && !hasUserPhotos) {
+      // In Preview Mode, if user uploaded NO photos or explicitly disabled gallery, AUTOMATICALLY HIDE ENTIRE CONTAINER (Return Null)
+      if (isPreviewMode && (!hasUserPhotos || isExplicitlyDisabled)) {
         return null;
       }
 
