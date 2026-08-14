@@ -5,8 +5,9 @@ import { NodeRenderer } from '@/components/studio/NodeRenderer';
 import { DEFAULT_NODES, GlobalStyles, loadNodeFonts, ensureGoogleFontLoaded } from '@/store/studio-store';
 import { StudioNode } from '@/types';
 
-export default function StudioPreviewPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function StudioPreviewPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const resolvedParams = typeof (params as any)?.then === 'function' ? use(params as Promise<{ id: string }>) : (params as { id: string });
+  const id = resolvedParams?.id;
   const [nodes, setNodes] = useState<StudioNode[]>([]);
   const [globalStyles, setGlobalStyles] = useState<GlobalStyles>({
     bgColor: '#eff2ef',

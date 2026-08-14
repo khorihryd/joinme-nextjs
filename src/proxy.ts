@@ -11,7 +11,10 @@ export default auth((req) => {
 
   // Public routes
   const publicRoutes = ['/', '/login', '/register'];
-  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/invite/');
+  const isPublicRoute =
+    publicRoutes.includes(pathname) ||
+    pathname.startsWith('/invite/') ||
+    (pathname.includes('/studio/') && pathname.endsWith('/preview'));
 
   // API routes
   if (pathname.startsWith('/api/')) {
