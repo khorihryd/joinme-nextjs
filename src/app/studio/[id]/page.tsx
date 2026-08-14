@@ -175,10 +175,10 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
 
   const handlePreview = () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('studio_preview_nodes', JSON.stringify(nodes));
-      localStorage.setItem('studio_preview_global_styles', JSON.stringify(globalStyles));
+      localStorage.setItem(`studio_preview_nodes_${id}`, JSON.stringify(nodes));
+      localStorage.setItem(`studio_preview_global_styles_${id}`, JSON.stringify(globalStyles));
     }
-    window.open(`/studio/${id}/preview`, '_blank');
+    window.open(`/studio/${id}/preview?fromEditor=true`, '_blank');
   };
 
   return (
