@@ -867,6 +867,48 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
               </div>
             )}
 
+            {node.type === 'map' && (
+              <div className="form-group" style={{ padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                  🗺️ Pengaturan URL Google Maps
+                </label>
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                    URL / Link Google Maps:
+                  </label>
+                  <input
+                    type="text"
+                    value={node.buttonUrl || node.content || ''}
+                    onChange={(e) => {
+                      updateNodeProp('buttonUrl', e.target.value);
+                      updateNodeProp('content', e.target.value);
+                    }}
+                    placeholder="Contoh: {link_maps} atau https://maps.google.com/..."
+                    style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                  {['{link_maps}', '{nama_lokasi}', '{alamat_lengkap}'].map((vTag) => (
+                    <button
+                      key={vTag}
+                      type="button"
+                      onClick={() => {
+                        updateNodeProp('buttonUrl', vTag);
+                        updateNodeProp('content', vTag);
+                      }}
+                      style={{ fontSize: '0.66rem', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#ffffff', color: 'var(--primary)', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      + {vTag}
+                    </button>
+                  ))}
+                </div>
+                <span style={{ fontSize: '0.66rem', color: '#64748b', display: 'block', marginTop: '0.4rem', lineHeight: '1.4' }}>
+                  💡 Gunakan <b>{'{link_maps}'}</b> agar otomatis mengambil URL Google Map yang diinput oleh user saat membuat undangan di wizard. Di Studio ini akan menampilkan peta contoh.
+                </span>
+              </div>
+            )}
+
             {node.type === 'button' && (
               <>
                 <div className="form-group">

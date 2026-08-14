@@ -574,8 +574,9 @@ export function createDefaultWidget(nodeType) {
       newWidget.style = { color: '#e36397', fontSize: 18, textAlign: 'center', fontWeight: 'bold' };
       break;
     case 'map':
-      newWidget.content = 'Bandung, Indonesia';
-      newWidget.style = { borderRadius: 8, width: '100%', height: '200px' };
+      newWidget.content = '{link_maps}';
+      newWidget.buttonUrl = '{link_maps}';
+      newWidget.style = { borderRadius: 14, width: '100%', height: '260px' };
       break;
 
     case 'groom-bride':

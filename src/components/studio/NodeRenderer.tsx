@@ -1009,19 +1009,132 @@ export function NodeRenderer({
     );
   }
 
-  // Map
+  // Map Widget (Interactive Google Map Embed + Direct Navigation Button)
   if (node.type === 'map') {
+    let rawUrl = (
+      eventDetails?.maps_url ||
+      eventDetails?.location_maps_url ||
+      eventDetails?.map_url ||
+      eventDetails?.link_maps ||
+      node.buttonUrl ||
+      node.content ||
+      ''
+    ).trim();
+
+    if (rawUrl.startsWith('{') && rawUrl.endsWith('}')) {
+      const tagName = rawUrl.slice(1, -1);
+      rawUrl = (eventDetails?.[tagName] || eventDetails?.maps_url || eventDetails?.location_maps_url || '').trim();
+    }
+
+    const defaultSampleEmbed = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.2736423974415!2d106.8016462749903!3d-6.227608293760431!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f14d34b3f885%3A0xb35a0f2b2319208a!2sGelora%20Bung%20Karno%20Main%20Stadium!5e0!3m2!1sen!2sid!4v1700000000000!5m2!1sen!2sid';
+
+    let embedUrl = defaultSampleEmbed;
+    let directUrl = 'https://maps.google.com/?q=Gelora+Bung+Karno+Main+Stadium+Jakarta';
+
+    if (rawUrl) {
+      if (rawUrl.includes('google.com/maps/embed')) {
+        embedUrl = rawUrl;
+        directUrl = rawUrl;
+      } else {
+        const query = encodeURIComponent(eventDetails?.nama_lokasi || eventDetails?.alamat_lengkap || rawUrl);
+        embedUrl = `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+        directUrl = rawUrl.startsWith('http') ? rawUrl : `https://maps.google.com/?q=${query}`;
+      }
+    } else if (eventDetails?.nama_lokasi || eventDetails?.alamat_lengkap) {
+      const query = encodeURIComponent(`${eventDetails?.nama_lokasi || ''} ${eventDetails?.alamat_lengkap || ''}`.trim());
+      embedUrl = `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+      directUrl = `https://maps.google.com/?q=${query}`;
+    }
+
+    const mapHeight = typeof style.height === 'number' ? `${style.height}px` : (style.height || '260px');
+
+    const handleOpenDirectMap = (e: React.MouseEvent) => {
+      if (isPreviewMode) {
+        e.stopPropagation();
+        window.open(directUrl, '_blank', 'noopener,noreferrer');
+      }
+    };
+
     return (
       <div
         id={`node-dom-${node.id}`}
         onClick={handleClick}
-        style={computedStyle}
+        style={{
+          ...computedStyle,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          gap: '8px',
+          overflow: 'hidden',
+          width: '100%',
+        }}
         className={nodeClassName}
       >
         {actionOverlay}
-        <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
-          <span>🗺️ Google Map: {node.content || 'Lokasi Venue'}</span>
+
+        {/* Interactive Google Map Iframe Container */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: mapHeight,
+            borderRadius: computedStyle.borderRadius || '14px',
+            overflow: 'hidden',
+            boxShadow: computedStyle.boxShadow || '0 4px 14px rgba(0,0,0,0.06)',
+            border: computedStyle.border || '1px solid var(--border-color, #e2e8f0)',
+          }}
+        >
+          <iframe
+            title="Google Map Location"
+            src={embedUrl}
+            width="100%"
+            height="100%"
+            style={{ border: 0, width: '100%', height: '100%' }}
+            allowFullScreen={false}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+
+          {/* Pointer blocker overlay in Studio Edit mode so desainer can drag/select the widget easily */}
+          {!isPreviewMode && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 2,
+                cursor: 'pointer',
+                backgroundColor: 'rgba(0,0,0,0.01)',
+              }}
+            />
+          )}
         </div>
+
+        {/* Action Button: Buka di Google Maps */}
+        <button
+          type="button"
+          onClick={handleOpenDirectMap}
+          style={{
+            width: '100%',
+            padding: '10px 16px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            backgroundColor: '#0284c7',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            boxShadow: '0 3px 10px rgba(2,132,199,0.25)',
+          }}
+        >
+          🗺️ Buka di Google Maps
+        </button>
       </div>
     );
   }

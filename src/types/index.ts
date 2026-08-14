@@ -434,6 +434,7 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
       { tag: '{nama_lokasi}', label: 'Nama Lokasi', desc: 'Nama Gedung / Tempat' },
       { tag: '{alamat_lengkap}', label: 'Alamat Lengkap', desc: 'Detail Alamat Gedung' },
       { tag: '{kota_acara}', label: 'Kota Acara', desc: 'Kota Tempat Acara' },
+      { tag: '{link_maps}', label: 'URL Google Maps', desc: 'Link / Embed Google Maps Acara' },
     ],
   },
   {
