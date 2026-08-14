@@ -671,12 +671,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               </form>
             </div>
 
-            {/* Right Column: Live Mobile Preview Frame (Side-by-Side) */}
+            {/* Right Column: Flat Clean Canvas Preview (Side-by-Side) */}
             {showPreview && (
               <div
                 className="live-preview-right-col"
                 style={{
-                  width: '370px',
+                  width: '440px',
                   flexShrink: 0,
                   position: 'sticky',
                   top: '1.5rem',
@@ -691,17 +691,16 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   style={{
                     width: '100%',
                     backgroundColor: 'var(--bg-card)',
-                    borderRadius: '12px',
+                    borderRadius: '8px',
                     padding: '10px 14px',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
                   }}
                 >
                   <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    📱 Pratinjau Tampilan Undangan
+                    ✨ Pratinjau Tampilan Undangan
                   </span>
                   <button
                     type="button"
@@ -720,19 +719,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   </button>
                 </div>
 
-                {/* Smartphone Preview Frame */}
+                {/* Pure Flat Preview Canvas Container (No Mock Frame, No Radius, No Shadow) */}
                 <div
                   style={{
                     width: '100%',
-                    maxWidth: '350px',
-                    height: '680px',
+                    height: '720px',
                     backgroundColor: previewGlobalStyles.bgColor || '#eff2ef',
                     backgroundImage: previewGlobalStyles.backgroundImage ? `url(${previewGlobalStyles.backgroundImage})` : undefined,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    borderRadius: '36px',
-                    border: '10px solid #1e293b',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.18)',
+                    borderRadius: '0px',
+                    border: 'none',
+                    boxShadow: 'none',
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     position: 'relative',
