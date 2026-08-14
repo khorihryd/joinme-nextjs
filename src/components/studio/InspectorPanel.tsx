@@ -11,6 +11,57 @@ interface InspectorPanelProps {
   onInsertVariable?: (varTag: string) => void;
 }
 
+export const VERSE_PRESETS = [
+  {
+    id: 'rum-21',
+    label: '🌙 QS. Ar-Rum: 21 (Pernikahan Islami)',
+    bismillah: 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
+    arabic: 'وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً',
+    translation: 'Dan di antara tanda-tanda kekuasaan-Nya ialah Dia menciptakan untukmu isteri-isteri dari jenismu sendiri, supaya kamu cenderung dan merasa tenteram kepadanya, dan dijadikan-Nya diantaramu rasa kasih dan sayang.',
+    surah: 'QS. Ar-Rum: 21',
+  },
+  {
+    id: 'nisa-1',
+    label: '🌙 QS. An-Nisa: 1 (Ketakwaan & Pasangan)',
+    bismillah: 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
+    arabic: 'يَا أَيُّهَا النَّاسُ اتَّقُوا رَبَّكُمُ الَّذِي خَلَقَكُم مِّن نَّفْسٍ وَاحِدَةٍ وَخَلَقَ مِنْهَا زَوْجَهَا',
+    translation: 'Wahai manusia! Bertakwalah kepada Tuhanmu yang telah menciptakan kamu dari diri yang satu, dan daripadanya Allah menciptakan pasangannya.',
+    surah: 'QS. An-Nisa: 1',
+  },
+  {
+    id: 'zariyat-49',
+    label: '🌙 QS. Az-Zariyat: 49 (Penciptaan Berpasangan)',
+    bismillah: 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
+    arabic: 'وَمِن كُلِّ شَيْءٍ خَلَقْنَا زَوْجَيْنِ لَعَلَّكُمْ تَذَكَّرُونَ',
+    translation: 'Dan segala sesuatu Kami ciptakan berpasang-pasangan supaya kamu mengingat kebesaran Allah.',
+    surah: 'QS. Az-Zariyat: 49',
+  },
+  {
+    id: 'korintus-13',
+    label: '✝️ 1 Korintus 13: 4-7 (Kasih Kristiani)',
+    bismillah: '✝️ Ayat Suci Alkitab',
+    arabic: 'Kasih itu sabar; kasih itu murah hati; ia tidak cemburu. Ia tidak memegahkan diri dan tidak sombong.',
+    translation: 'Ia tidak melakukan yang tidak sopan dan tidak mencari keuntungan diri sendiri. Ia tidak pemarah dan tidak menyimpan kesalahan orang lain.',
+    surah: '1 Korintus 13: 4-7',
+  },
+  {
+    id: 'matius-19',
+    label: '✝️ Matius 19: 6 (Penyatuan Allah)',
+    bismillah: '✝️ Demikianlah Mereka Bukan Lagi Dua, Melainkan Satu',
+    arabic: 'Demikianlah mereka bukan lagi dua, melainkan satu. Karena itu, apa yang telah dipersatukan Allah, tidak boleh diceraikan manusia.',
+    translation: 'Kiranya Tuhan memberkati dan melindungi pernikahan suci ini dalam kasih-Nya yang abadi.',
+    surah: 'Matius 19: 6',
+  },
+  {
+    id: 'doa-umum',
+    label: '🕊️ Doa Restu & Harapan Umum',
+    bismillah: '✨ Doa Restu & Harapan Kebahagiaan',
+    arabic: 'Semoga Keberkahan & Kedamaian Senantiasa Menyertai Langkah Kita',
+    translation: 'Tanpa mengurangi rasa hormat, kami memohon doa restu Bapak/Ibu/Saudara/i sekalian demi kelancaran dan keberkahan acara pernikahan ini.',
+    surah: 'Doa Restu Keluarga',
+  },
+];
+
 export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
   const [selectedVarCat, setSelectedVarCat] = useState<string>('all');
   const {
@@ -702,6 +753,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
         {/* STYLE TAB */}
         {activeInspectorTab === 'style' && (
           <div>
+            {node.type === 'container' && node.widgetType === 'opening-prayer' && (
+              <div className="form-group" style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <label style={{ fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                  📜 Preset Ayat &amp; Doa Pembuka 1-Klik
+                </label>
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    const preset = VERSE_PRESETS.find((p) => p.id === e.target.value);
+                    if (preset && node.children && node.children.length >= 4) {
+                      const updatedChildren = [...node.children];
+                      updatedChildren[0] = { ...updatedChildren[0], content: preset.bismillah };
+                      updatedChildren[1] = { ...updatedChildren[1], content: preset.arabic };
+                      updatedChildren[2] = { ...updatedChildren[2], content: `"${preset.translation}"` };
+                      updatedChildren[3] = { ...updatedChildren[3], content: preset.surah };
+                      onUpdateNode({ ...node, children: updatedChildren });
+                    }
+                  }}
+                  style={{ width: '100%', padding: '0.45rem 0.65rem', fontSize: '0.78rem', fontWeight: 600, borderRadius: '8px' }}
+                >
+                  <option value="" disabled>-- Pilih Preset Ayat / Doa Restu --</option>
+                  {VERSE_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '0.35rem' }}>
+                  💡 Memilih preset akan otomatis mengisi Teks Bismillah, Teks Ayat, Terjemahan, dan Badge Surat.
+                </span>
+              </div>
+            )}
 
             {(node.type === 'heading' || node.type === 'button' || node.type === 'text') && (
               <div className="form-group">

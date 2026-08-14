@@ -802,6 +802,53 @@ export function createDefaultWidget(nodeType) {
           children: [],
         },
       ];
+    case 'opening-prayer':
+      newWidget.type = 'container';
+      newWidget.widgetType = 'opening-prayer';
+      newWidget.style = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 14,
+        padding: '32px 24px',
+        backgroundColor: '#fafaf9',
+        borderRadius: 20,
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: '#e7e5e4',
+        width: '100%',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+      };
+      newWidget.children = [
+        // Bismillah Calligraphy Header
+        {
+          id: `op-bismillah-${timestamp}`,
+          type: 'heading',
+          content: 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
+          style: { fontSize: 24, color: '#e36397', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '0px 0px 4px 0px' },
+        },
+        // Arabic Verse Text
+        {
+          id: `op-arabic-verse-${timestamp}`,
+          type: 'text',
+          content: '{kutipan_ayat}',
+          style: { fontSize: 20, color: '#1c1917', textAlign: 'center', fontFamily: 'Playfair Display', lineHeight: '2', margin: '8px 0px' },
+        },
+        // Translation Text
+        {
+          id: `op-translation-${timestamp}`,
+          type: 'text',
+          content: '"{terjemahan_ayat}"',
+          style: { fontSize: 13, color: '#57534e', textAlign: 'center', fontFamily: 'Inter', fontStyle: 'italic', lineHeight: '1.6', margin: '4px 0px' },
+        },
+        // Surah Badge
+        {
+          id: `op-surah-badge-${timestamp}`,
+          type: 'text',
+          content: '{nama_surah}',
+          style: { fontSize: 12, color: '#e36397', textAlign: 'center', fontFamily: 'Inter', fontWeight: 'bold', backgroundColor: '#fce7f3', padding: '4px 14px', borderRadius: 16, margin: '8px 0px 0px 0px' },
+        },
+      ];
       break;
 
     case 'divider':

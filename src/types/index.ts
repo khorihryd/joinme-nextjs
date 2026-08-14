@@ -133,7 +133,7 @@ export interface Transaction {
 }
 
 // ===== Studio Types =====
-export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride' | 'gift-widget';
+export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride' | 'gift-widget' | 'opening-prayer';
 
 export interface BankAccountItem {
   id?: string;
@@ -269,7 +269,7 @@ export interface StudioNode {
   content?: string;
   children?: StudioNode[];
   style: NodeStyle;
-  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget';
+  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget' | 'opening-prayer';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
   isDynamic?: boolean;
@@ -368,6 +368,11 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   gift_address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat (u.p. Anti Kartika & Roni)',
   alamat_kado: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat (u.p. Anti Kartika & Roni)',
 
+  // Holy Verse & Prayer Quotes
+  kutipan_ayat: 'وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً',
+  terjemahan_ayat: 'Dan di antara tanda-tanda kekuasaan-Nya ialah Dia menciptakan untukmu isteri-isteri dari jenismu sendiri, supaya kamu cenderung dan merasa tenteram kepadanya, dan dijadikan-Nya diantaramu rasa kasih dan sayang.',
+  nama_surah: 'QS. Ar-Rum: 21',
+
   // Media
   cover_photo: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
 };
@@ -391,6 +396,9 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
       { tag: '{penyelenggara}', label: 'Penyelenggara', desc: 'Nama Sohibul Hajat' },
       { tag: '{wa_contact}', label: 'WhatsApp Contact', desc: 'Nomor WhatsApp Acara / Contact Person' },
       { tag: '{alamat_kado}', label: 'Alamat Kado Fisik', desc: 'Alamat Pengiriman Kado Fisik' },
+      { tag: '{kutipan_ayat}', label: 'Kutipan Ayat Arab', desc: 'Teks Teks Arab / Kutipan Utama' },
+      { tag: '{terjemahan_ayat}', label: 'Terjemahan Ayat', desc: 'Terjemahan / Makna Kutipan' },
+      { tag: '{nama_surah}', label: 'Nama Surat / Sumber', desc: 'Nama Surat & Nomor Ayat (QS. Ar-Rum: 21)' },
     ],
   },
   {
