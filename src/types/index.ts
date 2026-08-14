@@ -149,6 +149,10 @@ export interface LoveStoryItem {
   title: string;
   description: string;
   image?: string;
+  imageUrl?: string;
+  photo?: string;
+  picture?: string;
+  img?: string;
 }
 
 export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar' | 'open-instagram' | 'open-tiktok' | 'open-facebook' | 'open-whatsapp' | 'open-youtube' | 'open-url';
