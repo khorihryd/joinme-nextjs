@@ -5,6 +5,7 @@ import { LightboxModal } from '@/components/studio/LightboxModal';
 import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
 import { GiftRegistryCards } from '@/components/studio/GiftRegistryCards';
 import { LoveStoryTimeline } from '@/components/studio/LoveStoryTimeline';
+import { PhotoGalleryGrid } from '@/components/studio/PhotoGalleryGrid';
 
 export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   let list: string[] = [];
@@ -465,6 +466,57 @@ export function NodeRenderer({
       position: computedStyle.position || 'relative',
       overflow: computedStyle.overflow || 'hidden',
     };
+
+    // Dynamic Photo Gallery Feed Container Rendering & Auto-Hiding
+    if (node.widgetType === 'gallery-feed') {
+      const userPhotos =
+        eventDetails?.galleryImages ||
+        eventDetails?.gallery ||
+        eventDetails?.photos ||
+        eventDetails?.images ||
+        undefined;
+
+      const hasUserPhotos = Array.isArray(userPhotos) && userPhotos.length > 0;
+
+      // In Preview Mode, if user uploaded NO photos, automatically hide entire section
+      if (isPreviewMode && !hasUserPhotos) {
+        return null;
+      }
+
+      return (
+        <div
+          id={`node-dom-${node.id}`}
+          onClick={handleClick}
+          style={containerStyle}
+          className={nodeClassName}
+        >
+          {actionOverlay}
+
+          <div style={containerInnerStyle} className="container-inner-wrapper">
+            {node.children?.map((child) => (
+              <NodeRenderer
+                key={child.id}
+                node={child}
+                allNodes={allNodes}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={onSelectNode}
+                onDeleteNode={onDeleteNode}
+                onDuplicateNode={onDuplicateNode}
+                eventDetails={eventDetails}
+                viewportMode={viewportMode}
+                isPreviewMode={isPreviewMode}
+                onOpenCover={onOpenCover}
+              />
+            ))}
+
+            <PhotoGalleryGrid
+              images={userPhotos}
+              isPreviewMode={isPreviewMode}
+            />
+          </div>
+        </div>
+      );
+    }
 
     // Dynamic Love Story Widget Container Rendering & Auto-Hiding
     if (node.widgetType === 'lovestory') {

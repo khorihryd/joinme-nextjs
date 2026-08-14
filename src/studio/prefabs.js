@@ -805,6 +805,40 @@ export function createDefaultWidget(nodeType) {
       ];
       break;
 
+    case 'gallery':
+    case 'gallery-feed':
+      newWidget.type = 'container';
+      newWidget.widgetType = 'gallery-feed';
+      newWidget.style = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 16,
+        padding: '32px 20px',
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        width: '100%',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+      };
+      newWidget.children = [
+        {
+          id: `gal-header-title-${timestamp}`,
+          type: 'heading',
+          content: 'Galeri Foto Bahagia',
+          style: { fontSize: 22, color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center', margin: '0px 0px 4px 0px' },
+        },
+        {
+          id: `gal-header-sub-${timestamp}`,
+          type: 'text',
+          content: 'Momen-momen indah kebersamaan kami yang terekam dalam kenangan abadi.',
+          style: { fontSize: 13, color: '#64748b', textAlign: 'center', fontFamily: 'Inter', margin: '0px 0px 12px 0px', lineHeight: '1.6' },
+        },
+      ];
+      break;
+
     case 'lovestory':
       newWidget.type = 'container';
       newWidget.widgetType = 'lovestory';
