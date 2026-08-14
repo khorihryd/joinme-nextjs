@@ -955,7 +955,7 @@ export function NodeRenderer({
         id={`node-dom-${node.id}`}
         onClick={handleButtonClick}
         style={buttonFlexStyle}
-        className={`canvas-node-item btn btn-primary ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`}
+        className={`btn btn-primary ${nodeClassName}`}
         role="button"
         tabIndex={0}
       >
