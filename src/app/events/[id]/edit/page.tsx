@@ -399,6 +399,10 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                             <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Orang Tua</label>
                             <input type="text" placeholder="Putra dari Bpk. Hendra & Ibu Siska" value={details.ortuPria || ''} onChange={(e) => setDetails({ ...details, ortuPria: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                           </div>
+                          <div className="form-group">
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>🖼️ URL Foto Mempelai Pria (fotoPria)</label>
+                            <input type="text" placeholder="https://images.unsplash.com/photo-..." value={details.fotoPria || ''} onChange={(e) => setDetails({ ...details, fotoPria: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
                         </div>
 
                         {/* Wanita */}
@@ -415,6 +419,10 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                           <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                             <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Orang Tua</label>
                             <input type="text" placeholder="Putri dari Bpk. Gunawan & Ibu Maya" value={details.ortuWanita || ''} onChange={(e) => setDetails({ ...details, ortuWanita: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
+                          <div className="form-group">
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>🖼️ URL Foto Mempelai Wanita (fotoWanita)</label>
+                            <input type="text" placeholder="https://images.unsplash.com/photo-..." value={details.fotoWanita || ''} onChange={(e) => setDetails({ ...details, fotoWanita: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                           </div>
                         </div>
                       </div>

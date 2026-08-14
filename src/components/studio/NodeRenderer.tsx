@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StudioNode } from '@/types';
-import { resolveTextVariables, useStudioStore, WishItem } from '@/store/studio-store';
+import { resolveTextVariables, useStudioStore, WishItem, SAMPLE_VARIABLES } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
 import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
 import { GiftRegistryCards } from '@/components/studio/GiftRegistryCards';
@@ -8,17 +8,37 @@ import { LoveStoryTimeline } from '@/components/studio/LoveStoryTimeline';
 import { PhotoGalleryGrid } from '@/components/studio/PhotoGalleryGrid';
 import { ThankYouClosing } from '@/components/studio/ThankYouClosing';
 
-export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
+export function collectGalleryImageUrls(nodes: StudioNode[], eventDetails?: any): string[] {
   let list: string[] = [];
-  if (!Array.isArray(nodes)) return list;
-  nodes.forEach((n) => {
-    if (n.type === 'image' && n.showInGallery && n.content) {
-      list.push(n.content);
-    }
-    if (n.children && n.children.length > 0) {
-      list = list.concat(collectGalleryImageUrls(n.children));
-    }
-  });
+  if (Array.isArray(nodes)) {
+    nodes.forEach((n) => {
+      if (n.type === 'image' && n.showInGallery) {
+        let imgUrl = n.content;
+        if (n.isDynamic && n.binding && eventDetails) {
+          const bound = (eventDetails as any)[n.binding];
+          if (bound) imgUrl = bound;
+        }
+        if (imgUrl && !list.includes(imgUrl)) {
+          list.push(imgUrl);
+        }
+      }
+      if (n.children && n.children.length > 0) {
+        const sub = collectGalleryImageUrls(n.children, eventDetails);
+        sub.forEach((url) => {
+          if (url && !list.includes(url)) list.push(url);
+        });
+      }
+    });
+  }
+
+  if (eventDetails && Array.isArray(eventDetails.gallery) && eventDetails.gallery.length > 0) {
+    eventDetails.gallery.forEach((url: string) => {
+      if (url && typeof url === 'string' && !list.includes(url)) {
+        list.push(url);
+      }
+    });
+  }
+
   return list;
 }
 
@@ -978,7 +998,14 @@ export function NodeRenderer({
   // Image
   if (node.type === 'image') {
     const isGalleryImage = !!node.showInGallery;
-    const imageUrl = node.content || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
+    let imageUrl = node.content || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
+
+    if (node.isDynamic && node.binding && eventDetails) {
+      const boundVal = (eventDetails as any)[node.binding] || (SAMPLE_VARIABLES as any)[node.binding];
+      if (boundVal) {
+        imageUrl = boundVal;
+      }
+    }
 
     const handleImageClick = (e: React.MouseEvent) => {
       if (isPreviewMode && isGalleryImage) {

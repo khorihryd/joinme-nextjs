@@ -1164,8 +1164,80 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
 
             {node.type === 'image' && (
               <>
+                {/* Dynamic Image Variable Switch & Binding */}
+                <div
+                  style={{
+                    padding: '0.75rem',
+                    backgroundColor: 'var(--bg-body)',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: node.isDynamic ? '0.6rem' : 0,
+                    }}
+                  >
+                    <label
+                      htmlFor="inp-img-isDynamic"
+                      style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)', cursor: 'pointer' }}
+                    >
+                      ✨ Gunakan Foto Dinamis User
+                    </label>
+                    <input
+                      type="checkbox"
+                      id="inp-img-isDynamic"
+                      checked={node.isDynamic || false}
+                      onChange={(e) => {
+                        updateNodeProp('isDynamic', e.target.checked);
+                        if (e.target.checked && !node.binding) {
+                          updateNodeProp('binding', 'fotoPria');
+                        }
+                      }}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                  </div>
+
+                  {node.isDynamic ? (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
+                        Pilih Variabel Foto Pengguna:
+                      </label>
+                      <select
+                        value={node.binding || 'fotoPria'}
+                        onChange={(e) => updateNodeProp('binding', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.45rem 0.65rem',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: '#ffffff',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <option value="fotoPria">🤵 fotoPria (Foto Mempelai Pria)</option>
+                        <option value="fotoWanita">👰 fotoWanita (Foto Mempelai Wanita)</option>
+                        <option value="cover_photo">🖼️ cover_photo (Foto Sampul Utama / Couple)</option>
+                      </select>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '0.35rem', lineHeight: '1.4' }}>
+                        💡 Foto ini akan terisi otomatis dari foto yang diunggah pengguna di Editor Undangan. Gambar sampel di bawah digunakan sebagai fallback studio.
+                      </span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block' }}>
+                      Pilih centang di atas jika ingin foto ini diisi oleh user (cth: foto pengantin pria/wanita). Jika tidak, gunakan URL statis untuk dekorasi tetap.
+                    </span>
+                  )}
+                </div>
+
                 <div className="form-group">
-                  <label>URL Gambar (Image Source)</label>
+                  <label>{node.isDynamic ? 'URL Gambar Sampel / Fallback Studio' : 'URL Gambar Statis'}</label>
                   <input
                     type="text"
                     value={node.content || ''}
