@@ -767,7 +767,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       borderRadius: '0px',
                       border: 'none',
                       boxShadow: 'none',
-                      overflowY: 'auto',
+                      overflowY: (!isCoverOpened && coverNode) ? 'hidden' : 'auto',
                       overflowX: 'hidden',
                       position: 'relative',
                     }}
@@ -778,8 +778,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         style={{
                           position: 'absolute',
                           inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          minHeight: '100%',
                           zIndex: 99,
-                          backgroundColor: previewGlobalStyles.bgColor || '#ffffff',
+                          backgroundColor: coverNode.style?.backgroundColor || previewGlobalStyles.bgColor || '#ffffff',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center',
@@ -792,7 +795,14 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         }}
                       >
                         <NodeRenderer
-                          node={coverNode}
+                          node={{
+                            ...coverNode,
+                            style: {
+                              ...coverNode.style,
+                              minHeight: '100%',
+                              height: '100%',
+                            },
+                          }}
                           allNodes={previewNodes}
                           selectedNodeId={null}
                           onSelectNode={() => {}}
