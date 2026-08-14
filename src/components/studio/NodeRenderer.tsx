@@ -4,6 +4,7 @@ import { resolveTextVariables, useStudioStore, WishItem } from '@/store/studio-s
 import { LightboxModal } from '@/components/studio/LightboxModal';
 import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
 import { GiftRegistryCards } from '@/components/studio/GiftRegistryCards';
+import { LoveStoryTimeline } from '@/components/studio/LoveStoryTimeline';
 
 export function collectGalleryImageUrls(nodes: StudioNode[]): string[] {
   let list: string[] = [];
@@ -464,6 +465,56 @@ export function NodeRenderer({
       position: computedStyle.position || 'relative',
       overflow: computedStyle.overflow || 'hidden',
     };
+
+    // Dynamic Love Story Widget Container Rendering & Auto-Hiding
+    if (node.widgetType === 'lovestory') {
+      const isExplicitlyDisabled =
+        eventDetails?.enableLoveStory === false ||
+        eventDetails?.enable_love_story === false ||
+        eventDetails?.hasLoveStory === false ||
+        eventDetails?.isLoveStoryEnabled === false;
+
+      // In Preview Mode, if explicitly disabled by user in wizard, automatically hide section
+      if (isPreviewMode && isExplicitlyDisabled) {
+        return null;
+      }
+
+      const activeStories = eventDetails?.loveStories || eventDetails?.stories || undefined;
+
+      return (
+        <div
+          id={`node-dom-${node.id}`}
+          onClick={handleClick}
+          style={containerStyle}
+          className={nodeClassName}
+        >
+          {actionOverlay}
+
+          <div style={containerInnerStyle} className="container-inner-wrapper">
+            {node.children?.map((child) => (
+              <NodeRenderer
+                key={child.id}
+                node={child}
+                allNodes={allNodes}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={onSelectNode}
+                onDeleteNode={onDeleteNode}
+                onDuplicateNode={onDuplicateNode}
+                eventDetails={eventDetails}
+                viewportMode={viewportMode}
+                isPreviewMode={isPreviewMode}
+                onOpenCover={onOpenCover}
+              />
+            ))}
+
+            <LoveStoryTimeline
+              stories={activeStories}
+              isPreviewMode={isPreviewMode}
+            />
+          </div>
+        </div>
+      );
+    }
 
     // Dynamic Gift Registry Widget Container Rendering
     if (node.widgetType === 'gift-widget') {

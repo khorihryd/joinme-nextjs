@@ -142,6 +142,15 @@ export interface BankAccountItem {
   accountHolder: string;
 }
 
+export interface LoveStoryItem {
+  id?: string;
+  year?: string;
+  date?: string;
+  title: string;
+  description: string;
+  image?: string;
+}
+
 export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar' | 'open-instagram' | 'open-tiktok' | 'open-facebook' | 'open-whatsapp' | 'open-youtube' | 'open-url';
 
 export type AnimationType = 'none' | 'anim-fade-in' | 'anim-fade-in-up' | 'anim-fade-in-down' | 'anim-fade-in-left' | 'anim-fade-in-right' | 'anim-zoom-in' | 'anim-bounce-in' | 'anim-pulse';
@@ -269,7 +278,7 @@ export interface StudioNode {
   content?: string;
   children?: StudioNode[];
   style: NodeStyle;
-  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget' | 'opening-prayer';
+  widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget' | 'opening-prayer' | 'lovestory';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
   isDynamic?: boolean;
@@ -297,9 +306,23 @@ export interface StudioState {
   lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null;
 }
 
+// ===== State Management Interfaces =====
+export interface UndoRedoState {
+  past: StudioNode[][];
+  future: StudioNode[][];
+}
+
+export interface CanvasViewportState {
+  zoom: number;
+  panX: number;
+  panY: number;
+  viewportMode: 'desktop' | 'tablet' | 'mobile';
+  lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null;
+}
+
 // ===== Sample Variables & Dynamic Variable Categories =====
 export interface SampleVariables {
-  [key: string]: string;
+  [key: string]: any;
 }
 
 export const SAMPLE_VARIABLES: SampleVariables = {
@@ -372,6 +395,15 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   kutipan_ayat: 'وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً',
   terjemahan_ayat: 'Dan di antara tanda-tanda kekuasaan-Nya ialah Dia menciptakan untukmu isteri-isteri dari jenismu sendiri, supaya kamu cenderung dan merasa tenteram kepadanya, dan dijadikan-Nya diantaramu rasa kasih dan sayang.',
   nama_surah: 'QS. Ar-Rum: 21',
+
+  // Love Story
+  enableLoveStory: true,
+  enable_love_story: true,
+  loveStories: [
+    { year: '2020', title: 'Pertama Bertemu', description: 'Pertama kali saling mengenal di kampus saat kegiatan orientasi mahasiswa.' },
+    { year: '2023', title: 'Lamaran Khidmat', description: 'Momen berharga saat keluarga besar saling bertukar niat suci menuju pernikahan.' },
+    { year: '2026', title: 'Menikah & Bahagia', description: 'Mengikat janji suci pernikahan untuk mengarungi hidup bersama selamanya.' },
+  ],
 
   // Media
   cover_photo: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
