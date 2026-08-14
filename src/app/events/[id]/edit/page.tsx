@@ -23,6 +23,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'Draft' | 'Aktif'>('Draft');
   const [showPreview, setShowPreview] = useState(true);
+  const [isCoverOpened, setIsCoverOpened] = useState(false);
 
   // Form details state
   const [details, setDetails] = useState<any>({
@@ -671,86 +672,165 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               </form>
             </div>
 
-            {/* Right Column: Flat Clean Canvas Preview (Side-by-Side) */}
-            {showPreview && (
-              <div
-                className="live-preview-right-col"
-                style={{
-                  width: '440px',
-                  flexShrink: 0,
-                  position: 'sticky',
-                  top: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
-              >
-                {/* Header Bar */}
-                <div
-                  style={{
-                    width: '100%',
-                    backgroundColor: 'var(--bg-card)',
-                    borderRadius: '8px',
-                    padding: '10px 14px',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    ✨ Pratinjau Tampilan Undangan
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowPreview(false)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                    }}
-                    title="Sembunyikan Pratinjau"
-                  >
-                    🙈 Sembunyikan
-                  </button>
-                </div>
+            {/* Right Column: Flat Clean Canvas Preview with Interactive Cover Overlay */}
+            {showPreview && (() => {
+              const hasMultipleContainers = previewNodes.length > 1;
+              const coverNode = hasMultipleContainers ? previewNodes[0] : null;
+              const bodyNodes = hasMultipleContainers ? previewNodes.slice(1) : previewNodes;
 
-                {/* Pure Flat Preview Canvas Container (No Mock Frame, No Radius, No Shadow) */}
+              const handleOpenCover = () => {
+                setIsCoverOpened(true);
+              };
+
+              return (
                 <div
+                  className="live-preview-right-col"
                   style={{
-                    width: '100%',
-                    height: '720px',
-                    backgroundColor: previewGlobalStyles.bgColor || '#eff2ef',
-                    backgroundImage: previewGlobalStyles.backgroundImage ? `url(${previewGlobalStyles.backgroundImage})` : undefined,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    borderRadius: '0px',
-                    border: 'none',
-                    boxShadow: 'none',
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    position: 'relative',
+                    width: '440px',
+                    flexShrink: 0,
+                    position: 'sticky',
+                    top: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '12px',
                   }}
                 >
-                  {previewNodes.map((node) => (
-                    <NodeRenderer
-                      key={node.id}
-                      node={node}
-                      allNodes={previewNodes}
-                      selectedNodeId={null}
-                      onSelectNode={() => {}}
-                      eventDetails={liveEventDetails}
-                      viewportMode="mobile"
-                      isPreviewMode={true}
-                    />
-                  ))}
+                  {/* Header Bar */}
+                  <div
+                    style={{
+                      width: '100%',
+                      backgroundColor: 'var(--bg-card)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      ✨ Pratinjau Tampilan Undangan
+                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {coverNode && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCoverOpened(!isCoverOpened)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            padding: '3px 8px',
+                            cursor: 'pointer',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: 'var(--primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                          title={isCoverOpened ? 'Kunci & Tutup Ulang Cover' : 'Buka Cover Undangan'}
+                        >
+                          {isCoverOpened ? '🔒 Tutup Cover' : '🔓 Buka Cover'}
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPreview(false)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: 'var(--text-muted)',
+                        }}
+                        title="Sembunyikan Pratinjau"
+                      >
+                        🙈 Sembunyikan
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pure Flat Preview Canvas Container */}
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '720px',
+                      backgroundColor: previewGlobalStyles.bgColor || '#eff2ef',
+                      backgroundImage: previewGlobalStyles.backgroundImage ? `url(${previewGlobalStyles.backgroundImage})` : undefined,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      borderRadius: '0px',
+                      border: 'none',
+                      boxShadow: 'none',
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Interactive Cover Node Overlay (Slide Up Animation) */}
+                    {coverNode && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          zIndex: 99,
+                          backgroundColor: previewGlobalStyles.bgColor || '#ffffff',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          transition: 'transform 0.85s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.85s ease',
+                          transform: isCoverOpened ? 'translateY(-100%)' : 'translateY(0)',
+                          opacity: isCoverOpened ? 0 : 1,
+                          pointerEvents: isCoverOpened ? 'none' : 'auto',
+                          overflowY: 'auto',
+                        }}
+                      >
+                        <NodeRenderer
+                          node={coverNode}
+                          allNodes={previewNodes}
+                          selectedNodeId={null}
+                          onSelectNode={() => {}}
+                          eventDetails={liveEventDetails}
+                          viewportMode="mobile"
+                          isPreviewMode={true}
+                          onOpenCover={handleOpenCover}
+                        />
+                      </div>
+                    )}
+
+                    {/* Main Content Body Nodes */}
+                    <div
+                      style={{
+                        width: '100%',
+                        minHeight: '100%',
+                        opacity: isCoverOpened || !coverNode ? 1 : 0.2,
+                        transition: 'opacity 0.85s ease',
+                      }}
+                    >
+                      {bodyNodes.map((node) => (
+                        <NodeRenderer
+                          key={node.id}
+                          node={node}
+                          allNodes={previewNodes}
+                          selectedNodeId={null}
+                          onSelectNode={() => {}}
+                          eventDetails={liveEventDetails}
+                          viewportMode="mobile"
+                          isPreviewMode={true}
+                          onOpenCover={handleOpenCover}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       </main>
