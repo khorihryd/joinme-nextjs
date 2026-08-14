@@ -6,9 +6,13 @@ import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useSession, signOut } from 'next-auth/react';
+import { NodeRenderer } from '@/components/studio/NodeRenderer';
+import { DEFAULT_NODES, loadNodeFonts, ensureGoogleFontLoaded } from '@/store/studio-store';
+import { StudioNode } from '@/types';
 
-export default function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function EditEventPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const resolvedParams = typeof (params as any)?.then === 'function' ? use(params as Promise<{ id: string }>) : (params as { id: string });
+  const id = resolvedParams?.id;
   const router = useRouter();
   const { data: session } = useSession();
   const { showToast } = useToast();
@@ -18,7 +22,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'Draft' | 'Aktif'>('Draft');
-  const [showPreviewDrawer, setShowPreviewDrawer] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   // Form details state
   const [details, setDetails] = useState<any>({
@@ -67,6 +71,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     async function loadEvent() {
+      if (!id) return;
       try {
         const res = await fetch(`/api/events/${id}`);
         if (res.ok) {
@@ -75,6 +80,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           setStatus(data.status || 'Draft');
           if (data.details) {
             setDetails((prev: any) => ({ ...prev, ...data.details }));
+            if (data.details.globalStyles?.fontFamily) {
+              ensureGoogleFontLoaded(data.details.globalStyles.fontFamily);
+            }
+            if (Array.isArray(data.details.studioNodes) && data.details.studioNodes.length > 0) {
+              loadNodeFonts(data.details.studioNodes);
+            }
           }
         } else {
           showToast('Undangan tidak ditemukan', 'error');
@@ -178,6 +189,46 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const userName = session?.user?.name || 'Roni Wijaya';
   const initials = userName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
 
+  // Dynamic Live Event Data Bindings for Right Side Preview
+  const liveEventDetails = {
+    mempelaiPria: details.mempelaiPria || 'Roni Wijaya, S.Kom.',
+    panggilanPria: details.panggilanPria || 'Roni',
+    ortuPria: details.ortuPria,
+    igPria: details.igPria,
+    fotoPria: details.fotoPria,
+    mempelaiWanita: details.mempelaiWanita || 'Anti Kartika, S.T.',
+    panggilanWanita: details.panggilanWanita || 'Anti',
+    ortuWanita: details.ortuWanita,
+    igWanita: details.igWanita,
+    fotoWanita: details.fotoWanita,
+    organizerName: details.organizerName,
+    organizerNickname: details.organizerNickname,
+    organizerParents: details.organizerParents,
+    event_date: details.schedules?.[0]?.date || '21 September 2026',
+    event_time: details.schedules?.[0]?.time || '08:00 - 14:00 WIB',
+    event_location: details.schedules?.[0]?.place || 'Grand Ballroom Hotel Mulia, Jakarta',
+    event_address: details.schedules?.[0]?.address || 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+    schedules: details.schedules || [],
+    story: details.story || [],
+    gallery: details.gallery || [],
+    bankAccounts: [
+      details.bank1Nama && { bankName: details.bank1Nama, accountNumber: details.bank1Rek, accountHolder: details.bank1An },
+      details.bank2Nama && { bankName: details.bank2Nama, accountNumber: details.bank2Rek, accountHolder: details.bank2An },
+    ].filter(Boolean),
+    giftAddress: details.giftAddress,
+    showStory: details.showStory !== false,
+    showGallery: details.showGallery !== false,
+  };
+
+  const previewNodes = (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
+    ? (event.details.studioNodes as unknown as StudioNode[])
+    : (DEFAULT_NODES as unknown as StudioNode[]);
+
+  const previewGlobalStyles = event?.details?.globalStyles || {
+    bgColor: '#eff2ef',
+    fontFamily: 'Playfair Display',
+  };
+
   return (
     <div className="db-container">
       {/* Left Sidebar */}
@@ -272,20 +323,32 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
             <button
               type="button"
-              onClick={() => setShowPreviewDrawer(!showPreviewDrawer)}
+              onClick={() => setShowPreview(!showPreview)}
               className="btn btn-secondary"
-              style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, gap: '0.5rem', borderColor: 'var(--primary)', color: 'var(--primary)', backgroundColor: 'transparent' }}
+              style={{
+                fontSize: '0.85rem',
+                padding: '0.5rem 1rem',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                gap: '0.5rem',
+                borderColor: showPreview ? 'var(--primary)' : 'var(--border-color)',
+                color: showPreview ? 'var(--primary)' : 'var(--text-secondary)',
+                backgroundColor: showPreview ? 'var(--primary-light, #fff0f5)' : 'transparent',
+              }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
-              <span>Pratinjau</span>
+              <span>{showPreview ? '🙈 Sembunyikan Pratinjau' : '👁️ Tampilkan Pratinjau'}</span>
             </button>
 
             <button
               type="button"
-              onClick={handleSave}
+              onClick={() => handleSave()}
               disabled={saving}
               className="btn btn-primary"
               style={{ fontSize: '0.85rem', padding: '0.5rem 1.15rem', backgroundColor: '#16a34a', borderColor: '#16a34a', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, gap: '0.5rem', color: 'white' }}
@@ -302,417 +365,397 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           </div>
         </header>
 
-        {/* Scroll View */}
+        {/* Scroll View: Side-by-Side 2 Column Layout */}
         <div className="db-view">
-          <div className="db-card-panel" style={{ padding: '2.5rem' }}>
-            <form onSubmit={handleSave}>
-              {/* STEP 1: PROFIL PENGANTIN */}
-              {activeStep === 1 && (
-                <div className="form-step-panel active">
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                    {isWedding ? 'Profil Mempelai Pengantin' : 'Profil Penyelenggara Acara'}
-                  </h2>
-                  <p className="panel-desc" style={{ marginBottom: '2rem' }}>
-                    {isWedding ? 'Lengkapi informasi data nama lengkap mempelai pria dan wanita beserta orang tua.' : 'Isi rincian lengkap penyelenggara acara.'}
-                  </p>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', width: '100%' }}>
+            {/* Left Column: Editor Step Form Cards */}
+            <div className="db-card-panel" style={{ flex: 1, minWidth: 0, padding: '2.5rem' }}>
+              <form onSubmit={handleSave}>
+                {/* STEP 1: PROFIL PENGANTIN */}
+                {activeStep === 1 && (
+                  <div className="form-step-panel active">
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                      {isWedding ? 'Profil Mempelai Pengantin' : 'Profil Penyelenggara Acara'}
+                    </h2>
+                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                      {isWedding ? 'Lengkapi informasi data nama lengkap mempelai pria dan wanita beserta orang tua.' : 'Isi rincian lengkap penyelenggara acara.'}
+                    </p>
 
-                  {isWedding ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2.5rem', marginBottom: '2rem' }}>
-                      {/* Mempelai Pria */}
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginBottom: '1.25rem' }}>
-                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Mempelai Pria</h3>
+                    {isWedding ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2.5rem', marginBottom: '2rem' }}>
+                        {/* Pria */}
+                        <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1.25rem' }}>🤵 Mempelai Pria</h3>
+                          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Lengkap &amp; Gelar</label>
+                            <input type="text" placeholder="Roni Wijaya, S.Kom." value={details.mempelaiPria || ''} onChange={(e) => setDetails({ ...details, mempelaiPria: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Panggilan</label>
+                            <input type="text" placeholder="Roni" value={details.panggilanPria || ''} onChange={(e) => setDetails({ ...details, panggilanPria: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Orang Tua</label>
+                            <input type="text" placeholder="Putra dari Bpk. Hendra & Ibu Siska" value={details.ortuPria || ''} onChange={(e) => setDetails({ ...details, ortuPria: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
                         </div>
 
-                        {/* Photo Box */}
-                        <div style={{ border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-body)', marginBottom: '1.25rem' }}>
-                          <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>📷</div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Belum ada foto</span>
+                        {/* Wanita */}
+                        <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1.25rem' }}>👰 Mempelai Wanita</h3>
+                          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Lengkap &amp; Gelar</label>
+                            <input type="text" placeholder="Anti Kartika, S.T." value={details.mempelaiWanita || ''} onChange={(e) => setDetails({ ...details, mempelaiWanita: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Panggilan</label>
+                            <input type="text" placeholder="Anti" value={details.panggilanWanita || ''} onChange={(e) => setDetails({ ...details, panggilanWanita: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Orang Tua</label>
+                            <input type="text" placeholder="Putri dari Bpk. Gunawan & Ibu Maya" value={details.ortuWanita || ''} onChange={(e) => setDetails({ ...details, ortuWanita: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                          </div>
                         </div>
-
+                      </div>
+                    ) : (
+                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
                         <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Tautan Foto Mempelai Pria (URL)</label>
-                          <input
-                            type="text"
-                            value={details.fotoPria || ''}
-                            onChange={(e) => setDetails({ ...details, fotoPria: e.target.value })}
-                            placeholder="Contoh: https://images.unsplash.com/photo-..."
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Penyelenggara / Hajat</label>
+                          <input type="text" placeholder="Denny Sumargo" value={details.organizerName || ''} onChange={(e) => setDetails({ ...details, organizerName: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+                      <button type="button" onClick={() => setActiveStep(2)} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
+                        Lanjut ke Waktu &amp; Tempat &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: WAKTU & TEMPAT */}
+                {activeStep === 2 && (
+                  <div className="form-step-panel active">
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                      Waktu &amp; Lokasi Acara
+                    </h2>
+                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                      Tambahkan sesi acara seperti Akad Nikah, Resepsi, atau Pesta Ulang Tahun.
+                    </p>
+
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>➕ Tambah Sesi Acara Baru</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                        <input type="text" placeholder="Nama Sesi (cth: Akad Nikah)" value={schedName} onChange={(e) => setSchedName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                        <input type="text" placeholder="Tanggal (cth: 21 Sep 2026)" value={schedDate} onChange={(e) => setSchedDate(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                        <input type="text" placeholder="Waktu (cth: 08:00 - 10:00 WIB)" value={schedTime} onChange={(e) => setSchedTime(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                        <input type="text" placeholder="Gedung / Tempat (cth: Hotel Mulia)" value={schedPlace} onChange={(e) => setSchedPlace(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                        <input type="text" placeholder="Alamat Lengkap" value={schedAddress} onChange={(e) => setSchedAddress(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                      </div>
+                      <button type="button" onClick={addSchedule} className="btn btn-secondary" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                        + Tambahkan Sesi Ke Daftar
+                      </button>
+                    </div>
+
+                    {/* Schedule Table */}
+                    {details.schedules?.length > 0 && (
+                      <div style={{ marginBottom: '2rem' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '0.75rem' }}>📋 Daftar Sesi Tersimpan:</h4>
+                        {details.schedules.map((s: any, idx: number) => (
+                          <div key={idx} style={{ padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <strong style={{ color: 'var(--primary)', fontSize: '0.95rem' }}>{s.name}</strong> — {s.date} ({s.time})
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>📍 {s.place} ({s.address})</div>
+                            </div>
+                            <button type="button" onClick={() => removeSchedule(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+                              Hapus
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+                      <button type="button" onClick={() => setActiveStep(1)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
+                        &larr; Kembali
+                      </button>
+                      <button type="button" onClick={() => setActiveStep(3)} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
+                        Lanjut ke Cerita Cinta &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: CERITA CINTA */}
+                {activeStep === 3 && (
+                  <div className="form-step-panel active">
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                      Kisah Cinta &amp; Timeline (Love Story)
+                    </h2>
+                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                      Bagikan kenangan indah perjalanan cinta Anda dari awal bertemu hingga menuju pelaminan.
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                      <input type="checkbox" id="chkStory" checked={details.showStory !== false} onChange={(e) => setDetails({ ...details, showStory: e.target.checked })} style={{ width: '18px', height: '18px' }} />
+                      <label htmlFor="chkStory" style={{ fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}>Tampilkan Section Cerita Cinta di Undangan</label>
+                    </div>
+
+                    {details.showStory !== false && (
+                      <>
+                        <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>💖 Tambahkan Momen Baru</h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                            <input type="text" placeholder="Tahun (2022)" value={storyYear} onChange={(e) => setStoryYear(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                            <input type="text" placeholder="Judul Momen (Pertama Pertemuan)" value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                          </div>
+                          <textarea placeholder="Ceritakan kisah singkat momen bahagia ini..." value={storyDesc} onChange={(e) => setStoryDesc(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', marginBottom: '1rem' }} />
+                          <button type="button" onClick={addStory} className="btn btn-secondary" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                            + Tambahkan Ke Timeline
+                          </button>
                         </div>
 
+                        {details.story?.length > 0 && (
+                          <div style={{ marginBottom: '2rem' }}>
+                            <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '0.75rem' }}>📖 Timeline Momen:</h4>
+                            {details.story.map((st: any, idx: number) => (
+                              <div key={idx} style={{ padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                  <span style={{ backgroundColor: 'var(--primary-light, #fff0f5)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>{st.year}</span>
+                                  <h4 style={{ margin: '0.4rem 0 0.2rem 0', fontSize: '0.95rem' }}>{st.title}</h4>
+                                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{st.desc}</p>
+                                </div>
+                                <button type="button" onClick={() => removeStory(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
+                                  Hapus
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+                      <button type="button" onClick={() => setActiveStep(2)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
+                        &larr; Kembali
+                      </button>
+                      <button type="button" onClick={() => setActiveStep(4)} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
+                        Lanjut ke Dress Code &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 4: DRESS CODE */}
+                {activeStep === 4 && (
+                  <div className="form-step-panel active">
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                      Ketentuan Pakaian (Dress Code)
+                    </h2>
+                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                      Berikan panduan tema busana dan kode warna bagi para tamu undangan.
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                      <input type="checkbox" id="chkDress" checked={details.showDresscode} onChange={(e) => setDetails({ ...details, showDresscode: e.target.checked })} style={{ width: '18px', height: '18px' }} />
+                      <label htmlFor="chkDress" style={{ fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}>Tampilkan Panduan Dresscode</label>
+                    </div>
+
+                    {details.showDresscode && (
+                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
                         <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Lengkap Mempelai Pria</label>
-                          <input
-                            type="text"
-                            value={details.mempelaiPria || ''}
-                            onChange={(e) => setDetails({ ...details, mempelaiPria: e.target.value })}
-                            placeholder="Rian"
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Tema Pakaian</label>
+                          <input type="text" placeholder="Earth Tone &amp; Modern Traditional" value={details.dresscodeStyle || ''} onChange={(e) => setDetails({ ...details, dresscodeStyle: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                         </div>
-
-                        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Panggilan</label>
-                          <input
-                            type="text"
-                            value={details.panggilanPria || ''}
-                            onChange={(e) => setDetails({ ...details, panggilanPria: e.target.value })}
-                            placeholder="Contoh: Roni"
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
-                        </div>
-
                         <div className="form-group">
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Orang Tua (Pria)</label>
-                          <input
-                            type="text"
-                            value={details.ortuPria || ''}
-                            onChange={(e) => setDetails({ ...details, ortuPria: e.target.value })}
-                            placeholder="Contoh: Bapak Ir. Wawan Setiawan & Ibu Asih Ratnasari"
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Catatan Khusus Bagi Tamu</label>
+                          <textarea placeholder="Mohon menghindari pakaian berwarna putih polos..." value={details.dresscodeNotes || ''} onChange={(e) => setDetails({ ...details, dresscodeNotes: e.target.value })} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
                         </div>
                       </div>
+                    )}
 
-                      {/* Mempelai Wanita */}
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderLeft: '3px solid var(--accent)', paddingLeft: '0.75rem', marginBottom: '1.25rem' }}>
-                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Mempelai Wanita</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+                      <button type="button" onClick={() => setActiveStep(3)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
+                        &larr; Kembali
+                      </button>
+                      <button type="button" onClick={() => setActiveStep(5)} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
+                        Lanjut ke Galeri Foto &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 5: GALERI FOTO */}
+                {activeStep === 5 && (
+                  <div className="form-step-panel active">
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                      Galeri Foto &amp; Musik Latar
+                    </h2>
+                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                      Tautan lagu latar belakang dan kumpulan foto momen indah kebersamaan.
+                    </p>
+
+                    <div className="form-group" style={{ marginBottom: '2rem' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>URL Musik Latar (MP3 / Soundcloud)</label>
+                      <input type="text" placeholder="https://example.com/romantic-song.mp3" value={details.musicUrl || ''} onChange={(e) => setDetails({ ...details, musicUrl: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+                      <button type="button" onClick={() => setActiveStep(4)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
+                        &larr; Kembali
+                      </button>
+                      <button type="button" onClick={() => setActiveStep(6)} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
+                        Lanjut ke Rekening Kado &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 6: REKENING KADO */}
+                {activeStep === 6 && (
+                  <div className="form-step-panel active">
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                      Amplop Digital &amp; Hadiah (Gift Registry)
+                    </h2>
+                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                      Informasi nomor rekening bank atau e-wallet untuk memberikan kado &amp; angpao digital.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>💳 Rekening 1</h4>
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Bank</label>
+                          <input type="text" placeholder="BCA" value={details.bank1Nama || ''} onChange={(e) => setDetails({ ...details, bank1Nama: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
                         </div>
-
-                        {/* Photo Box */}
-                        <div style={{ border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-body)', marginBottom: '1.25rem' }}>
-                          <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>📷</div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Belum ada foto</span>
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nomor Rekening</label>
+                          <input type="text" placeholder="1234567890" value={details.bank1Rek || ''} onChange={(e) => setDetails({ ...details, bank1Rek: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
                         </div>
-
-                        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Tautan Foto Mempelai Wanita (URL)</label>
-                          <input
-                            type="text"
-                            value={details.fotoWanita || ''}
-                            onChange={(e) => setDetails({ ...details, fotoWanita: e.target.value })}
-                            placeholder="Contoh: https://images.unsplash.com/photo-..."
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
-                        </div>
-
-                        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Lengkap Mempelai Wanita</label>
-                          <input
-                            type="text"
-                            value={details.mempelaiWanita || ''}
-                            onChange={(e) => setDetails({ ...details, mempelaiWanita: e.target.value })}
-                            placeholder="Dea"
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
-                        </div>
-
-                        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Panggilan</label>
-                          <input
-                            type="text"
-                            value={details.panggilanWanita || ''}
-                            onChange={(e) => setDetails({ ...details, panggilanWanita: e.target.value })}
-                            placeholder="Contoh: Anti"
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
-                        </div>
-
                         <div className="form-group">
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Orang Tua (Wanita)</label>
-                          <input
-                            type="text"
-                            value={details.ortuWanita || ''}
-                            onChange={(e) => setDetails({ ...details, ortuWanita: e.target.value })}
-                            placeholder="Contoh: Bapak H. Ahmad Solihin & Ibu Hj. Siti Aminah"
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                          />
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Atas Nama</label>
+                          <input type="text" placeholder="Roni Wijaya" value={details.bank1An || ''} onChange={(e) => setDetails({ ...details, bank1An: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                        </div>
+                      </div>
+
+                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>💳 Rekening 2</h4>
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Bank</label>
+                          <input type="text" placeholder="Mandiri" value={details.bank2Nama || ''} onChange={(e) => setDetails({ ...details, bank2Nama: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nomor Rekening</label>
+                          <input type="text" placeholder="0987654321" value={details.bank2Rek || ''} onChange={(e) => setDetails({ ...details, bank2Rek: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Atas Nama</label>
+                          <input type="text" placeholder="Anti Kartika" value={details.bank2An || ''} onChange={(e) => setDetails({ ...details, bank2An: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '480px' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Penyelenggara / Tuan Rumah</label>
-                      <input
-                        type="text"
-                        value={details.organizerName || ''}
-                        onChange={(e) => setDetails({ ...details, organizerName: e.target.value })}
-                        placeholder="Denny Sumargo"
-                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-                      />
-                    </div>
-                  )}
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveStep(2)}
-                      className="btn btn-primary"
-                      style={{ padding: '0.85rem 2rem', borderRadius: '30px', fontWeight: 800 }}
-                    >
-                      Lanjut ke Waktu &amp; Tempat &rarr;
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+                      <button type="button" onClick={() => setActiveStep(5)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
+                        &larr; Kembali
+                      </button>
+                      <button type="submit" className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800, backgroundColor: '#16a34a', borderColor: '#16a34a' }}>
+                        Simpan Seluruh Data 💾
+                      </button>
+                    </div>
                   </div>
+                )}
+              </form>
+            </div>
+
+            {/* Right Column: Live Mobile Preview Frame (Side-by-Side) */}
+            {showPreview && (
+              <div
+                className="live-preview-right-col"
+                style={{
+                  width: '370px',
+                  flexShrink: 0,
+                  position: 'sticky',
+                  top: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                {/* Header Bar */}
+                <div
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'var(--bg-card)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    📱 Pratinjau Tampilan Undangan
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                    }}
+                    title="Sembunyikan Pratinjau"
+                  >
+                    🙈 Sembunyikan
+                  </button>
                 </div>
-              )}
 
-              {/* STEP 2: WAKTU & TEMPAT */}
-              {activeStep === 2 && (
-                <div className="form-step-panel active">
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                    Detail Waktu &amp; Tempat Pelaksanaan
-                  </h2>
-                  <p className="panel-desc" style={{ marginBottom: '2rem' }}>
-                    Tentukan kapan dan di mana acara dilangsungkan.
-                  </p>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-                    {details.schedules?.map((sched: any, i: number) => (
-                      <div key={i} style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>{sched.name}</h4>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.25rem 0' }}>📅 {sched.date} — {sched.time}</p>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>📍 {sched.place}, {sched.address}</p>
-                        </div>
-                        <button type="button" onClick={() => removeSchedule(i)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '0.5rem 0.85rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                          Hapus
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{ padding: '1.5rem', borderRadius: '16px', border: '2px dashed var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '1rem' }}>+ Tambahkan Sesi Acara Baru</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '0.85rem' }}>
-                      <input type="text" placeholder="Nama Sesi (Akad / Resepsi)" value={schedName} onChange={(e) => setSchedName(e.target.value)} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      <input type="text" placeholder="Tanggal (21 Sept 2026)" value={schedDate} onChange={(e) => setSchedDate(e.target.value)} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      <input type="text" placeholder="Waktu (08.00 - 10.00 WIB)" value={schedTime} onChange={(e) => setSchedTime(e.target.value)} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      <input type="text" placeholder="Nama Tempat (Grand Ballroom)" value={schedPlace} onChange={(e) => setSchedPlace(e.target.value)} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                    </div>
-                    <input type="text" placeholder="Alamat Lengkap Venue" value={schedAddress} onChange={(e) => setSchedAddress(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', marginBottom: '1rem' }} />
-                    <button type="button" onClick={addSchedule} className="btn btn-primary" style={{ padding: '0.65rem 1.5rem', fontSize: '0.85rem' }}>
-                      Tambah Sesi Acara
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                    <button type="button" onClick={() => setActiveStep(1)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                      &larr; Kembali
-                    </button>
-                    <button type="button" onClick={() => setActiveStep(3)} className="btn btn-primary" style={{ padding: '0.85rem 2rem', borderRadius: '30px', fontWeight: 800 }}>
-                      Lanjut ke Cerita Cinta &rarr;
-                    </button>
-                  </div>
+                {/* Smartphone Preview Frame */}
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: '350px',
+                    height: '680px',
+                    backgroundColor: previewGlobalStyles.bgColor || '#eff2ef',
+                    backgroundImage: previewGlobalStyles.backgroundImage ? `url(${previewGlobalStyles.backgroundImage})` : undefined,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    borderRadius: '36px',
+                    border: '10px solid #1e293b',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.18)',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    position: 'relative',
+                  }}
+                >
+                  {previewNodes.map((node) => (
+                    <NodeRenderer
+                      key={node.id}
+                      node={node}
+                      allNodes={previewNodes}
+                      selectedNodeId={null}
+                      onSelectNode={() => {}}
+                      eventDetails={liveEventDetails}
+                      viewportMode="mobile"
+                      isPreviewMode={true}
+                    />
+                  ))}
                 </div>
-              )}
-
-              {/* STEP 3: CERITA CINTA */}
-              {activeStep === 3 && (
-                <div className="form-step-panel active">
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                    Cerita Cinta Kami (Timeline)
-                  </h2>
-                  <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
-                    Ceritakan momen penting perjalanan cinta Anda dari pertemuan pertama hingga hari pernikahan.
-                  </p>
-
-                  <div className="switch-toggle-container">
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Tampilkan Sesi Cerita Cinta</h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Sembunyikan atau tampilkan linimasa perjalanan cinta Anda di website undangan.</p>
-                    </div>
-                    <label className="switch-toggle">
-                      <input type="checkbox" checked={details.showStory ?? true} onChange={(e) => setDetails({ ...details, showStory: e.target.checked })} />
-                      <span className="slider-round"></span>
-                    </label>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                    {details.story?.map((st: any, i: number) => (
-                      <div key={i} style={{ padding: '1rem 1.25rem', borderRadius: '14px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <span style={{ fontWeight: 800, color: 'var(--primary)' }}>[{st.year}] {st.title}</span>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>{st.desc}</p>
-                        </div>
-                        <button type="button" onClick={() => removeStory(i)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>Hapus</button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{ padding: '1.5rem', borderRadius: '16px', border: '2px dashed var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.85rem' }}>+ Tambahkan Momen Cerita Baru</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.85rem', marginBottom: '0.85rem' }}>
-                      <input type="text" placeholder="Tahun" value={storyYear} onChange={(e) => setStoryYear(e.target.value)} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      <input type="text" placeholder="Judul Momen" value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                    </div>
-                    <textarea placeholder="Deskripsi cerita..." value={storyDesc} onChange={(e) => setStoryDesc(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', height: '80px', marginBottom: '1rem' }} />
-                    <button type="button" onClick={addStory} className="btn btn-primary" style={{ padding: '0.65rem 1.5rem', fontSize: '0.85rem' }}>
-                      Tambah Momen
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                    <button type="button" onClick={() => setActiveStep(2)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                      &larr; Kembali
-                    </button>
-                    <button type="button" onClick={() => setActiveStep(4)} className="btn btn-primary" style={{ padding: '0.85rem 2rem', borderRadius: '30px', fontWeight: 800 }}>
-                      Lanjut ke Dress Code &rarr;
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 4: DRESS CODE */}
-              {activeStep === 4 && (
-                <div className="form-step-panel active">
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                    Panduan Pakaian &amp; Dress Code
-                  </h2>
-                  <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
-                    Atur petunjuk gaya busana dan rekomendasi palet warna pakaian untuk para tamu undangan Anda.
-                  </p>
-
-                  <div className="switch-toggle-container">
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Tampilkan Sesi Dress Code</h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Sembunyikan atau tampilkan panduan dress code pakaian tamu di website undangan.</p>
-                    </div>
-                    <label className="switch-toggle">
-                      <input type="checkbox" checked={details.showDresscode ?? false} onChange={(e) => setDetails({ ...details, showDresscode: e.target.checked })} />
-                      <span className="slider-round"></span>
-                    </label>
-                  </div>
-
-                  <div style={{ maxWidth: '600px' }}>
-                    <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Gaya Pakaian (Preset Style)</label>
-                      <input type="text" value={details.dresscodeStyle || ''} onChange={(e) => setDetails({ ...details, dresscodeStyle: e.target.value })} placeholder="Earth Tone & Modern Traditional Attire" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }} />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Catatan Tambahan</label>
-                      <textarea value={details.dresscodeNotes || ''} onChange={(e) => setDetails({ ...details, dresscodeNotes: e.target.value })} placeholder="Tamu diharapkan mengenakan pakaian bernuansa pastel..." style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem', height: '100px' }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                    <button type="button" onClick={() => setActiveStep(3)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                      &larr; Kembali
-                    </button>
-                    <button type="button" onClick={() => setActiveStep(5)} className="btn btn-primary" style={{ padding: '0.85rem 2rem', borderRadius: '30px', fontWeight: 800 }}>
-                      Lanjut ke Galeri Foto &rarr;
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 5: GALERI FOTO & MUSIK */}
-              {activeStep === 5 && (
-                <div className="form-step-panel active">
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                    Musik &amp; Galeri Foto
-                  </h2>
-                  <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
-                    Atur URL musik latar belakang dan galeri foto momen berharga Anda.
-                  </p>
-
-                  <div style={{ maxWidth: '600px' }}>
-                    <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>URL Musik Latar (MP3 Direct Link)</label>
-                      <input type="text" value={details.musicUrl || ''} onChange={(e) => setDetails({ ...details, musicUrl: e.target.value })} placeholder="https://...music.mp3" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                    <button type="button" onClick={() => setActiveStep(4)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                      &larr; Kembali
-                    </button>
-                    <button type="button" onClick={() => setActiveStep(6)} className="btn btn-primary" style={{ padding: '0.85rem 2rem', borderRadius: '30px', fontWeight: 800 }}>
-                      Lanjut ke Rekening Kado &rarr;
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 6: REKENING KADO */}
-              {activeStep === 6 && (
-                <div className="form-step-panel active">
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                    Rekening Kado &amp; Amplop Digital
-                  </h2>
-                  <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
-                    Sediakan opsi kado digital via transfer bank untuk kemudahan tamu undangan.
-                  </p>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>💳 Rekening 1</h4>
-                      <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Bank</label>
-                        <input type="text" placeholder="BCA" value={details.bank1Nama || ''} onChange={(e) => setDetails({ ...details, bank1Nama: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nomor Rekening</label>
-                        <input type="text" placeholder="1234567890" value={details.bank1Rek || ''} onChange={(e) => setDetails({ ...details, bank1Rek: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      </div>
-                      <div className="form-group">
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Atas Nama</label>
-                        <input type="text" placeholder="Roni Wijaya" value={details.bank1An || ''} onChange={(e) => setDetails({ ...details, bank1An: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      </div>
-                    </div>
-
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>💳 Rekening 2</h4>
-                      <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Bank</label>
-                        <input type="text" placeholder="Mandiri" value={details.bank2Nama || ''} onChange={(e) => setDetails({ ...details, bank2Nama: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nomor Rekening</label>
-                        <input type="text" placeholder="0987654321" value={details.bank2Rek || ''} onChange={(e) => setDetails({ ...details, bank2Rek: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      </div>
-                      <div className="form-group">
-                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Atas Nama</label>
-                        <input type="text" placeholder="Anti Kartika" value={details.bank2An || ''} onChange={(e) => setDetails({ ...details, bank2An: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                    <button type="button" onClick={() => setActiveStep(5)} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                      &larr; Kembali
-                    </button>
-                    <button type="submit" className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800, backgroundColor: '#16a34a', borderColor: '#16a34a' }}>
-                      Simpan Seluruh Data 💾
-                    </button>
-                  </div>
-                </div>
-              )}
-            </form>
+              </div>
+            )}
           </div>
         </div>
       </main>
-
-      {/* Floating iPhone Live Preview Side Drawer */}
-      {showPreviewDrawer && (
-        <div className="preview-sidebar visible" style={{ zIndex: 1000 }}>
-          <div style={{ padding: '1rem', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>📱 Pratinjau Langsung</span>
-            <button
-              onClick={() => setShowPreviewDrawer(false)}
-              style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
-            >
-              ✕
-            </button>
-          </div>
-          <iframe
-            src={`/invite/${event?.subdomain}`}
-            className="preview-iframe-el"
-            title="Live Mobile Preview"
-          />
-        </div>
-      )}
     </div>
   );
 }
