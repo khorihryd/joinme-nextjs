@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface LightboxModalProps {
   images: string[];
@@ -10,7 +11,12 @@ interface LightboxModalProps {
 }
 
 export function LightboxModal({ images, currentIndex, onClose, onNavigate }: LightboxModalProps) {
+  const [mounted, setMounted] = useState(false);
   const isOpen = currentIndex !== null && currentIndex >= 0 && currentIndex < images.length;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleNext = useCallback(() => {
     if (currentIndex === null) return;
@@ -27,6 +33,10 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
   useEffect(() => {
     if (!isOpen) return;
 
+    // Body scroll lock while lightbox is open
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -38,32 +48,41 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, handleNext, handlePrev, onClose]);
 
-  if (!isOpen || currentIndex === null) return null;
+  if (!mounted || !isOpen || currentIndex === null) return null;
 
   const currentImageUrl = images[currentIndex];
 
-  return (
+  const modalContent = (
     <div
       onClick={onClose}
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
         zIndex: 999999,
-        backgroundColor: 'rgba(0, 0, 0, 0.92)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.94)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '1rem',
-        animation: 'fadeIn 0.25s ease',
+        padding: '1.5rem',
+        boxSizing: 'border-box',
+        animation: 'fadeIn 0.2s ease',
       }}
     >
-      {/* Top Header Controls */}
+      {/* Top Header Bar */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -81,11 +100,13 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
         <span
           style={{
             fontSize: '0.85rem',
-            fontWeight: 600,
+            fontWeight: 700,
             background: 'rgba(255, 255, 255, 0.15)',
-            padding: '4px 12px',
+            padding: '6px 16px',
             borderRadius: '20px',
-            backdropFilter: 'blur(5px)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
           }}
         >
           📷 Foto {currentIndex + 1} dari {images.length}
@@ -96,19 +117,20 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
           onClick={onClose}
           style={{
             background: 'rgba(255, 255, 255, 0.15)',
-            border: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             color: '#ffffff',
             fontSize: '1.25rem',
-            width: '38px',
-            height: '38px',
+            width: '42px',
+            height: '42px',
             borderRadius: '50%',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 0.2s ease',
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.2s ease',
           }}
-          title="Tutup (Esc)"
+          title="Tutup Modal (Tekan ESC)"
         >
           ✕
         </button>
@@ -119,8 +141,8 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
-          maxWidth: '90vw',
-          maxHeight: '80vh',
+          maxWidth: '92vw',
+          maxHeight: '82vh',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -128,13 +150,13 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
       >
         <img
           src={currentImageUrl}
-          alt={`Gallery image ${currentIndex + 1}`}
+          alt={`Lightbox gallery photo ${currentIndex + 1}`}
           style={{
             maxWidth: '100%',
-            maxHeight: '80vh',
+            maxHeight: '82vh',
             objectFit: 'contain',
             borderRadius: '12px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
             transition: 'transform 0.3s ease',
           }}
         />
@@ -155,18 +177,19 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
               top: '50%',
               transform: 'translateY(-50%)',
               background: 'rgba(255, 255, 255, 0.18)',
-              border: 'none',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
               color: '#ffffff',
               fontSize: '1.5rem',
-              width: '46px',
-              height: '46px',
+              width: '48px',
+              height: '48px',
               borderRadius: '50%',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backdropFilter: 'blur(5px)',
-              transition: 'background 0.2s ease, transform 0.2s ease',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
+              transition: 'all 0.2s ease',
             }}
             title="Foto Sebelumnya (Panah Kiri)"
           >
@@ -185,18 +208,19 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
               top: '50%',
               transform: 'translateY(-50%)',
               background: 'rgba(255, 255, 255, 0.18)',
-              border: 'none',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
               color: '#ffffff',
               fontSize: '1.5rem',
-              width: '46px',
-              height: '46px',
+              width: '48px',
+              height: '48px',
               borderRadius: '50%',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backdropFilter: 'blur(5px)',
-              transition: 'background 0.2s ease, transform 0.2s ease',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
+              transition: 'all 0.2s ease',
             }}
             title="Foto Selanjutnya (Panah Kanan)"
           >
@@ -206,4 +230,6 @@ export function LightboxModal({ images, currentIndex, onClose, onNavigate }: Lig
       )}
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
