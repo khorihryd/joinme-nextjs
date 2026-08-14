@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
         const [uRes, eRes, tRes, txRes] = await Promise.all([
           fetch('/api/users'),
           fetch('/api/events'),
-          fetch('/api/templates'),
+          fetch('/api/templates?all=true'),
           fetch('/api/transactions'),
         ]);
 

@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET /api/templates
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const showAll = searchParams.get('all') === 'true';
+
+    const whereCondition = showAll ? {} : { status: 'Aktif' };
+
     const templates = await prisma.template.findMany({
+      where: whereCondition,
       orderBy: { views: 'desc' },
     });
     return NextResponse.json(templates);

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, type, subdomain } = body;
+    const { title, type, subdomain, templateId } = body;
 
     if (!title || !type || !subdomain) {
       return NextResponse.json({ error: 'Title, type, and subdomain are required' }, { status: 400 });
@@ -52,6 +52,22 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json({ error: 'Subdomain already in use' }, { status: 409 });
+    }
+
+    let studioNodes = undefined;
+    let globalStyles = undefined;
+
+    if (templateId) {
+      const selectedTemplate = await prisma.template.findUnique({ where: { id: templateId } });
+      if (selectedTemplate) {
+        studioNodes = selectedTemplate.nodes;
+        globalStyles = selectedTemplate.globalStyles;
+
+        await prisma.template.update({
+          where: { id: templateId },
+          data: { views: { increment: 1 } },
+        });
+      }
     }
 
     const event = await prisma.event.create({
@@ -68,6 +84,8 @@ export async function POST(request: Request) {
           showStory: true,
           showGallery: true,
           showDresscode: false,
+          studioNodes,
+          globalStyles,
         },
       },
     });
