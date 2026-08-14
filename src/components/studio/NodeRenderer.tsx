@@ -331,7 +331,7 @@ export function NodeRenderer({
     return () => clearInterval(timer);
   }, [isSlideshowBg, isSliderWidget, allNodes, intervalSec, style.backgroundImage, node.content]);
 
-  const isSelected = selectedNodeId === node.id;
+  const isSelected = !isPreviewMode && selectedNodeId === node.id;
 
   const handleClick = (e: React.MouseEvent) => {
     if (isPreviewMode) return;
@@ -404,7 +404,7 @@ export function NodeRenderer({
     computedStyle.flexGrow = Number(flexGrowVal);
   }
 
-  const nodeClassName = `canvas-node-item ${isSelected ? 'selected' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`;
+  const nodeClassName = `canvas-node-item ${isSelected ? 'selected' : ''} ${isPreviewMode ? 'is-preview-mode preview-mode' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`;
 
   if (style.bgType === 'gradient') {
     const dir = getResponsiveStyle(style, 'gradientDirection', 'to right', viewportMode);

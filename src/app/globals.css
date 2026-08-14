@@ -3916,11 +3916,15 @@ body.studio-body {
   cursor: pointer;
 }
 
-body.preview-mode .canvas-node-item {
+body.preview-mode .canvas-node-item,
+.canvas-node-item.is-preview-mode,
+.canvas-node-item.preview-mode {
   cursor: default;
 }
 
-body.preview-mode .canvas-node-item.gallery-image {
+body.preview-mode .canvas-node-item.gallery-image,
+.canvas-node-item.is-preview-mode.gallery-image,
+.canvas-node-item.preview-mode.gallery-image {
   cursor: pointer !important;
 }
 
@@ -3928,8 +3932,15 @@ body.preview-mode .canvas-node-item.gallery-image {
   outline: 2px dashed rgba(226, 99, 151, 0.4);
 }
 
-body.preview-mode .canvas-node-item:hover {
-  outline: none;
+body.preview-mode .canvas-node-item:hover,
+.canvas-node-item.is-preview-mode:hover,
+.canvas-node-item.preview-mode:hover,
+.canvas-node-item.is-preview-mode.selected,
+.canvas-node-item.preview-mode.selected {
+  outline: none !important;
+  outline-width: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .canvas-node-item.selected {
