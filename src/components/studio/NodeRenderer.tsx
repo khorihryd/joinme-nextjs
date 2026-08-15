@@ -896,23 +896,132 @@ export function NodeRenderer({
         )}
 
         <div style={containerInnerStyle} className="container-inner-wrapper">
-          {node.children?.map((child) => (
-            <NodeRenderer
-              key={child.id}
-              node={child}
-              allNodes={allNodes}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={onSelectNode}
-              onDeleteNode={onDeleteNode}
-              onDuplicateNode={onDuplicateNode}
-              eventDetails={eventDetails}
-              viewportMode={viewportMode}
-              isPreviewMode={isPreviewMode}
-              onOpenCover={onOpenCover}
-              isMiniStudioMode={isMiniStudioMode}
-              onSelectMiniNode={onSelectMiniNode}
-            />
-          ))}
+          {(node.sectionType === 'event_schedule' || node.id?.includes('event_schedule') || node.id === 'container-event_schedule') ? (
+            <>
+              {node.children
+                ?.filter((child) => child.type === 'heading' || child.type === 'text')
+                .map((child) => (
+                  <NodeRenderer
+                    key={child.id}
+                    node={child}
+                    allNodes={allNodes}
+                    selectedNodeId={selectedNodeId}
+                    onSelectNode={onSelectNode}
+                    onDeleteNode={onDeleteNode}
+                    onDuplicateNode={onDuplicateNode}
+                    eventDetails={eventDetails}
+                    viewportMode={viewportMode}
+                    isPreviewMode={isPreviewMode}
+                    onOpenCover={onOpenCover}
+                    isMiniStudioMode={isMiniStudioMode}
+                    onSelectMiniNode={onSelectMiniNode}
+                  />
+                ))}
+
+              {(() => {
+                const rawEvents = Array.isArray(eventDetails?.schedules) ? eventDetails.schedules : [];
+                if (rawEvents.length === 0) {
+                  return (
+                    <div
+                      style={{
+                        padding: '1.5rem 1rem',
+                        textAlign: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.02)',
+                        borderRadius: '12px',
+                        border: '1px dashed #cbd5e1',
+                        color: '#64748b',
+                        fontSize: '0.8rem',
+                        width: '100%',
+                        margin: '12px 0',
+                      }}
+                    >
+                      📅 Belum ada rincian acara. Tambahkan acara di panel Properties.
+                    </div>
+                  );
+                }
+
+                return rawEvents.map((evt: any, evtIdx: number) => (
+                  <div
+                    key={`dyn-evt-card-${evtIdx}`}
+                    style={{
+                      padding: '1.25rem 1.5rem',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      width: '100%',
+                      margin: '8px 0',
+                    }}
+                  >
+                    <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary, #e36397)', fontFamily: 'Playfair Display, serif', textAlign: 'center' }}>
+                      {evt.title || 'Nama Acara'}
+                    </h4>
+                    {(evt.date || evt.time) && (
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        {evt.date && <span>🗓️ {evt.date}</span>}
+                        {evt.time && <span>⏰ {evt.time}</span>}
+                      </div>
+                    )}
+                    {evt.place && (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', textAlign: 'center' }}>
+                        📍 {evt.place}
+                      </div>
+                    )}
+                    {evt.address && (
+                      <div style={{ fontSize: '0.78rem', color: '#64748b', textAlign: 'center', lineHeight: 1.4 }}>
+                        {evt.address}
+                      </div>
+                    )}
+                    {(evt.mapsUrl || evt.mapUrl) && (
+                      <a
+                        href={evt.mapsUrl || evt.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => isMiniStudioMode && e.preventDefault()}
+                        style={{
+                          marginTop: '0.4rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          padding: '0.5rem 1.1rem',
+                          borderRadius: '20px',
+                          backgroundColor: '#e36397',
+                          color: '#ffffff',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        🗺️ Google Maps
+                      </a>
+                    )}
+                  </div>
+                ));
+              })()}
+            </>
+          ) : (
+            node.children?.map((child) => (
+              <NodeRenderer
+                key={child.id}
+                node={child}
+                allNodes={allNodes}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={onSelectNode}
+                onDeleteNode={onDeleteNode}
+                onDuplicateNode={onDuplicateNode}
+                eventDetails={eventDetails}
+                viewportMode={viewportMode}
+                isPreviewMode={isPreviewMode}
+                onOpenCover={onOpenCover}
+                isMiniStudioMode={isMiniStudioMode}
+                onSelectMiniNode={onSelectMiniNode}
+              />
+            ))
+          )}
         </div>
       </div>
     );
