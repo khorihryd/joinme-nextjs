@@ -25,6 +25,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [showPreview, setShowPreview] = useState(true);
   const [isCoverOpened, setIsCoverOpened] = useState(false);
 
+  // Mini Studio Selection State
+  const [selectedMiniNodeId, setSelectedMiniNodeId] = useState<string | null>(null);
+
   // Theme Switcher State
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [activeTemplates, setActiveTemplates] = useState<any[]>([]);
@@ -50,6 +53,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     organizerName: '',
     organizerNickname: '',
     organizerParents: '',
+    coverTitle: '',
+    coverCoupleName: '',
+    cover_photo: '',
     schedules: [],
     story: [],
     gallery: [],
@@ -69,6 +75,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     liveStreamUrl: '',
     liveStreamPlatform: 'YouTube Live',
     ticketUrl: '',
+    studioNodes: null,
+    globalStyles: null,
     sectionOrder: [
       'cover',
       'hero',
@@ -134,6 +142,60 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     loadEvent();
   }, [id, showToast]);
 
+  // Dynamic Live Event Data Bindings for Right Side Preview
+  const currentSectionOrder: SectionType[] = details.sectionOrder || SECTION_DEFINITIONS.map((s) => s.id);
+  const hiddenSectionsMap: Record<string, boolean> = details.hiddenSections || {};
+
+  const liveEventDetails = {
+    title: eventTitle,
+    subdomain: eventSubdomain,
+    type: eventType,
+    mempelaiPria: details.mempelaiPria || 'Roni Wijaya, S.Kom.',
+    panggilanPria: details.panggilanPria || 'Roni',
+    ortuPria: details.ortuPria,
+    igPria: details.igPria,
+    fotoPria: details.fotoPria,
+    mempelaiWanita: details.mempelaiWanita || 'Anti Kartika, S.T.',
+    panggilanWanita: details.panggilanWanita || 'Anti',
+    ortuWanita: details.ortuWanita,
+    igWanita: details.igWanita,
+    fotoWanita: details.fotoWanita,
+    organizerName: details.organizerName || 'Keluarga Besar Wijaya',
+    organizerNickname: details.organizerNickname,
+    organizerParents: details.organizerParents,
+    event_date: details.schedules?.[0]?.date || '21 September 2026',
+    event_time: details.schedules?.[0]?.time || '08:00 - 14:00 WIB',
+    event_location: details.schedules?.[0]?.place || 'Grand Ballroom Hotel Mulia, Jakarta',
+    event_address: details.schedules?.[0]?.address || 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+    schedules: details.schedules || [],
+    story: details.story || [],
+    gallery: details.gallery || [],
+    bankAccounts: [
+      details.bank1Nama && { bankName: details.bank1Nama, accountNumber: details.bank1Rek, accountHolder: details.bank1An },
+      details.bank2Nama && { bankName: details.bank2Nama, accountNumber: details.bank2Rek, accountHolder: details.bank2An },
+    ].filter(Boolean),
+    ticketUrl: details.ticketUrl,
+    liveStreamUrl: details.liveStreamUrl,
+    coverTitle: details.coverTitle,
+    coverCoupleName: details.coverCoupleName,
+    cover_photo: details.cover_photo,
+    sectionOrder: currentSectionOrder,
+    hiddenSections: hiddenSectionsMap,
+  };
+
+  const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)
+    ? (details.studioNodes as unknown as StudioNode[])
+    : (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
+    ? (event.details.studioNodes as unknown as StudioNode[])
+    : (DEFAULT_NODES as unknown as StudioNode[]);
+
+  const previewGlobalStyles = details.globalStyles || event?.details?.globalStyles || {
+    bgColor: '#eff2ef',
+    fontFamily: 'Playfair Display',
+  };
+
+  const sortedPreviewNodes = getOrderedAndFilteredNodes(previewNodes, liveEventDetails);
+
   // Auto-scroll preview canvas to active tab section (Hooks must run unconditionally)
   useEffect(() => {
     if (loading || !showPreview) return;
@@ -146,14 +208,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     if (activeTab !== 'info') {
       setIsCoverOpened(true);
 
-      const pNodes = (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
-        ? (event.details.studioNodes as unknown as StudioNode[])
-        : (DEFAULT_NODES as unknown as StudioNode[]);
-
-      const sorted = getOrderedAndFilteredNodes(pNodes, details);
-
       const timer = setTimeout(() => {
-        const targetNode = sorted.find((n) => n.sectionType === activeTab);
+        const targetNode = sortedPreviewNodes.find((n) => n.sectionType === activeTab);
         if (targetNode) {
           const el = document.getElementById(`node-dom-${targetNode.id}`);
           if (el) {
@@ -164,7 +220,62 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
       return () => clearTimeout(timer);
     }
-  }, [activeTab, showPreview, loading, event?.details?.studioNodes, details]);
+  }, [activeTab, showPreview, loading, sortedPreviewNodes]);
+
+  // Point-and-Click Canvas Selection Handler
+  const handleSelectMiniNodeOnCanvas = (nodeId: string, sectionType?: string) => {
+    setSelectedMiniNodeId(nodeId);
+    if (sectionType) {
+      setActiveTab(sectionType);
+      showToast(`Elemen terpilih pada Section ${sectionType} 🎯`, 'info');
+    }
+  };
+
+  // Helper to Update Node Properties in Studio Tree
+  const updateStudioNodeProp = (nodeId: string, prop: string, val: any, isStyleProp = false) => {
+    const currentNodes = [...previewNodes];
+
+    const updateRecursive = (list: StudioNode[]): StudioNode[] => {
+      return list.map((n) => {
+        if (n.id === nodeId) {
+          if (isStyleProp) {
+            return { ...n, style: { ...n.style, [prop]: val } };
+          }
+          return { ...n, [prop]: val };
+        }
+        if (n.children && n.children.length > 0) {
+          return { ...n, children: updateRecursive(n.children) };
+        }
+        return n;
+      });
+    };
+
+    const updatedNodes = updateRecursive(currentNodes);
+    setDetails((prev: any) => ({
+      ...prev,
+      studioNodes: updatedNodes,
+    }));
+  };
+
+  // Helper to Collect Editable Nodes for a Section
+  const collectEditableNodes = (node: StudioNode): StudioNode[] => {
+    let result: StudioNode[] = [];
+    if (['heading', 'text', 'button', 'image', 'container'].includes(node.type)) {
+      result.push(node);
+    }
+    if (node.children && node.children.length > 0) {
+      node.children.forEach((c) => {
+        result = result.concat(collectEditableNodes(c));
+      });
+    }
+    return result;
+  };
+
+  const getEditableNodesForSection = (secId: string): StudioNode[] => {
+    const rootContainer = previewNodes.find((n) => n.sectionType === secId);
+    if (!rootContainer) return [];
+    return collectEditableNodes(rootContainer);
+  };
 
   const loadActiveTemplates = async () => {
     try {
@@ -219,7 +330,6 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
         };
         setDetails(updatedDetails);
 
-        // Auto save to database
         await fetch(`/api/events/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -242,13 +352,10 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   };
 
   // Section Ordering Logic
-  const currentSectionOrder: SectionType[] = details.sectionOrder || SECTION_DEFINITIONS.map((s) => s.id);
-  const hiddenSectionsMap: Record<string, boolean> = details.hiddenSections || {};
-
   const moveSectionUp = (secId: SectionType) => {
     if (secId === 'cover' || secId === 'footer') return;
     const idx = currentSectionOrder.indexOf(secId);
-    if (idx <= 1) return; // Cannot move above cover (idx 0)
+    if (idx <= 1) return;
 
     const newOrder = [...currentSectionOrder];
     const prevSec = newOrder[idx - 1];
@@ -264,7 +371,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const moveSectionDown = (secId: SectionType) => {
     if (secId === 'cover' || secId === 'footer') return;
     const idx = currentSectionOrder.indexOf(secId);
-    if (idx === -1 || idx >= currentSectionOrder.length - 2) return; // Cannot move below footer
+    if (idx === -1 || idx >= currentSectionOrder.length - 2) return;
 
     const newOrder = [...currentSectionOrder];
     const nextSec = newOrder[idx + 1];
@@ -290,7 +397,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     showToast(`Section ${secId} ${isNowHidden ? 'disembunyikan ⚪' : 'diaktifkan 🟢'}`, 'success');
   };
 
-  // Inputs Handlers
+  // Input Handlers
   const addSchedule = () => {
     if (!schedName || !schedDate) {
       showToast('Nama sesi dan tanggal wajib diisi!', 'warning');
@@ -360,75 +467,166 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     }));
   };
 
+  const renderSectionMiniStudioInspector = (sectionId: string) => {
+    const editableNodes = getEditableNodesForSection(sectionId);
+    if (editableNodes.length === 0) return null;
+
+    return (
+      <div
+        style={{
+          marginTop: '1.75rem',
+          padding: '1.25rem',
+          borderRadius: '16px',
+          border: '1px dashed var(--primary)',
+          backgroundColor: 'var(--bg-body)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)' }}>
+              🎨 Studio Mini: Teks &amp; Latar Section
+            </h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Klik elemen mana saja pada canvas pratinjau untuk langsung fokus mengedit</span>
+          </div>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>{editableNodes.length} Elemen</span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {editableNodes.map((n) => {
+            const isNodeSelected = selectedMiniNodeId === n.id;
+
+            return (
+              <div
+                key={n.id}
+                onClick={() => setSelectedMiniNodeId(n.id)}
+                style={{
+                  padding: '0.85rem',
+                  borderRadius: '12px',
+                  border: isNodeSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                  backgroundColor: isNodeSelected ? 'var(--primary-light, #fff0f5)' : 'var(--bg-card)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>
+                    {n.type === 'container' ? '🖼️ Foto &amp; Warna Latar Section' : n.type === 'image' ? '📸 Gambar Widget' : `✍️ Teks ${n.type}`}
+                  </span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                    {n.label || n.id}
+                  </span>
+                </div>
+
+                {/* Container Background Editing */}
+                {n.type === 'container' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        URL Foto Latar Container:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="https://images.unsplash.com/..."
+                        value={n.style?.backgroundImage || ''}
+                        onChange={(e) => updateStudioNodeProp(n.id, 'backgroundImage', e.target.value, true)}
+                        style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        Warna Latar Tint Section:
+                      </label>
+                      <input
+                        type="color"
+                        value={n.style?.backgroundColor || '#ffffff'}
+                        onChange={(e) => updateStudioNodeProp(n.id, 'backgroundColor', e.target.value, true)}
+                        style={{ width: '100%', height: '34px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', background: '#fff' }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Image Widget Editing */}
+                {n.type === 'image' && (
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                      URL Foto Gambar Widget:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="https://images.unsplash.com/..."
+                      value={n.content || ''}
+                      onChange={(e) => updateStudioNodeProp(n.id, 'content', e.target.value, false)}
+                      style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                    />
+                  </div>
+                )}
+
+                {/* Text / Heading / Button Editing */}
+                {['heading', 'text', 'button'].includes(n.type) && (
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                      Isi Teks Konten:
+                    </label>
+                    {n.type === 'text' ? (
+                      <textarea
+                        rows={2}
+                        value={n.content || ''}
+                        onChange={(e) => updateStudioNodeProp(n.id, 'content', e.target.value, false)}
+                        style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={n.content || ''}
+                        onChange={(e) => updateStudioNodeProp(n.id, 'content', e.target.value, false)}
+                        style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                      />
+                    )}
+
+                    {/* Quick Variable Tag Helpers */}
+                    <div style={{ marginTop: '0.45rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {['{nama_mempelai}', '{tanggal_acara}', '{lokasi_acara}', '{nama_tamu}'].map((vTag) => (
+                        <button
+                          key={vTag}
+                          type="button"
+                          onClick={() => updateStudioNodeProp(n.id, 'content', (n.content || '') + ' ' + vTag, false)}
+                          style={{ fontSize: '0.64rem', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#ffffff', color: 'var(--primary)', cursor: 'pointer', fontWeight: 700 }}
+                        >
+                          + {vTag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-        Memuat editor undangan...
+        Memuat Studio Mini Editor...
       </div>
     );
   }
 
   const isWedding = eventType === 'Pernikahan';
   const displayTitle = isWedding
-    ? `Edit Undangan: ${details.panggilanPria || 'Pria'} & ${details.panggilanWanita || 'Wanita'}`
-    : `Edit Undangan: ${eventTitle || 'Acara'}`;
+    ? `Studio Mini Editor: ${details.panggilanPria || 'Pria'} & ${details.panggilanWanita || 'Wanita'}`
+    : `Studio Mini Editor: ${eventTitle || 'Acara'}`;
 
   const userName = session?.user?.name || 'User JoinMe';
   const initials = userName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
 
-  // Dynamic Live Event Data Bindings for Right Side Preview
-  const liveEventDetails = {
-    title: eventTitle,
-    subdomain: eventSubdomain,
-    type: eventType,
-    mempelaiPria: details.mempelaiPria || 'Roni Wijaya, S.Kom.',
-    panggilanPria: details.panggilanPria || 'Roni',
-    ortuPria: details.ortuPria,
-    igPria: details.igPria,
-    fotoPria: details.fotoPria,
-    mempelaiWanita: details.mempelaiWanita || 'Anti Kartika, S.T.',
-    panggilanWanita: details.panggilanWanita || 'Anti',
-    ortuWanita: details.ortuWanita,
-    igWanita: details.igWanita,
-    fotoWanita: details.fotoWanita,
-    organizerName: details.organizerName || 'Keluarga Besar Wijaya',
-    organizerNickname: details.organizerNickname,
-    organizerParents: details.organizerParents,
-    event_date: details.schedules?.[0]?.date || '21 September 2026',
-    event_time: details.schedules?.[0]?.time || '08:00 - 14:00 WIB',
-    event_location: details.schedules?.[0]?.place || 'Grand Ballroom Hotel Mulia, Jakarta',
-    event_address: details.schedules?.[0]?.address || 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
-    schedules: details.schedules || [],
-    story: details.story || [],
-    gallery: details.gallery || [],
-    bankAccounts: [
-      details.bank1Nama && { bankName: details.bank1Nama, accountNumber: details.bank1Rek, accountHolder: details.bank1An },
-      details.bank2Nama && { bankName: details.bank2Nama, accountNumber: details.bank2Rek, accountHolder: details.bank2An },
-    ].filter(Boolean),
-    ticketUrl: details.ticketUrl,
-    liveStreamUrl: details.liveStreamUrl,
-    coverTitle: details.coverTitle,
-    coverCoupleName: details.coverCoupleName,
-    cover_photo: details.cover_photo,
-    sectionOrder: currentSectionOrder,
-    hiddenSections: hiddenSectionsMap,
-  };
-
-  const previewNodes = (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
-    ? (event.details.studioNodes as unknown as StudioNode[])
-    : (DEFAULT_NODES as unknown as StudioNode[]);
-
-  const previewGlobalStyles = event?.details?.globalStyles || {
-    bgColor: '#eff2ef',
-    fontFamily: 'Playfair Display',
-  };
-
-  const sortedPreviewNodes = getOrderedAndFilteredNodes(previewNodes, liveEventDetails);
-
   return (
     <div className="db-container">
       {/* Left Sidebar Menu */}
-      <aside className="db-sidebar" style={{ width: '310px' }}>
+      <aside className="db-sidebar" style={{ width: '320px' }}>
         <div className="db-sidebar-header">
           <Link href="/" className="logo">
             <svg className="logo-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -467,103 +665,103 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           {currentSectionOrder
             .filter((secId) => secId !== 'rsvp' && secId !== 'wishes' && secId !== 'footer')
             .map((secId, secIdx) => {
-            const secDef = SECTION_DEFINITIONS.find((s) => s.id === secId) || {
-              id: secId,
-              label: secId,
-              icon: '📄',
-              isFixed: false,
-            };
-            const isHidden = hiddenSectionsMap[secId] === true;
-            const isFixed = secDef.isFixed || secId === 'cover' || (secId as string) === 'footer';
+              const secDef = SECTION_DEFINITIONS.find((s) => s.id === secId) || {
+                id: secId,
+                label: secId,
+                icon: '📄',
+                isFixed: false,
+              };
+              const isHidden = hiddenSectionsMap[secId] === true;
+              const isFixed = secDef.isFixed || secId === 'cover' || (secId as string) === 'footer';
 
-            return (
-              <div
-                key={secId}
-                className={`db-menu-item ${activeTab === secId ? 'active' : ''}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '4px',
-                  padding: '6px 8px',
-                  opacity: isHidden ? 0.5 : 1,
-                  borderRadius: '8px',
-                  marginBottom: '4px',
-                  backgroundColor: activeTab === secId ? 'var(--bg-card)' : 'transparent',
-                }}
-              >
-                {/* Clickable Tab Title */}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(secId)}
+              return (
+                <div
+                  key={secId}
+                  className={`db-menu-item ${activeTab === secId ? 'active' : ''}`}
                   style={{
-                    flex: 1,
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: '0.78rem',
-                    fontWeight: activeTab === secId ? 800 : 600,
-                    color: activeTab === secId ? 'var(--primary)' : 'var(--text-primary)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    justifyContent: 'space-between',
+                    gap: '4px',
+                    padding: '6px 8px',
+                    opacity: isHidden ? 0.5 : 1,
+                    borderRadius: '8px',
+                    marginBottom: '4px',
+                    backgroundColor: activeTab === secId ? 'var(--bg-card)' : 'transparent',
                   }}
                 >
-                  <span style={{ fontSize: '0.85rem' }}>{secDef.icon}</span>
-                  <span style={{ textDecoration: isHidden ? 'line-through' : 'none' }}>
-                    {secIdx + 1}. {secDef.label}
-                  </span>
-                </button>
-
-                {/* Controls: Reorder Arrows & Toggle Button */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
-                  {!isFixed && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => moveSectionUp(secId)}
-                        disabled={secIdx <= 1}
-                        style={{ background: 'none', border: 'none', cursor: secIdx <= 1 ? 'default' : 'pointer', fontSize: '0.65rem', opacity: secIdx <= 1 ? 0.2 : 0.8 }}
-                        title="Pindahkan ke atas"
-                      >
-                        ⬆️
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveSectionDown(secId)}
-                        disabled={secIdx >= currentSectionOrder.length - 2}
-                        style={{ background: 'none', border: 'none', cursor: secIdx >= currentSectionOrder.length - 2 ? 'default' : 'pointer', fontSize: '0.65rem', opacity: secIdx >= currentSectionOrder.length - 2 ? 0.2 : 0.8 }}
-                        title="Pindahkan ke bawah"
-                      >
-                        ⬇️
-                      </button>
-                    </>
-                  )}
-
-                  {/* Toggle Switch Button */}
+                  {/* Clickable Tab Title */}
                   <button
                     type="button"
-                    onClick={() => toggleSectionHidden(secId)}
-                    disabled={isFixed}
+                    onClick={() => setActiveTab(secId)}
                     style={{
+                      flex: 1,
                       background: 'none',
                       border: 'none',
-                      cursor: isFixed ? 'default' : 'pointer',
-                      fontSize: '0.72rem',
-                      opacity: isFixed ? 0.4 : 1,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontSize: '0.78rem',
+                      fontWeight: activeTab === secId ? 800 : 600,
+                      color: activeTab === secId ? 'var(--primary)' : 'var(--text-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
-                    title={isFixed ? 'Section Wajib' : isHidden ? 'Aktifkan Section' : 'Sembunyikan Section'}
                   >
-                    {isFixed ? '🔒' : isHidden ? '⚪' : '🟢'}
+                    <span style={{ fontSize: '0.85rem' }}>{secDef.icon}</span>
+                    <span style={{ textDecoration: isHidden ? 'line-through' : 'none' }}>
+                      {secIdx + 1}. {secDef.label}
+                    </span>
                   </button>
+
+                  {/* Controls: Reorder Arrows & Toggle Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+                    {!isFixed && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => moveSectionUp(secId)}
+                          disabled={secIdx <= 1}
+                          style={{ background: 'none', border: 'none', cursor: secIdx <= 1 ? 'default' : 'pointer', fontSize: '0.65rem', opacity: secIdx <= 1 ? 0.2 : 0.8 }}
+                          title="Pindahkan ke atas"
+                        >
+                          ⬆️
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveSectionDown(secId)}
+                          disabled={secIdx >= currentSectionOrder.length - 2}
+                          style={{ background: 'none', border: 'none', cursor: secIdx >= currentSectionOrder.length - 2 ? 'default' : 'pointer', fontSize: '0.65rem', opacity: secIdx >= currentSectionOrder.length - 2 ? 0.2 : 0.8 }}
+                          title="Pindahkan ke bawah"
+                        >
+                          ⬇️
+                        </button>
+                      </>
+                    )}
+
+                    {/* Toggle Switch Button */}
+                    <button
+                      type="button"
+                      onClick={() => toggleSectionHidden(secId)}
+                      disabled={isFixed}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: isFixed ? 'default' : 'pointer',
+                        fontSize: '0.72rem',
+                        opacity: isFixed ? 0.4 : 1,
+                      }}
+                      title={isFixed ? 'Section Wajib' : isHidden ? 'Aktifkan Section' : 'Sembunyikan Section'}
+                    >
+                      {isFixed ? '🔒' : isHidden ? '⚪' : '🟢'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </nav>
 
         <div className="db-sidebar-footer">
@@ -594,7 +792,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
         {/* Top Header */}
         <header className="db-header">
           <div>
-            <span className="panel-desc">Portal Pelanggan &gt; Editor Undangan</span>
+            <span className="panel-desc">Portal Pelanggan &gt; Studio Mini Editor</span>
             <h1 className="panel-title" style={{ fontSize: '1.1rem', marginTop: '-2px' }}>
               {displayTitle}
             </h1>
@@ -648,7 +846,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
         {/* Scroll View: Side-by-Side 2 Column Layout */}
         <div className="db-view">
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', width: '100%' }}>
-            {/* Left Column: Active Step Form Cards */}
+            {/* Left Column: Active Step Form Cards & Mini Studio Inspector */}
             <div className="db-card-panel" style={{ flex: 1, minWidth: 0, padding: '2.5rem' }}>
               <form onSubmit={handleSave}>
 
@@ -717,11 +915,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       💌 1. Section Cover (Sampul Undangan)
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Atur judul sampul utama, nama mempelai/pasangan yang tampil pada cover, dan foto latar utama.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                       <div className="form-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Judul Sampul Utama</label>
                         <input type="text" placeholder="WALIMATUL URSY" value={details.coverTitle || ''} onChange={(e) => setDetails({ ...details, coverTitle: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
@@ -737,6 +935,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         <input type="text" placeholder="https://images.unsplash.com/photo-..." value={details.cover_photo || ''} onChange={(e) => setDetails({ ...details, cover_photo: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                       </div>
                     </div>
+
+                    {renderSectionMiniStudioInspector('cover')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('info')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -755,16 +955,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       ✨ 2. Hero Banner Section
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Section judul utama yang tampil di bawah cover setelah undangan dibuka.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
-                      <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
+                      <div className="form-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Teks Hero Title</label>
-                        <input type="text" placeholder="The Wedding Of Roni & Anti" value={details.heroTitle || ''} onChange={(e) => setDetails({ ...details, heroTitle: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                        <input type="text" placeholder="The Wedding Of Roni &amp; Anti" value={details.heroTitle || ''} onChange={(e) => setDetails({ ...details, heroTitle: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                       </div>
                     </div>
+
+                    {renderSectionMiniStudioInspector('hero')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('cover')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -783,16 +985,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       📜 3. Ucapan Pembuka &amp; Mukadimah
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Ayat kitab suci atau kata-kata salam pembuka untuk tamu undangan.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                       <div className="form-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Teks Kata Pembuka / Ayat</label>
                         <textarea rows={4} placeholder="Dan di antara tanda-tanda kekuasaan-Nya..." value={details.openingText || ''} onChange={(e) => setDetails({ ...details, openingText: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
                       </div>
                     </div>
+
+                    {renderSectionMiniStudioInspector('opening')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('hero')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -811,12 +1015,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       👩‍❤️‍👨 4. Profil Mempelai / Penyelenggara
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       {isWedding ? 'Data lengkap mempelai pria & wanita beserta nama orang tua & foto.' : 'Data lengkap penyelenggara acara.'}
                     </p>
 
                     {isWedding ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem', marginBottom: '1.5rem' }}>
                         <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
                           <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>🤵 Mempelai Pria</h3>
                           <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -858,13 +1062,15 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         </div>
                       </div>
                     ) : (
-                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                         <div className="form-group">
                           <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Penyelenggara Acara</label>
                           <input type="text" placeholder="Denny Sumargo" value={details.organizerName || ''} onChange={(e) => setDetails({ ...details, organizerName: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                         </div>
                       </div>
                     )}
+
+                    {renderSectionMiniStudioInspector('bride_groom')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('opening')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -883,11 +1089,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       📅 5. Waktu &amp; Lokasi Acara
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Rincian sesi acara (Akad Nikah, Resepsi, Pesta, Seminar) beserta alamat dan link Google Maps.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                       <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>➕ Tambah Sesi Acara Baru</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                         <input type="text" placeholder="Nama Sesi (cth: Akad Nikah)" value={schedName} onChange={(e) => setSchedName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
@@ -903,9 +1109,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       </button>
                     </div>
 
-                    {/* Schedule List */}
                     {details.schedules?.length > 0 && (
-                      <div style={{ marginBottom: '2rem' }}>
+                      <div style={{ marginBottom: '1.5rem' }}>
                         <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '0.75rem' }}>📋 Daftar Sesi Tersimpan:</h4>
                         {details.schedules.map((s: any, idx: number) => (
                           <div key={idx} style={{ padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -920,6 +1125,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         ))}
                       </div>
                     )}
+
+                    {renderSectionMiniStudioInspector('event_schedule')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('bride_groom')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -938,11 +1145,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       🎥 6. Virtual Event &amp; Live Streaming
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Tautan siaran langsung untuk tamu yang menghadiri acara secara virtual.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <div className="form-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Platform Live Stream</label>
                         <select value={details.liveStreamPlatform || 'YouTube Live'} onChange={(e) => setDetails({ ...details, liveStreamPlatform: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }}>
@@ -956,6 +1163,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         <input type="text" placeholder="https://youtube.com/live/..." value={details.liveStreamUrl || ''} onChange={(e) => setDetails({ ...details, liveStreamUrl: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                       </div>
                     </div>
+
+                    {renderSectionMiniStudioInspector('live_streaming')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('event_schedule')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -974,11 +1183,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       📖 7. Kisah Cinta (Love Story Timeline)
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Bagikan kenangan indah perjalanan dari awal bertemu hingga menuju hari bahagia.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                       <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>💖 Tambahkan Momen Baru</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <input type="text" placeholder="Tahun (2022)" value={storyYear} onChange={(e) => setStoryYear(e.target.value)} style={{ padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
@@ -991,7 +1200,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     </div>
 
                     {details.story?.length > 0 && (
-                      <div style={{ marginBottom: '2rem' }}>
+                      <div style={{ marginBottom: '1.5rem' }}>
                         {details.story.map((st: any, idx: number) => (
                           <div key={idx} style={{ padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div>
@@ -1006,6 +1215,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         ))}
                       </div>
                     )}
+
+                    {renderSectionMiniStudioInspector('love_story')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('live_streaming')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -1024,16 +1235,16 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       🖼️ 8. Galeri Foto &amp; Musik Latar
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Foto momen kebersamaan dan musik latar pengiring undangan digital.
                     </p>
 
-                    <div className="form-group" style={{ marginBottom: '2rem' }}>
+                    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                       <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>URL Musik Latar MP3</label>
                       <input type="text" placeholder="https://example.com/song.mp3" value={details.musicUrl || ''} onChange={(e) => setDetails({ ...details, musicUrl: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                     </div>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px dashed var(--primary)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                       <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>🖼️ Tambah URL Foto Galeri Baru</h3>
                       <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <input type="text" placeholder="https://images.unsplash.com/..." value={newGalleryUrl} onChange={(e) => setNewGalleryUrl(e.target.value)} style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
@@ -1044,7 +1255,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     </div>
 
                     {details.gallery?.length > 0 && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.75rem', marginBottom: '2rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
                         {details.gallery.map((gUrl: string, idx: number) => (
                           <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', height: '90px', border: '1px solid var(--border-color)' }}>
                             <img src={gUrl} alt={`Gallery ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1055,6 +1266,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         ))}
                       </div>
                     )}
+
+                    {renderSectionMiniStudioInspector('gallery')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('love_story')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -1073,11 +1286,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       🎁 9. Amplop Digital, Kado &amp; Link Tiket
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Informasi nomor rekening bank/e-wallet untuk angpao digital, alamat pengiriman kado fisik, atau link tiket seminar.
                     </p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem', marginBottom: '1.5rem' }}>
                       <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)' }}>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1rem' }}>💳 Rekening 1</h4>
                         <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -1112,13 +1325,15 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     </div>
 
                     {!isWedding && (
-                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                      <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                         <div className="form-group">
                           <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>🎫 Link Pembelian Tiket Acara / Seminar</label>
                           <input type="text" placeholder="https://loket.com/event/..." value={details.ticketUrl || ''} onChange={(e) => setDetails({ ...details, ticketUrl: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                         </div>
                       </div>
                     )}
+
+                    {renderSectionMiniStudioInspector('gift')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('gallery')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -1137,16 +1352,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       📸 10. Instagram Stories Template
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Template gambar vertikal 9:16 untuk memudahkan tamu mengunduh dan membagikan undangan ke Story Instagram.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                       <div className="form-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Teks Kampanye Hashtag / Tagline</label>
                         <input type="text" placeholder="#RoniAntiWedding2026" value={details.igHashtag || ''} onChange={(e) => setDetails({ ...details, igHashtag: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                       </div>
                     </div>
+
+                    {renderSectionMiniStudioInspector('ig_stories')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('gift')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -1165,16 +1382,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
                       🙏 11. Ucapan Terimakasih (Closing Section)
                     </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
+                    <p className="panel-desc" style={{ marginBottom: '1.5rem' }}>
                       Kalimat ungkapan rasa syukur dan terimakasih penutup dari pihak keluarga/penyelenggara.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '1.5rem' }}>
                       <div className="form-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Teks Kalimat Terimakasih</label>
                         <textarea rows={4} placeholder="Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i..." value={details.thankYouText || ''} onChange={(e) => setDetails({ ...details, thankYouText: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem' }} />
                       </div>
                     </div>
+
+                    {renderSectionMiniStudioInspector('thank_you')}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
                       <button type="button" onClick={() => setActiveTab('ig_stories')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
@@ -1189,7 +1408,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               </form>
             </div>
 
-            {/* Right Column: Flat Clean Canvas Preview with Interactive Cover Overlay */}
+            {/* Right Column: Flat Clean Canvas Preview with Interactive Point-and-Click Mini Studio Mode */}
             {showPreview && (() => {
               const hasMultipleContainers = sortedPreviewNodes.length > 1;
               const coverNode = hasMultipleContainers && sortedPreviewNodes[0].sectionType === 'cover' ? sortedPreviewNodes[0] : null;
@@ -1227,7 +1446,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     }}
                   >
                     <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      ✨ Pratinjau Live Undangan
+                      ✨ Canvas Pratinjau Interaktif (Klik Teks / Gambar)
                     </span>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1321,12 +1540,14 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                             },
                           }}
                           allNodes={sortedPreviewNodes}
-                          selectedNodeId={null}
+                          selectedNodeId={selectedMiniNodeId}
                           onSelectNode={() => {}}
                           eventDetails={liveEventDetails}
                           viewportMode="mobile"
                           isPreviewMode={true}
                           onOpenCover={handleOpenCover}
+                          isMiniStudioMode={true}
+                          onSelectMiniNode={handleSelectMiniNodeOnCanvas}
                         />
                       </div>
                     )}
@@ -1345,12 +1566,14 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                           key={node.id}
                           node={node}
                           allNodes={sortedPreviewNodes}
-                          selectedNodeId={null}
+                          selectedNodeId={selectedMiniNodeId}
                           onSelectNode={() => {}}
                           eventDetails={liveEventDetails}
                           viewportMode="mobile"
                           isPreviewMode={true}
                           onOpenCover={handleOpenCover}
+                          isMiniStudioMode={true}
+                          onSelectMiniNode={handleSelectMiniNodeOnCanvas}
                         />
                       ))}
                     </div>

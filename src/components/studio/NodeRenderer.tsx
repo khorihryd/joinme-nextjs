@@ -320,6 +320,8 @@ interface NodeRendererProps {
   viewportMode?: 'desktop' | 'tablet' | 'mobile';
   isPreviewMode?: boolean;
   onOpenCover?: () => void;
+  isMiniStudioMode?: boolean;
+  onSelectMiniNode?: (nodeId: string, sectionType?: string) => void;
 }
 
 export function getResponsiveStyle(style: any, key: string, defaultValue: any, viewportMode: string = 'desktop') {
@@ -363,6 +365,8 @@ export function NodeRenderer({
   viewportMode = 'desktop',
   isPreviewMode = false,
   onOpenCover,
+  isMiniStudioMode = false,
+  onSelectMiniNode,
 }: NodeRendererProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
@@ -407,8 +411,12 @@ export function NodeRenderer({
   const isSelected = !isPreviewMode && selectedNodeId === node.id;
 
   const handleClick = (e: React.MouseEvent) => {
-    if (isPreviewMode) return;
     e.stopPropagation();
+    if (isMiniStudioMode && onSelectMiniNode) {
+      onSelectMiniNode(node.id, node.sectionType);
+      return;
+    }
+    if (isPreviewMode) return;
     onSelectNode(node.id);
   };
 
@@ -478,6 +486,11 @@ export function NodeRenderer({
   }
 
   const nodeClassName = `canvas-node-item ${isSelected ? 'selected' : ''} ${isPreviewMode ? 'is-preview-mode preview-mode' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`;
+
+  if (isMiniStudioMode && selectedNodeId === node.id) {
+    computedStyle.outline = '2.5px solid var(--primary, #e36397)';
+    computedStyle.outlineOffset = '2px';
+  }
 
   if (style.bgType === 'gradient') {
     const dir = getResponsiveStyle(style, 'gradientDirection', 'to right', viewportMode);
@@ -634,6 +647,8 @@ export function NodeRenderer({
                     viewportMode={viewportMode}
                     isPreviewMode={isPreviewMode}
                     onOpenCover={onOpenCover}
+                    isMiniStudioMode={isMiniStudioMode}
+                    onSelectMiniNode={onSelectMiniNode}
                   />
                 ))
               ) : (
@@ -727,6 +742,8 @@ export function NodeRenderer({
                 viewportMode={viewportMode}
                 isPreviewMode={isPreviewMode}
                 onOpenCover={onOpenCover}
+                isMiniStudioMode={isMiniStudioMode}
+                onSelectMiniNode={onSelectMiniNode}
               />
             ))}
 
@@ -901,6 +918,8 @@ export function NodeRenderer({
               viewportMode={viewportMode}
               isPreviewMode={isPreviewMode}
               onOpenCover={onOpenCover}
+              isMiniStudioMode={isMiniStudioMode}
+              onSelectMiniNode={onSelectMiniNode}
             />
           ))}
         </div>
