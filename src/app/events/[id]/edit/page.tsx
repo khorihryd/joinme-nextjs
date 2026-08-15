@@ -180,13 +180,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   };
 
   const handleAddSchedule = () => {
-    const nextIndex = schedulesList.length + 1;
-    const defaultTitle = nextIndex === 1 ? 'Akad Nikah' : nextIndex === 2 ? 'Resepsi Pernikahan' : `Acara #${nextIndex}`;
     const updated = [
       ...schedulesList,
       {
-        title: defaultTitle,
-        date: details.schedules?.[0]?.date || 'Senin, 21 September 2026',
+        title: '',
+        date: '',
         time: '',
         place: '',
         address: '',
