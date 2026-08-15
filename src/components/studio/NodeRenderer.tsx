@@ -229,6 +229,41 @@ export function cloneAndBindWishData(templateNode: StudioNode, wishItem: WishIte
   return cloned;
 }
 
+export function cloneAndBindStoryData(templateNode: StudioNode, storyItem: any, idx: number): StudioNode {
+  const cloned: StudioNode = JSON.parse(JSON.stringify(templateNode));
+  cloned.id = `${cloned.id}-story-${idx}`;
+
+  const replaceStoryText = (text?: string): string => {
+    if (!text) return '';
+    return text
+      .replace(/2021|2022|2023|2024|2025|2026/gi, storyItem.year || storyItem.date || '')
+      .replace(/\{\{story_year\}\}/gi, storyItem.year || storyItem.date || '')
+      .replace(/\{\{tahun_momen\}\}/gi, storyItem.year || storyItem.date || '')
+      .replace(/Pertama Pertemuan|Awal Pertemuan|Masa Kencan|Lamaran|Pernikahan/gi, storyItem.title || '')
+      .replace(/\{\{story_title\}\}/gi, storyItem.title || '')
+      .replace(/\{\{judul_momen\}\}/gi, storyItem.title || '')
+      .replace(/\{\{story_description\}\}/gi, storyItem.description || storyItem.story || storyItem.content || '')
+      .replace(/\{\{deskripsi_momen\}\}/gi, storyItem.description || storyItem.story || storyItem.content || '')
+      .replace(/Kami pertama kali bertemu di bangku kuliah pada tahun 2021\. Berawal dari kelompok tugas yang sama, tumbuh rasa saling mengagumi hingga akhirnya memutuskan untuk berkomitmen bersama\./gi, storyItem.description || storyItem.story || storyItem.content || '')
+      .replace(/Setelah 3 tahun menjalin hubungan, kami memutuskan untuk melangkah ke jenjang yang lebih serius dengan mengadakan acara lamaran yang dihadiri oleh keluarga besar\./gi, storyItem.description || storyItem.story || storyItem.content || '')
+      .replace(/Hari bahagia yang kami nantikan akhirnya tiba\. Kami mengikat janji suci pernikahan untuk saling mendampingi dalam suka dan duka selamanya\./gi, storyItem.description || storyItem.story || storyItem.content || '');
+  };
+
+  if (cloned.content) {
+    cloned.content = replaceStoryText(cloned.content);
+  }
+
+  if (cloned.type === 'image' && (storyItem.image || storyItem.photo)) {
+    cloned.content = storyItem.image || storyItem.photo;
+  }
+
+  if (cloned.children && cloned.children.length > 0) {
+    cloned.children = cloned.children.map((child) => cloneAndBindStoryData(child, storyItem, idx));
+  }
+
+  return cloned;
+}
+
 const DEFAULT_GALLERY_FALLBACKS = [
   'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&auto=format&fit=crop&q=80',
@@ -940,57 +975,82 @@ export function NodeRenderer({
                   );
                 }
 
-                return rawStories.map((st: any, stIdx: number) => (
-                  <div
-                    key={`dyn-story-card-${stIdx}`}
-                    style={{
-                      padding: '1.25rem 1.5rem',
-                      borderRadius: '16px',
-                      border: '1px solid rgba(0,0,0,0.08)',
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.65rem',
-                      width: '100%',
-                      margin: '10px 0',
-                    }}
-                  >
-                    {(st.year || st.date) && (
-                      <span
-                        style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          padding: '3px 12px',
-                          borderRadius: '20px',
-                          backgroundColor: 'var(--primary-light, #fff0f5)',
-                          color: 'var(--primary, #e36397)',
-                          border: '1px solid var(--primary, #e36397)',
-                        }}
-                      >
-                        {st.year || st.date}
-                      </span>
-                    )}
-                    {st.title && (
-                      <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #1e293b)', fontFamily: 'Playfair Display, serif', textAlign: 'center' }}>
-                        {st.title}
-                      </h4>
-                    )}
-                    {(st.description || st.story || st.content) && (
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', textAlign: 'center', lineHeight: 1.6 }}>
-                        {st.description || st.story || st.content}
-                      </p>
-                    )}
-                    {(st.image || st.photo) && (
-                      <img
-                        src={st.image || st.photo}
-                        alt={st.title || 'Foto Momen'}
-                        style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '12px', marginTop: '0.35rem' }}
+                const sampleCardTemplate = node.children?.find((c) => c.type === 'container') || (node.children && node.children.length > 0 ? node.children[node.children.length - 1] : null);
+
+                return rawStories.map((st: any, stIdx: number) => {
+                  if (sampleCardTemplate && sampleCardTemplate.type === 'container') {
+                    const boundCard = cloneAndBindStoryData(sampleCardTemplate, st, stIdx);
+                    return (
+                      <NodeRenderer
+                        key={`dyn-story-card-${stIdx}-${boundCard.id}`}
+                        node={boundCard}
+                        allNodes={allNodes}
+                        selectedNodeId={selectedNodeId}
+                        onSelectNode={onSelectNode}
+                        onDeleteNode={onDeleteNode}
+                        onDuplicateNode={onDuplicateNode}
+                        eventDetails={eventDetails}
+                        viewportMode={viewportMode}
+                        isPreviewMode={isPreviewMode}
+                        onOpenCover={onOpenCover}
+                        isMiniStudioMode={isMiniStudioMode}
+                        onSelectMiniNode={onSelectMiniNode}
                       />
-                    )}
-                  </div>
-                ));
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={`dyn-story-card-${stIdx}`}
+                      style={{
+                        padding: '1.25rem 1.5rem',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(0,0,0,0.08)',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.65rem',
+                        width: '100%',
+                        margin: '10px 0',
+                      }}
+                    >
+                      {(st.year || st.date) && (
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            padding: '3px 12px',
+                            borderRadius: '20px',
+                            backgroundColor: 'var(--primary-light, #fff0f5)',
+                            color: 'var(--primary, #e36397)',
+                            border: '1px solid var(--primary, #e36397)',
+                          }}
+                        >
+                          {st.year || st.date}
+                        </span>
+                      )}
+                      {st.title && (
+                        <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #1e293b)', fontFamily: 'Playfair Display, serif', textAlign: 'center' }}>
+                          {st.title}
+                        </h4>
+                      )}
+                      {(st.description || st.story || st.content) && (
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', textAlign: 'center', lineHeight: 1.6 }}>
+                          {st.description || st.story || st.content}
+                        </p>
+                      )}
+                      {(st.image || st.photo) && (
+                        <img
+                          src={st.image || st.photo}
+                          alt={st.title || 'Foto Momen'}
+                          style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '12px', marginTop: '0.35rem' }}
+                        />
+                      )}
+                    </div>
+                  );
+                });
               })()}
             </>
           ) : (node.sectionType === 'event_schedule' || node.id?.includes('event_schedule') || node.id === 'container-event_schedule') ? (
