@@ -226,6 +226,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
   const selectedNode = selectedMiniNodeId ? findNodeInTree(previewNodes, selectedMiniNodeId) : null;
 
+  // Auto Smooth Scroll to Selected Element on Canvas (Studio Stage Behavior)
+  useEffect(() => {
+    if (!selectedMiniNodeId) return;
+    const timer = setTimeout(() => {
+      const domEl = document.getElementById(`node-dom-${selectedMiniNodeId}`);
+      if (domEl) {
+        domEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [selectedMiniNodeId]);
+
   // Point-and-Click Canvas Selection Handler
   const handleSelectMiniNodeOnCanvas = (nodeId: string, sectionType?: string) => {
     setSelectedMiniNodeId(nodeId);
@@ -956,14 +968,6 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           }}
         >
           {showPreview && (() => {
-            const hasMultipleContainers = sortedPreviewNodes.length > 1;
-            const coverNode = hasMultipleContainers && sortedPreviewNodes[0].sectionType === 'cover' ? sortedPreviewNodes[0] : null;
-            const bodyNodes = coverNode ? sortedPreviewNodes.slice(1) : sortedPreviewNodes;
-
-            const handleOpenCover = () => {
-              setIsCoverOpened(true);
-            };
-
             const canvasWidth = viewportMode === 'mobile' ? '420px' : viewportMode === 'tablet' ? '768px' : '100%';
             const canvasMaxWidth = viewportMode === 'desktop' ? '1100px' : undefined;
 
@@ -980,81 +984,27 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   borderRadius: viewportMode === 'mobile' ? '24px' : '12px',
                   border: '1px solid var(--border-color)',
                   boxShadow: '0 20px 50px rgba(0,0,0,0.1)',
-                  overflowY: (!isCoverOpened && coverNode) ? 'hidden' : 'auto',
+                  overflowY: 'auto',
                   overflowX: 'hidden',
                   position: 'relative',
                   transition: 'width 0.3s ease',
+                  paddingBottom: '3rem',
                 }}
               >
-                {/* Interactive Cover Node Overlay (Slide Up Animation) */}
-                {coverNode && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      minHeight: '100%',
-                      zIndex: 99,
-                      backgroundColor: coverNode.style?.backgroundColor || previewGlobalStyles.bgColor || '#ffffff',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      transition: 'transform 0.85s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.85s ease',
-                      transform: isCoverOpened ? 'translateY(-100%)' : 'translateY(0)',
-                      opacity: isCoverOpened ? 0 : 1,
-                      pointerEvents: isCoverOpened ? 'none' : 'auto',
-                      overflowY: 'auto',
-                    }}
-                  >
-                    <NodeRenderer
-                      node={{
-                        ...coverNode,
-                        style: {
-                          ...coverNode.style,
-                          minHeight: '100%',
-                          height: '100%',
-                        },
-                      }}
-                      allNodes={sortedPreviewNodes}
-                      selectedNodeId={selectedMiniNodeId}
-                      onSelectNode={() => {}}
-                      eventDetails={liveEventDetails}
-                      viewportMode={viewportMode}
-                      isPreviewMode={true}
-                      onOpenCover={handleOpenCover}
-                      isMiniStudioMode={true}
-                      onSelectMiniNode={handleSelectMiniNodeOnCanvas}
-                    />
-                  </div>
-                )}
-
-                {/* Main Content Body Nodes */}
-                <div
-                  style={{
-                    width: '100%',
-                    minHeight: '100%',
-                    opacity: isCoverOpened || !coverNode ? 1 : 0.2,
-                    transition: 'opacity 0.85s ease',
-                  }}
-                >
-                  {bodyNodes.map((node) => (
-                    <NodeRenderer
-                      key={node.id}
-                      node={node}
-                      allNodes={sortedPreviewNodes}
-                      selectedNodeId={selectedMiniNodeId}
-                      onSelectNode={() => {}}
-                      eventDetails={liveEventDetails}
-                      viewportMode={viewportMode}
-                      isPreviewMode={true}
-                      onOpenCover={handleOpenCover}
-                      isMiniStudioMode={true}
-                      onSelectMiniNode={handleSelectMiniNodeOnCanvas}
-                    />
-                  ))}
-                </div>
+                {sortedPreviewNodes.map((node) => (
+                  <NodeRenderer
+                    key={node.id}
+                    node={node}
+                    allNodes={sortedPreviewNodes}
+                    selectedNodeId={selectedMiniNodeId}
+                    onSelectNode={(id) => handleSelectMiniNodeOnCanvas(id)}
+                    eventDetails={liveEventDetails}
+                    viewportMode={viewportMode}
+                    isPreviewMode={false}
+                    isMiniStudioMode={true}
+                    onSelectMiniNode={handleSelectMiniNodeOnCanvas}
+                  />
+                ))}
               </div>
             );
           })()}
