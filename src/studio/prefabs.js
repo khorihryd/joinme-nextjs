@@ -23,8 +23,9 @@ export const SAMPLE_VARIABLES = {
 };
 
 export const DEFAULT_NODES = [
+  // 1. Cover Section
   {
-    id: 'container-1',
+    id: 'container-cover',
     type: 'container',
     sectionType: 'cover',
     label: 'Section Cover (Sampul Utama)',
@@ -36,21 +37,16 @@ export const DEFAULT_NODES = [
       padding: '60px 24px',
       backgroundColor: '#eff2ef',
       backgroundImage: '',
-      backgroundVideoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-wedding-couple-under-an-umbrella-40344-large.mp4',
       backgroundOverlayColor: 'rgba(0,0,0,0.25)',
       backgroundOverlayOpacity: 0.5,
       width: '100%',
       height: 'auto',
       borderRadius: 16,
       margin: '0px 0px 24px 0px',
-      shapeDividerBottomType: 'wave',
-      shapeDividerBottomColor: '#ffffff',
-      shapeDividerBottomHeight: 70,
-      shapeDividerBottomAnimate: true
     },
     children: [
       {
-        id: 'heading-1',
+        id: 'heading-cover-title',
         type: 'heading',
         content: 'WALIMATUL URSY',
         style: {
@@ -61,15 +57,15 @@ export const DEFAULT_NODES = [
           fontWeight: 'bold',
           margin: '0px 0px 4px 0px',
           letterSpacing: '2px',
-          textTransform: 'uppercase'
-        }
+          textTransform: 'uppercase',
+        },
       },
       {
-        id: 'heading-2',
+        id: 'heading-cover-names',
         type: 'heading',
-        content: '{{groom_name}} & {{bride_name}}',
+        content: '{nama_mempelai}',
         isDynamic: true,
-        binding: 'groom_name',
+        binding: 'nama_mempelai',
         style: {
           color: '#ffffff',
           fontSize: 32,
@@ -77,11 +73,11 @@ export const DEFAULT_NODES = [
           fontFamily: 'Playfair Display',
           fontWeight: 'bold',
           margin: '0px 0px 8px 0px',
-          lineHeight: '1.2'
-        }
+          lineHeight: '1.2',
+        },
       },
       {
-        id: 'text-1',
+        id: 'text-cover-desc',
         type: 'text',
         content: 'Kami mengundang Anda untuk merayakan momen bahagia pernikahan kami.',
         style: {
@@ -89,11 +85,11 @@ export const DEFAULT_NODES = [
           fontSize: 12,
           textAlign: 'center',
           fontFamily: 'Inter',
-          margin: '0px 0px 16px 0px'
-        }
+          margin: '0px 0px 16px 0px',
+        },
       },
       {
-        id: 'button-1',
+        id: 'button-cover-open',
         type: 'button',
         content: 'Buka Undangan',
         style: {
@@ -102,73 +98,540 @@ export const DEFAULT_NODES = [
           fontSize: 12,
           padding: '10px 24px',
           borderRadius: 8,
-          width: 'auto'
-        }
-      }
-    ]
+          width: 'auto',
+        },
+      },
+    ],
   },
+
+  // 2. Hero Banner Section
   {
-    id: 'container-2',
+    id: 'container-hero',
     type: 'container',
+    sectionType: 'hero',
+    label: 'Section Hero Banner',
     style: {
       flexDirection: 'column',
-      justify: 'center',
+      alignItems: 'center',
+      gap: 16,
+      padding: '48px 24px',
+      backgroundColor: '#ffffff',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-hero-title',
+        type: 'heading',
+        content: 'The Wedding Of {nama_mempelai}',
+        style: {
+          color: '#1e293b',
+          fontSize: 26,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'text-hero-date',
+        type: 'text',
+        content: '{tanggal_acara} • {lokasi_acara}',
+        style: {
+          color: '#64748b',
+          fontSize: 13,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+        },
+      },
+      {
+        id: 'countdown-hero',
+        type: 'countdown',
+        content: '2026-09-21T09:00:00',
+        style: {
+          color: '#e36397',
+          fontSize: 16,
+          textAlign: 'center',
+        },
+      },
+    ],
+  },
+
+  // 3. Opening Section
+  {
+    id: 'container-opening',
+    type: 'container',
+    sectionType: 'opening',
+    label: 'Section Ucapan Pembuka',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 12,
+      padding: '36px 24px',
+      backgroundColor: '#f8fafc',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-opening-title',
+        type: 'heading',
+        content: 'Assalamu’alaikum Warahmatullahi Wabarakatuh',
+        style: {
+          color: '#1e293b',
+          fontSize: 18,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'text-opening-verse',
+        type: 'text',
+        content: 'Maha Suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Ya Allah semoga ridho-Mu tercurah mengiringi pernikahan kami.',
+        style: {
+          color: '#64748b',
+          fontSize: 13,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+          lineHeight: '1.6',
+        },
+      },
+    ],
+  },
+
+  // 4. Bride & Groom Section
+  {
+    id: 'container-bride_groom',
+    type: 'container',
+    sectionType: 'bride_groom',
+    label: 'Section Profil Mempelai',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 20,
+      padding: '40px 24px',
+      backgroundColor: '#ffffff',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-bg-title',
+        type: 'heading',
+        content: 'Pasangan Mempelai',
+        style: {
+          color: '#e36397',
+          fontSize: 24,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'image-groom-photo',
+        type: 'image',
+        binding: 'fotoPria',
+        content: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
+        style: {
+          width: '120px',
+          height: '120px',
+          borderRadius: 60,
+          objectFit: 'cover',
+        },
+      },
+      {
+        id: 'heading-groom-name',
+        type: 'heading',
+        content: '{groom_name}',
+        style: {
+          color: '#1e293b',
+          fontSize: 20,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'image-bride-photo',
+        type: 'image',
+        binding: 'fotoWanita',
+        content: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
+        style: {
+          width: '120px',
+          height: '120px',
+          borderRadius: 60,
+          objectFit: 'cover',
+        },
+      },
+      {
+        id: 'heading-bride-name',
+        type: 'heading',
+        content: '{bride_name}',
+        style: {
+          color: '#1e293b',
+          fontSize: 20,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+    ],
+  },
+
+  // 5. Event Schedule Section
+  {
+    id: 'container-event_schedule',
+    type: 'container',
+    sectionType: 'event_schedule',
+    label: 'Section Waktu & Lokasi Acara',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 16,
+      padding: '40px 24px',
+      backgroundColor: '#f8fafc',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-schedule-title',
+        type: 'heading',
+        content: 'Waktu & Lokasi Acara',
+        style: {
+          color: '#1e293b',
+          fontSize: 22,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'map-schedule',
+        type: 'map',
+        content: 'Hotel Mulia Jakarta',
+        style: {
+          borderRadius: 12,
+          width: '100%',
+          height: '200px',
+        },
+      },
+    ],
+  },
+
+  // 6. Live Streaming Section
+  {
+    id: 'container-live_streaming',
+    type: 'container',
+    sectionType: 'live_streaming',
+    label: 'Section Virtual Live Streaming',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 12,
+      padding: '32px 24px',
+      backgroundColor: '#ffffff',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-livestream-title',
+        type: 'heading',
+        content: 'Siaran Langsung Acara',
+        style: {
+          color: '#e36397',
+          fontSize: 20,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'text-livestream-desc',
+        type: 'text',
+        content: 'Bagi keluarga dan kerabat yang berhalangan hadir secara langsung, Anda dapat mengikuti prosesi acara secara virtual.',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+        },
+      },
+    ],
+  },
+
+  // 7. Love Story Section
+  {
+    id: 'container-love_story',
+    type: 'container',
+    sectionType: 'love_story',
+    label: 'Section Kisah Cinta',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 16,
+      padding: '36px 24px',
+      backgroundColor: '#f8fafc',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-lovestory-title',
+        type: 'heading',
+        content: 'Perjalanan Cinta Kami',
+        style: {
+          color: '#1e293b',
+          fontSize: 22,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+    ],
+  },
+
+  // 8. Gallery Section
+  {
+    id: 'container-gallery',
+    type: 'container',
+    sectionType: 'gallery',
+    label: 'Section Galeri Foto',
+    style: {
+      flexDirection: 'column',
       alignItems: 'center',
       gap: 16,
       padding: '40px 24px',
       backgroundColor: '#ffffff',
       width: '100%',
       borderRadius: 16,
-      margin: '0px 0px 24px 0px'
+      margin: '0px 0px 24px 0px',
     },
     children: [
       {
-        id: 'heading-3',
+        id: 'heading-gallery-title',
         type: 'heading',
-        content: 'Acara & Resepsi',
+        content: 'Galeri Momen Bahagia',
         style: {
-          color: '#333333',
+          color: '#e36397',
           fontSize: 22,
           textAlign: 'center',
           fontFamily: 'Playfair Display',
-          fontWeight: 'bold'
-        }
+          fontWeight: 'bold',
+        },
       },
+    ],
+  },
+
+  // 9. RSVP Section
+  {
+    id: 'container-rsvp',
+    type: 'container',
+    sectionType: 'rsvp',
+    label: 'Section RSVP Kehadiran',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 16,
+      padding: '40px 24px',
+      backgroundColor: '#f8fafc',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
       {
-        id: 'text-2',
-        type: 'text',
-        content: 'Senin, {{event_date}} • {{event_location}}',
-        isDynamic: true,
-        binding: 'event_date',
+        id: 'heading-rsvp-title',
+        type: 'heading',
+        content: 'Konfirmasi Kehadiran (RSVP)',
         style: {
-          color: '#666666',
-          fontSize: 13,
+          color: '#1e293b',
+          fontSize: 22,
           textAlign: 'center',
-          fontFamily: 'Inter'
-        }
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
       },
+    ],
+  },
+
+  // 10. Wishes Section
+  {
+    id: 'container-wishes',
+    type: 'container',
+    sectionType: 'wishes',
+    label: 'Section Ucapan & Doa Restu',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 16,
+      padding: '40px 24px',
+      backgroundColor: '#ffffff',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
       {
-        id: 'countdown-1',
-        type: 'countdown',
-        content: '2026-09-21T09:00:00',
+        id: 'heading-wishes-title',
+        type: 'heading',
+        content: 'Ucapan & Doa Restu Tamu',
         style: {
           color: '#e36397',
-          fontSize: 16,
-          textAlign: 'center'
-        }
+          fontSize: 22,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+    ],
+  },
+
+  // 11. Gift Section
+  {
+    id: 'container-gift',
+    type: 'container',
+    sectionType: 'gift',
+    label: 'Section Amplop Digital & Kado',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 16,
+      padding: '40px 24px',
+      backgroundColor: '#f8fafc',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-gift-title',
+        type: 'heading',
+        content: 'Amplop Digital & Kado Fisik',
+        style: {
+          color: '#1e293b',
+          fontSize: 22,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+    ],
+  },
+
+  // 12. IG Stories Section
+  {
+    id: 'container-ig_stories',
+    type: 'container',
+    sectionType: 'ig_stories',
+    label: 'Section Instagram Stories',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 12,
+      padding: '32px 24px',
+      backgroundColor: '#ffffff',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-ig-title',
+        type: 'heading',
+        content: 'Bagikan Momen di Instagram',
+        style: {
+          color: '#e36397',
+          fontSize: 20,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
+      },
+    ],
+  },
+
+  // 13. Thank You Section
+  {
+    id: 'container-thank_you',
+    type: 'container',
+    sectionType: 'thank_you',
+    label: 'Section Ucapan Terimakasih',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 12,
+      padding: '40px 24px',
+      backgroundColor: '#f8fafc',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px 0px 24px 0px',
+    },
+    children: [
+      {
+        id: 'heading-thankyou-title',
+        type: 'heading',
+        content: 'Terimakasih',
+        style: {
+          color: '#1e293b',
+          fontSize: 24,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
+        },
       },
       {
-        id: 'map-1',
-        type: 'map',
-        content: 'Hotel Mulia Jakarta',
+        id: 'text-thankyou-desc',
+        type: 'text',
+        content: 'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas doa restu Bapak/Ibu/Saudara/i.',
         style: {
-          borderRadius: 12,
-          width: '100%',
-          height: '200px'
-        }
-      }
-    ]
-  }
+          color: '#64748b',
+          fontSize: 13,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+        },
+      },
+    ],
+  },
+
+  // 14. Footer Section
+  {
+    id: 'container-footer',
+    type: 'container',
+    sectionType: 'footer',
+    label: 'Section Footer & Watermark',
+    style: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 8,
+      padding: '24px',
+      backgroundColor: '#0f172a',
+      color: '#94a3b8',
+      width: '100%',
+      borderRadius: 16,
+      margin: '0px',
+    },
+    children: [
+      {
+        id: 'text-footer-watermark',
+        type: 'text',
+        content: 'Digital Invitation Created with JoinMe.id',
+        style: {
+          color: '#94a3b8',
+          fontSize: 11,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+        },
+      },
+    ],
+  },
 ];
 
 export function createDefaultWidget(nodeType) {
