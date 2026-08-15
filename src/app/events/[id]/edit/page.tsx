@@ -155,7 +155,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     event_time: details.schedules?.[0]?.time || '08:00 - 14:00 WIB',
     event_location: details.schedules?.[0]?.place || 'Grand Ballroom Hotel Mulia, Jakarta',
     event_address: details.schedules?.[0]?.address || 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
-    schedules: details.schedules || [],
+    schedules: Array.isArray(details.schedules) ? details.schedules : [],
     story: details.story || [],
     gallery: details.gallery || [],
     bankAccounts: [
@@ -171,12 +171,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     hiddenSections: hiddenSectionsMap,
   };
 
-  const schedulesList = details.schedules && Array.isArray(details.schedules) && details.schedules.length > 0
-    ? details.schedules
-    : [
-        { title: 'Akad Nikah', date: 'Senin, 21 September 2026', time: '08:00 - 10:00 WIB', place: 'Grand Ballroom Hotel Mulia', address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat', mapsUrl: 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta' },
-        { title: 'Resepsi Pernikahan', date: 'Senin, 21 September 2026', time: '11:00 - 14:00 WIB', place: 'Grand Ballroom Hotel Mulia', address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat', mapsUrl: 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta' },
-      ];
+  const schedulesList: any[] = Array.isArray(details.schedules) ? details.schedules : [];
 
   const handleUpdateSchedule = (index: number, field: string, val: string) => {
     const updated = [...schedulesList];
@@ -185,9 +180,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   };
 
   const handleAddSchedule = () => {
+    const nextIndex = schedulesList.length + 1;
+    const defaultTitle = nextIndex === 1 ? 'Akad Nikah' : nextIndex === 2 ? 'Resepsi Pernikahan' : `Acara #${nextIndex}`;
     const updated = [
       ...schedulesList,
-      { title: 'Syukuran Acara', date: 'Senin, 21 September 2026', time: '16:00 WIB - Selesai', place: 'Gedung Serbaguna', address: 'Jl. Utama No. 12', mapsUrl: '' },
+      {
+        title: defaultTitle,
+        date: details.schedules?.[0]?.date || 'Senin, 21 September 2026',
+        time: '',
+        place: '',
+        address: '',
+        mapsUrl: '',
+      },
     ];
     setDetails((prev: any) => ({ ...prev, schedules: updated }));
   };
@@ -511,9 +515,39 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               {/* Event Schedule Form (Shown when clicking any element in Event Section) */}
               {(selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                    Kelola daftar rangkaian acara (Akad Nikah, Resepsi, Syukuran) di bawah ini. Perubahan langsung ter-update di canvas.
-                  </div>
+                  {schedulesList.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 1rem', backgroundColor: 'var(--bg-body)', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '2rem' }}>📅</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        Belum Ada Rangkaian Acara
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Tambahkan rincian acara baru (seperti Akad Nikah, Resepsi, Syukuran) untuk ditampilkan pada undangan.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddSchedule}
+                        style={{
+                          marginTop: '0.5rem',
+                          width: '100%',
+                          padding: '0.65rem',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          borderRadius: '8px',
+                          backgroundColor: 'var(--primary)',
+                          color: '#ffffff',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ➕ Tambah Acara Pertama
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      Kelola daftar rangkaian acara (Akad Nikah, Resepsi, Syukuran) di bawah ini. Perubahan langsung ter-update di canvas.
+                    </div>
+                  )}
 
                   {schedulesList.map((sch: any, idx: number) => (
                     <div key={`sch-form-item-${idx}`} style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>

@@ -777,26 +777,11 @@ export function NodeRenderer({
 
     // Dynamic Event Feed Container (isEventFeed) Rendering in Preview Mode
     if (node.isEventFeed && isPreviewMode) {
-      const rawEvents = Array.isArray(eventDetails?.events) && eventDetails.events.length > 0
+      const rawEvents = Array.isArray(eventDetails?.schedules)
+        ? eventDetails.schedules
+        : Array.isArray(eventDetails?.events)
         ? eventDetails.events
-        : [
-            {
-              title: 'Akad Nikah',
-              date: eventDetails?.event_date || '21 September 2026',
-              time: eventDetails?.event_time || '08:00 WIB',
-              location: eventDetails?.event_location || 'Grand Ballroom Hotel Mulia, Jakarta',
-              address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
-              mapUrl: eventDetails?.mapUrl || 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta',
-            },
-            {
-              title: 'Resepsi Pernikahan',
-              date: eventDetails?.event_date || '21 September 2026',
-              time: '11:00 WIB - Selesai',
-              location: eventDetails?.event_location || 'Grand Ballroom Hotel Mulia, Jakarta',
-              address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
-              mapUrl: eventDetails?.mapUrl || 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta',
-            },
-          ];
+        : [];
 
       const sampleCardTemplate = node.children && node.children.length > 0 ? node.children[0] : null;
 
@@ -810,27 +795,33 @@ export function NodeRenderer({
           {actionOverlay}
 
           <div style={containerInnerStyle} className="container-inner-wrapper">
-            {rawEvents.map((evt: any, evtIdx: number) => {
-              if (sampleCardTemplate) {
-                const boundCard = cloneAndBindEventData(sampleCardTemplate, evt, evtIdx);
-                return (
-                  <NodeRenderer
-                    key={`evt-card-${evtIdx}-${boundCard.id}`}
-                    node={boundCard}
-                    allNodes={allNodes}
-                    selectedNodeId={selectedNodeId}
-                    onSelectNode={onSelectNode}
-                    onDeleteNode={onDeleteNode}
-                    onDuplicateNode={onDuplicateNode}
-                    eventDetails={{ ...eventDetails, ...evt, mapUrl: evt.mapUrl || eventDetails?.mapUrl }}
-                    viewportMode={viewportMode}
-                    isPreviewMode={isPreviewMode}
-                    onOpenCover={onOpenCover}
-                  />
-                );
-              }
-              return null;
-            })}
+            {rawEvents.length === 0 ? (
+              <div style={{ padding: '1.25rem 1rem', textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.8rem', width: '100%' }}>
+                📅 Belum ada rincian acara. Klik di sini untuk menambah acara.
+              </div>
+            ) : (
+              rawEvents.map((evt: any, evtIdx: number) => {
+                if (sampleCardTemplate) {
+                  const boundCard = cloneAndBindEventData(sampleCardTemplate, evt, evtIdx);
+                  return (
+                    <NodeRenderer
+                      key={`evt-card-${evtIdx}-${boundCard.id}`}
+                      node={boundCard}
+                      allNodes={allNodes}
+                      selectedNodeId={selectedNodeId}
+                      onSelectNode={onSelectNode}
+                      onDeleteNode={onDeleteNode}
+                      onDuplicateNode={onDuplicateNode}
+                      eventDetails={{ ...eventDetails, ...evt, mapUrl: evt.mapUrl || evt.mapsUrl || eventDetails?.mapUrl }}
+                      viewportMode={viewportMode}
+                      isPreviewMode={isPreviewMode}
+                      onOpenCover={onOpenCover}
+                    />
+                  );
+                }
+                return null;
+              })
+            )}
           </div>
         </div>
       );
