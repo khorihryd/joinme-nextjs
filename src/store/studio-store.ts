@@ -96,6 +96,8 @@ export function resolveTextVariables(text: string, eventDetails?: any): string {
     if (eventDetails.coverCoupleName) {
       vars.cover_couple_name = eventDetails.coverCoupleName;
       vars.nama_mempelai_cover = eventDetails.coverCoupleName;
+      vars.nama_mempelai = eventDetails.coverCoupleName;
+      vars.couple_name = eventDetails.coverCoupleName;
     }
 
     if (eventDetails.childName) vars.nama_anak = eventDetails.childName;
