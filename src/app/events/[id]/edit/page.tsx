@@ -393,6 +393,32 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
   const sortedPreviewNodes = getOrderedAndFilteredNodes(previewNodes, liveEventDetails);
 
+  // Auto-scroll preview canvas to active tab section
+  useEffect(() => {
+    if (!showPreview) return;
+
+    if (activeTab === 'cover') {
+      setIsCoverOpened(false);
+      return;
+    }
+
+    if (activeTab !== 'info') {
+      setIsCoverOpened(true);
+
+      const timer = setTimeout(() => {
+        const targetNode = sortedPreviewNodes.find((n) => n.sectionType === activeTab);
+        if (targetNode) {
+          const el = document.getElementById(`node-dom-${targetNode.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }, 120);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, showPreview, sortedPreviewNodes]);
+
   return (
     <div className="db-container">
       {/* Left Sidebar Menu */}
