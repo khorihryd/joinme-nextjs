@@ -896,7 +896,104 @@ export function NodeRenderer({
         )}
 
         <div style={containerInnerStyle} className="container-inner-wrapper">
-          {(node.sectionType === 'event_schedule' || node.id?.includes('event_schedule') || node.id === 'container-event_schedule') ? (
+          {(node.sectionType === 'love_story' || node.id?.includes('love_story') || node.id === 'container-love_story') ? (
+            <>
+              {node.children
+                ?.filter((child) => child.type === 'heading' || child.type === 'text')
+                .map((child) => (
+                  <NodeRenderer
+                    key={child.id}
+                    node={child}
+                    allNodes={allNodes}
+                    selectedNodeId={selectedNodeId}
+                    onSelectNode={onSelectNode}
+                    onDeleteNode={onDeleteNode}
+                    onDuplicateNode={onDuplicateNode}
+                    eventDetails={eventDetails}
+                    viewportMode={viewportMode}
+                    isPreviewMode={isPreviewMode}
+                    onOpenCover={onOpenCover}
+                    isMiniStudioMode={isMiniStudioMode}
+                    onSelectMiniNode={onSelectMiniNode}
+                  />
+                ))}
+
+              {(() => {
+                const rawStories = Array.isArray(eventDetails?.story) ? eventDetails.story : [];
+                if (rawStories.length === 0) {
+                  return (
+                    <div
+                      style={{
+                        padding: '1.5rem 1rem',
+                        textAlign: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.02)',
+                        borderRadius: '12px',
+                        border: '1px dashed #cbd5e1',
+                        color: '#64748b',
+                        fontSize: '0.8rem',
+                        width: '100%',
+                        margin: '12px 0',
+                      }}
+                    >
+                      📖 Belum ada kisah cinta. Tambahkan cerita di panel Properties.
+                    </div>
+                  );
+                }
+
+                return rawStories.map((st: any, stIdx: number) => (
+                  <div
+                    key={`dyn-story-card-${stIdx}`}
+                    style={{
+                      padding: '1.25rem 1.5rem',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      width: '100%',
+                      margin: '10px 0',
+                    }}
+                  >
+                    {(st.year || st.date) && (
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          padding: '3px 12px',
+                          borderRadius: '20px',
+                          backgroundColor: 'var(--primary-light, #fff0f5)',
+                          color: 'var(--primary, #e36397)',
+                          border: '1px solid var(--primary, #e36397)',
+                        }}
+                      >
+                        {st.year || st.date}
+                      </span>
+                    )}
+                    {st.title && (
+                      <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #1e293b)', fontFamily: 'Playfair Display, serif', textAlign: 'center' }}>
+                        {st.title}
+                      </h4>
+                    )}
+                    {(st.description || st.story || st.content) && (
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', textAlign: 'center', lineHeight: 1.6 }}>
+                        {st.description || st.story || st.content}
+                      </p>
+                    )}
+                    {(st.image || st.photo) && (
+                      <img
+                        src={st.image || st.photo}
+                        alt={st.title || 'Foto Momen'}
+                        style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '12px', marginTop: '0.35rem' }}
+                      />
+                    )}
+                  </div>
+                ));
+              })()}
+            </>
+          ) : (node.sectionType === 'event_schedule' || node.id?.includes('event_schedule') || node.id === 'container-event_schedule') ? (
             <>
               {node.children
                 ?.filter((child) => child.type === 'heading' || child.type === 'text')

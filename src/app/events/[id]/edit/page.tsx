@@ -199,6 +199,32 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     setDetails((prev: any) => ({ ...prev, schedules: updated }));
   };
 
+  const storyList: any[] = Array.isArray(details.story) ? details.story : [];
+
+  const handleUpdateStory = (index: number, field: string, val: string) => {
+    const updated = [...storyList];
+    updated[index] = { ...updated[index], [field]: val };
+    setDetails((prev: any) => ({ ...prev, story: updated }));
+  };
+
+  const handleAddStory = () => {
+    const updated = [
+      ...storyList,
+      {
+        year: '',
+        title: '',
+        description: '',
+        image: '',
+      },
+    ];
+    setDetails((prev: any) => ({ ...prev, story: updated }));
+  };
+
+  const handleRemoveStory = (index: number) => {
+    const updated = storyList.filter((_: any, idx: number) => idx !== index);
+    setDetails((prev: any) => ({ ...prev, story: updated }));
+  };
+
   const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)
     ? (details.studioNodes as unknown as StudioNode[])
     : (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
@@ -528,7 +554,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               {/* Selected Node Header Badge */}
               <div style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', backgroundColor: 'var(--primary-light, #fff0f5)', border: '1px solid var(--primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                  {(selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed)
+                  {(selectedNode.sectionType === 'love_story' || selectedNode.id?.includes('love_story') || selectedNode.id?.includes('story') || (selectedNode as any).isLoveStoryFeed)
+                    ? '📖 Section Kisah Cinta'
+                    : (selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed)
                     ? '📅 Section Acara & Lokasi'
                     : selectedNode.type === 'container'
                     ? '📦 Container Section'
@@ -541,8 +569,134 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                 </span>
               </div>
 
-              {/* Event Schedule Form (Shown when clicking any element in Event Section) */}
-              {(selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed) ? (
+              {/* Love Story Form (Shown when clicking any element in Love Story Section) */}
+              {(selectedNode.sectionType === 'love_story' || selectedNode.id?.includes('love_story') || selectedNode.id?.includes('story') || (selectedNode as any).isLoveStoryFeed) ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {storyList.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 1rem', backgroundColor: 'var(--bg-body)', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '2rem' }}>📖</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        Belum Ada Kisah Cinta
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Tambahkan rincian momen perjalanan cinta Anda (seperti Pertemuan Pertama, Pacaran, Lamaran) untuk ditampilkan pada undangan.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddStory}
+                        style={{
+                          marginTop: '0.5rem',
+                          width: '100%',
+                          padding: '0.65rem',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          borderRadius: '8px',
+                          backgroundColor: 'var(--primary)',
+                          color: '#ffffff',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ➕ Tambah Kisah Cinta Pertama
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      Kelola rincian cerita momen perjalanan cinta Anda di bawah ini. Perubahan langsung ter-update di canvas.
+                    </div>
+                  )}
+
+                  {storyList.map((st: any, idx: number) => (
+                    <div key={`story-form-item-${idx}`} style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                          Momen #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStory(idx)}
+                          style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                        >
+                          🗑️ Hapus
+                        </button>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tahun / Tanggal Momen</label>
+                        <input
+                          type="text"
+                          placeholder="misal: 2021 / 14 Februari 2021"
+                          value={st.year || st.date || ''}
+                          onChange={(e) => {
+                            handleUpdateStory(idx, 'year', e.target.value);
+                            handleUpdateStory(idx, 'date', e.target.value);
+                          }}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Judul Momen</label>
+                        <input
+                          type="text"
+                          placeholder="misal: Pertemuan Pertama"
+                          value={st.title || ''}
+                          onChange={(e) => handleUpdateStory(idx, 'title', e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Cerita Momen</label>
+                        <textarea
+                          rows={3}
+                          placeholder="Tuliskan kisah perjalanan cinta Anda pada momen ini..."
+                          value={st.description || st.story || st.content || ''}
+                          onChange={(e) => {
+                            handleUpdateStory(idx, 'description', e.target.value);
+                            handleUpdateStory(idx, 'story', e.target.value);
+                          }}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>URL Foto Momen (Opsional)</label>
+                        <input
+                          type="text"
+                          placeholder="https://images.unsplash.com/..."
+                          value={st.image || st.photo || ''}
+                          onChange={(e) => {
+                            handleUpdateStory(idx, 'image', e.target.value);
+                            handleUpdateStory(idx, 'photo', e.target.value);
+                          }}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  {storyList.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleAddStory}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        borderRadius: '8px',
+                        border: '1px dashed var(--primary)',
+                        backgroundColor: 'var(--primary-light, #fff0f5)',
+                        color: 'var(--primary)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ➕ Tambah Momen Baru
+                    </button>
+                  )}
+                </div>
+              ) : (selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {schedulesList.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '1.5rem 1rem', backgroundColor: 'var(--bg-body)', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
