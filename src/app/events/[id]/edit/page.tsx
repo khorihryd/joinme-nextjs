@@ -134,6 +134,38 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     loadEvent();
   }, [id, showToast]);
 
+  // Auto-scroll preview canvas to active tab section (Hooks must run unconditionally)
+  useEffect(() => {
+    if (loading || !showPreview) return;
+
+    if (activeTab === 'cover') {
+      setIsCoverOpened(false);
+      return;
+    }
+
+    if (activeTab !== 'info') {
+      setIsCoverOpened(true);
+
+      const pNodes = (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
+        ? (event.details.studioNodes as unknown as StudioNode[])
+        : (DEFAULT_NODES as unknown as StudioNode[]);
+
+      const sorted = getOrderedAndFilteredNodes(pNodes, details);
+
+      const timer = setTimeout(() => {
+        const targetNode = sorted.find((n) => n.sectionType === activeTab);
+        if (targetNode) {
+          const el = document.getElementById(`node-dom-${targetNode.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }, 120);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, showPreview, loading, event?.details?.studioNodes, details]);
+
   const loadActiveTemplates = async () => {
     try {
       const res = await fetch('/api/templates');
@@ -392,32 +424,6 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   };
 
   const sortedPreviewNodes = getOrderedAndFilteredNodes(previewNodes, liveEventDetails);
-
-  // Auto-scroll preview canvas to active tab section
-  useEffect(() => {
-    if (!showPreview) return;
-
-    if (activeTab === 'cover') {
-      setIsCoverOpened(false);
-      return;
-    }
-
-    if (activeTab !== 'info') {
-      setIsCoverOpened(true);
-
-      const timer = setTimeout(() => {
-        const targetNode = sortedPreviewNodes.find((n) => n.sectionType === activeTab);
-        if (targetNode) {
-          const el = document.getElementById(`node-dom-${targetNode.id}`);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }
-      }, 120);
-
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, showPreview, sortedPreviewNodes]);
 
   return (
     <div className="db-container">
