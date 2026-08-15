@@ -425,11 +425,13 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           </button>
 
           <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', margin: '1rem 0 0.5rem 0', paddingLeft: '0.5rem', letterSpacing: '0.05em' }}>
-            DAFTAR SECTION UNDANGAN ({SECTION_DEFINITIONS.length})
+            DAFTAR SECTION UNDANGAN ({SECTION_DEFINITIONS.filter((s) => s.id !== 'rsvp' && s.id !== 'wishes' && s.id !== 'footer').length})
           </div>
 
-          {/* Section Tabs 1-14 with Reorder ⬆️ ⬇️ and Toggle Sakelar ON/OFF */}
-          {currentSectionOrder.map((secId, secIdx) => {
+          {/* Section Tabs with Reorder ⬆️ ⬇️ and Toggle Sakelar ON/OFF */}
+          {currentSectionOrder
+            .filter((secId) => secId !== 'rsvp' && secId !== 'wishes' && secId !== 'footer')
+            .map((secId, secIdx) => {
             const secDef = SECTION_DEFINITIONS.find((s) => s.id === secId) || {
               id: secId,
               label: secId,
@@ -437,7 +439,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               isFixed: false,
             };
             const isHidden = hiddenSectionsMap[secId] === true;
-            const isFixed = secDef.isFixed || secId === 'cover' || secId === 'footer';
+            const isFixed = secDef.isFixed || secId === 'cover' || (secId as string) === 'footer';
 
             return (
               <div
@@ -1017,74 +1019,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <button type="button" onClick={() => setActiveTab('love_story')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
                         &larr; Kembali
                       </button>
-                      <button type="button" onClick={() => setActiveTab('rsvp')} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
-                        Lanjut ke RSVP &rarr;
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 9: RSVP */}
-                {activeTab === 'rsvp' && (
-                  <div className="form-step-panel active">
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                      ✉️ 9. Konfirmasi Kehadiran (RSVP)
-                    </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
-                      Formulir konfirmasi jumlah kehadiran tamu undangan.
-                    </p>
-
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Catatan / Pesan Pengingat RSVP</label>
-                        <input type="text" placeholder="Mohon konfirmasi sebelum 15 September 2026" value={details.rsvpNote || ''} onChange={(e) => setDetails({ ...details, rsvpNote: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                      <button type="button" onClick={() => setActiveTab('gallery')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                        &larr; Kembali
-                      </button>
-                      <button type="button" onClick={() => setActiveTab('wishes')} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
-                        Lanjut ke Ucapan &amp; Doa &rarr;
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 10: UCAPAN & DOA */}
-                {activeTab === 'wishes' && (
-                  <div className="form-step-panel active">
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                      💬 10. Ucapan &amp; Doa Restu (Wishes Feed)
-                    </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
-                      Buku tamu digital untuk menampilkan ucapan dan doa manis dari sanak saudara.
-                    </p>
-
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Judul Section Ucapan</label>
-                        <input type="text" placeholder="Doa Restu &amp; Ucapan Manis" value={details.wishesTitle || ''} onChange={(e) => setDetails({ ...details, wishesTitle: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                      <button type="button" onClick={() => setActiveTab('rsvp')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                        &larr; Kembali
-                      </button>
                       <button type="button" onClick={() => setActiveTab('gift')} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
-                        Lanjut ke Hadiah &amp; Kado &rarr;
+                        Lanjut ke Amplop &amp; Hadiah &rarr;
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* TAB 11: HADIAH / KADO / TIKET */}
+                {/* TAB 9: HADIAH / KADO / TIKET */}
                 {activeTab === 'gift' && (
                   <div className="form-step-panel active">
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                      🎁 11. Amplop Digital, Kado &amp; Link Tiket
+                      🎁 9. Amplop Digital, Kado &amp; Link Tiket
                     </h2>
                     <p className="panel-desc" style={{ marginBottom: '2rem' }}>
                       Informasi nomor rekening bank/e-wallet untuk angpao digital, alamat pengiriman kado fisik, atau link tiket seminar.
@@ -1134,7 +1080,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                      <button type="button" onClick={() => setActiveTab('wishes')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
+                      <button type="button" onClick={() => setActiveTab('gallery')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
                         &larr; Kembali
                       </button>
                       <button type="button" onClick={() => setActiveTab('ig_stories')} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
@@ -1144,11 +1090,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   </div>
                 )}
 
-                {/* TAB 12: INSTAGRAM STORIES */}
+                {/* TAB 10: INSTAGRAM STORIES */}
                 {activeTab === 'ig_stories' && (
                   <div className="form-step-panel active">
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                      📸 12. Instagram Stories Template
+                      📸 10. Instagram Stories Template
                     </h2>
                     <p className="panel-desc" style={{ marginBottom: '2rem' }}>
                       Template gambar vertikal 9:16 untuk memudahkan tamu mengunduh dan membagikan undangan ke Story Instagram.
@@ -1172,11 +1118,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   </div>
                 )}
 
-                {/* TAB 13: UCAPAN TERIMAKASIH */}
+                {/* TAB 11: UCAPAN TERIMAKASIH */}
                 {activeTab === 'thank_you' && (
                   <div className="form-step-panel active">
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                      🙏 13. Ucapan Terimakasih (Closing Section)
+                      🙏 11. Ucapan Terimakasih (Closing Section)
                     </h2>
                     <p className="panel-desc" style={{ marginBottom: '2rem' }}>
                       Kalimat ungkapan rasa syukur dan terimakasih penutup dari pihak keluarga/penyelenggara.
@@ -1193,40 +1139,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <button type="button" onClick={() => setActiveTab('ig_stories')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
                         &larr; Kembali
                       </button>
-                      <button type="button" onClick={() => setActiveTab('footer')} className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800 }}>
-                        Lanjut ke Footer &rarr;
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 14: FOOTER & WATERMARK */}
-                {activeTab === 'footer' && (
-                  <div className="form-step-panel active">
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--primary)' }}>
-                      📌 14. Section Footer &amp; Watermark Platform
-                    </h2>
-                    <p className="panel-desc" style={{ marginBottom: '2rem' }}>
-                      Footer dikunci aktif di posisi paling bawah sebagai pengenal platform JoinMe.id.
-                    </p>
-
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
-                      <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                        Powered by <strong>JoinMe.id Platform Undangan Digital</strong> — Hak Cipta &amp; Support Contact.
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                      <button type="button" onClick={() => setActiveTab('thank_you')} className="btn btn-secondary" style={{ padding: '0.85rem 2rem', borderRadius: '30px' }}>
-                        &larr; Kembali
-                      </button>
                       <button type="submit" className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', borderRadius: '30px', fontWeight: 800, backgroundColor: '#16a34a', borderColor: '#16a34a' }}>
                         Simpan Seluruh Data 💾
                       </button>
                     </div>
                   </div>
                 )}
-
               </form>
             </div>
 
