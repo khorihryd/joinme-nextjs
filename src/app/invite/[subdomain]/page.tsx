@@ -57,30 +57,14 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
     setIsPlayingMusic(true);
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', color: '#f8fafc', fontFamily: 'serif' }}>
-        Memuat Undangan Digital...
-      </div>
-    );
-  }
-
-  if (!event) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', color: '#94a3b8' }}>
-        Undangan tidak ditemukan.
-      </div>
-    );
-  }
-
-  const details = event.details || {};
+  const details = event?.details || {};
   const currentSectionOrder: SectionType[] = details.sectionOrder || SECTION_DEFINITIONS.map((s) => s.id);
   const hiddenSectionsMap: Record<string, boolean> = details.hiddenSections || {};
 
   const liveEventDetails = {
-    title: event.title,
-    subdomain: event.subdomain,
-    type: event.type,
+    title: event?.title,
+    subdomain: event?.subdomain,
+    type: event?.type,
     guestName: guestName,
     guest_name: guestName,
     mempelaiPria: details.mempelaiPria || 'Roni Wijaya, S.Kom.',
@@ -130,6 +114,34 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
   const coverNode = hasMultipleContainers && sortedNodes[0].sectionType === 'cover' ? sortedNodes[0] : null;
   const bodyNodes = coverNode ? sortedNodes.slice(1) : sortedNodes;
 
+  // Lock body scroll while cover is closed
+  useEffect(() => {
+    if (!coverNode || isCoverOpened) {
+      document.body.style.overflow = 'auto';
+    } else {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [coverNode, isCoverOpened]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', color: '#f8fafc', fontFamily: 'serif' }}>
+        Memuat Undangan Digital...
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', color: '#94a3b8' }}>
+        Undangan tidak ditemukan.
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: 'relative', width: '100%', minHeight: '100vh', backgroundColor: previewGlobalStyles.bgColor || '#eff2ef', overflowX: 'hidden' }}>
       {/* Background Music Controller */}
@@ -141,75 +153,71 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
         />
       )}
 
-      {/* Main Responsive Canvas Container */}
-      <div style={{ maxWidth: '440px', margin: '0 auto', minHeight: '100vh', position: 'relative', boxShadow: '0 0 40px rgba(0,0,0,0.1)', backgroundColor: previewGlobalStyles.bgColor || '#ffffff' }}>
-        {/* Interactive Cover Node Overlay (Slide Up Animation) */}
-        {coverNode && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              maxWidth: '440px',
-              margin: '0 auto',
-              width: '100%',
-              height: '100vh',
-              zIndex: 9999,
-              backgroundColor: coverNode.style?.backgroundColor || previewGlobalStyles.bgColor || '#ffffff',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              transition: 'transform 0.85s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.85s ease',
-              transform: isCoverOpened ? 'translateY(-100%)' : 'translateY(0)',
-              opacity: isCoverOpened ? 0 : 1,
-              pointerEvents: isCoverOpened ? 'none' : 'auto',
-              overflowY: 'auto',
-            }}
-          >
-            <NodeRenderer
-              node={{
-                ...coverNode,
-                style: {
-                  ...coverNode.style,
-                  minHeight: '100%',
-                  height: '100%',
-                },
-              }}
-              allNodes={sortedNodes}
-              selectedNodeId={null}
-              onSelectNode={() => {}}
-              eventDetails={liveEventDetails}
-              viewportMode="mobile"
-              isPreviewMode={true}
-              onOpenCover={handleOpenCover}
-            />
-          </div>
-        )}
-
-        {/* Main Content Body Nodes */}
+      {/* Interactive Full-Screen Cover Overlay (Slide Up Animation) */}
+      {coverNode && (
         <div
           style={{
-            width: '100%',
-            minHeight: '100vh',
-            opacity: isCoverOpened || !coverNode ? 1 : 0.2,
-            transition: 'opacity 0.85s ease',
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 99999,
+            backgroundColor: coverNode.style?.backgroundColor || previewGlobalStyles.bgColor || '#ffffff',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            transition: 'transform 0.85s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.85s ease',
+            transform: isCoverOpened ? 'translateY(-100%)' : 'translateY(0)',
+            opacity: isCoverOpened ? 0 : 1,
+            pointerEvents: isCoverOpened ? 'none' : 'auto',
+            overflowY: 'auto',
           }}
         >
-          {bodyNodes.map((node) => (
-            <NodeRenderer
-              key={node.id}
-              node={node}
-              allNodes={sortedNodes}
-              selectedNodeId={null}
-              onSelectNode={() => {}}
-              eventDetails={liveEventDetails}
-              viewportMode="mobile"
-              isPreviewMode={true}
-              onOpenCover={handleOpenCover}
-            />
-          ))}
+          <NodeRenderer
+            node={{
+              ...coverNode,
+              style: {
+                ...coverNode.style,
+                minHeight: '100vh',
+                height: '100vh',
+                width: '100%',
+              },
+            }}
+            allNodes={sortedNodes}
+            selectedNodeId={null}
+            onSelectNode={() => {}}
+            eventDetails={liveEventDetails}
+            viewportMode="auto"
+            isPreviewMode={true}
+            onOpenCover={handleOpenCover}
+          />
         </div>
-      </div>
+      )}
+
+      {/* Fluid Responsive Main Invitation Body (Fluid Full Width on Mobile, Tablet, & Desktop) */}
+      <main
+        style={{
+          width: '100%',
+          minHeight: '100vh',
+          opacity: isCoverOpened || !coverNode ? 1 : 0.2,
+          transition: 'opacity 0.85s ease',
+        }}
+      >
+        {bodyNodes.map((node) => (
+          <NodeRenderer
+            key={node.id}
+            node={node}
+            allNodes={sortedNodes}
+            selectedNodeId={null}
+            onSelectNode={() => {}}
+            eventDetails={liveEventDetails}
+            viewportMode="auto"
+            isPreviewMode={true}
+            onOpenCover={handleOpenCover}
+          />
+        ))}
+      </main>
     </div>
   );
 }

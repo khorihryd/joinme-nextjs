@@ -317,7 +317,7 @@ interface NodeRendererProps {
   onDeleteNode?: (id: string) => void;
   onDuplicateNode?: (id: string) => void;
   eventDetails?: any;
-  viewportMode?: 'desktop' | 'tablet' | 'mobile';
+  viewportMode?: 'desktop' | 'tablet' | 'mobile' | 'auto';
   isPreviewMode?: boolean;
   onOpenCover?: () => void;
   isMiniStudioMode?: boolean;
