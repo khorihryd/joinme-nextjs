@@ -2,38 +2,25 @@
 
 import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CoverSection } from '@/components/invitation/CoverSection';
-import { ProfileSection } from '@/components/invitation/ProfileSection';
-import { CountdownTimer } from '@/components/invitation/CountdownTimer';
-import { ScheduleCards } from '@/components/invitation/ScheduleCards';
-import { LoveStory } from '@/components/invitation/LoveStory';
-import { GalleryGrid } from '@/components/invitation/GalleryGrid';
-import { RSVPForm } from '@/components/invitation/RSVPForm';
-import { GiftSection } from '@/components/invitation/GiftSection';
+import { NodeRenderer, getOrderedAndFilteredNodes } from '@/components/studio/NodeRenderer';
+import { DEFAULT_NODES, loadNodeFonts, ensureGoogleFontLoaded } from '@/store/studio-store';
+import { StudioNode, SECTION_DEFINITIONS, SectionType } from '@/types';
 import { MusicPlayer } from '@/components/invitation/MusicPlayer';
-import { RsvpSuccessModal } from '@/components/studio/RsvpSuccessModal';
 
 export default function PublicInvitationPage({ params }: { params: Promise<{ subdomain: string }> }) {
-  const { subdomain } = use(params);
+  const resolvedParams = typeof (params as any)?.then === 'function' ? use(params as Promise<{ subdomain: string }>) : (params as unknown as { subdomain: string });
+  const subdomain = resolvedParams?.subdomain;
   const searchParams = useSearchParams();
   const guestName = searchParams.get('to') || searchParams.get('guest') || searchParams.get('nama') || '';
 
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isCoverOpen, setIsCoverOpen] = useState(false);
+  const [isCoverOpened, setIsCoverOpened] = useState(false);
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
-
-  // RSVP Form state
-  const [rsvpName, setRsvpName] = useState(guestName);
-  const [rsvpAttendance, setRsvpAttendance] = useState('Hadir');
-  const [rsvpPax, setRsvpPax] = useState('1');
-  const [rsvpWishes, setRsvpWishes] = useState('');
-  const [wishesList, setWishesList] = useState<any[]>([]);
-  const [submittingRsvp, setSubmittingRsvp] = useState(false);
-  const [rsvpModalData, setRsvpModalData] = useState<{ name: string; attendance: string; message: string } | null>(null);
 
   useEffect(() => {
     async function loadEvent() {
+      if (!subdomain) return;
       try {
         const res = await fetch('/api/events');
         if (res.ok) {
@@ -41,18 +28,19 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
           const found = events.find((e: any) => e.subdomain === subdomain);
           if (found) {
             setEvent(found);
+            if (found.details?.globalStyles?.fontFamily) {
+              ensureGoogleFontLoaded(found.details.globalStyles.fontFamily);
+            }
+            if (Array.isArray(found.details?.studioNodes) && found.details.studioNodes.length > 0) {
+              loadNodeFonts(found.details.studioNodes);
+            }
+
             // Increment view count asynchronously
             fetch(`/api/events/${found.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ views: (found.views || 0) + 1 }),
             }).catch(() => {});
-
-            // Fetch guests for wishes
-            fetch(`/api/guests?eventId=${found.id}`)
-              .then((r) => r.json())
-              .then((g) => setWishesList(g))
-              .catch(() => {});
           }
         }
       } catch (err) {
@@ -65,48 +53,13 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
   }, [subdomain]);
 
   const handleOpenCover = () => {
-    setIsCoverOpen(true);
+    setIsCoverOpened(true);
     setIsPlayingMusic(true);
-  };
-
-  const handleRsvpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rsvpName) return;
-    setSubmittingRsvp(true);
-
-    try {
-      const res = await fetch('/api/guests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId: event.id,
-          name: rsvpName,
-          attendance: rsvpAttendance,
-          pax: rsvpPax,
-          wishes: rsvpWishes,
-        }),
-      });
-
-      if (res.ok) {
-        const newGuest = await res.json();
-        setWishesList((prev) => [newGuest, ...prev]);
-        setRsvpModalData({
-          name: rsvpName || 'Tamu Undangan',
-          attendance: rsvpAttendance || 'Hadir',
-          message: rsvpWishes,
-        });
-        setRsvpWishes('');
-      }
-    } catch (err) {
-      alert('Gagal mengirim RSVP');
-    } finally {
-      setSubmittingRsvp(false);
-    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-amber-100 font-serif">
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', color: '#f8fafc', fontFamily: 'serif' }}>
         Memuat Undangan Digital...
       </div>
     );
@@ -114,28 +67,73 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-stone-300">
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', color: '#94a3b8' }}>
         Undangan tidak ditemukan.
       </div>
     );
   }
 
   const details = event.details || {};
-  const isWedding = event.type === 'Pernikahan';
+  const currentSectionOrder: SectionType[] = details.sectionOrder || SECTION_DEFINITIONS.map((s) => s.id);
+  const hiddenSectionsMap: Record<string, boolean> = details.hiddenSections || {};
+
+  const liveEventDetails = {
+    title: event.title,
+    subdomain: event.subdomain,
+    type: event.type,
+    guestName: guestName,
+    guest_name: guestName,
+    mempelaiPria: details.mempelaiPria || 'Roni Wijaya, S.Kom.',
+    panggilanPria: details.panggilanPria || 'Roni',
+    ortuPria: details.ortuPria,
+    igPria: details.igPria,
+    fotoPria: details.fotoPria,
+    mempelaiWanita: details.mempelaiWanita || 'Anti Kartika, S.T.',
+    panggilanWanita: details.panggilanWanita || 'Anti',
+    ortuWanita: details.ortuWanita,
+    igWanita: details.igWanita,
+    fotoWanita: details.fotoWanita,
+    organizerName: details.organizerName || 'Keluarga Besar Wijaya',
+    organizerNickname: details.organizerNickname,
+    organizerParents: details.organizerParents,
+    event_date: details.schedules?.[0]?.date || '21 September 2026',
+    event_time: details.schedules?.[0]?.time || '08:00 - 14:00 WIB',
+    event_location: details.schedules?.[0]?.place || 'Grand Ballroom Hotel Mulia, Jakarta',
+    event_address: details.schedules?.[0]?.address || 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+    schedules: details.schedules || [],
+    story: details.story || [],
+    gallery: details.gallery || [],
+    bankAccounts: [
+      details.bank1Nama && { bankName: details.bank1Nama, accountNumber: details.bank1Rek, accountHolder: details.bank1An },
+      details.bank2Nama && { bankName: details.bank2Nama, accountNumber: details.bank2Rek, accountHolder: details.bank2An },
+    ].filter(Boolean),
+    ticketUrl: details.ticketUrl,
+    liveStreamUrl: details.liveStreamUrl,
+    coverTitle: details.coverTitle,
+    coverCoupleName: details.coverCoupleName,
+    cover_photo: details.cover_photo,
+    sectionOrder: currentSectionOrder,
+    hiddenSections: hiddenSectionsMap,
+  };
+
+  const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)
+    ? (details.studioNodes as unknown as StudioNode[])
+    : (DEFAULT_NODES as unknown as StudioNode[]);
+
+  const previewGlobalStyles = details.globalStyles || {
+    bgColor: '#eff2ef',
+    fontFamily: 'Playfair Display',
+  };
+
+  const sortedNodes = getOrderedAndFilteredNodes(previewNodes, liveEventDetails);
+  const hasMultipleContainers = sortedNodes.length > 1;
+  const coverNode = hasMultipleContainers && sortedNodes[0].sectionType === 'cover' ? sortedNodes[0] : null;
+  const bodyNodes = coverNode ? sortedNodes.slice(1) : sortedNodes;
 
   return (
-    <div className="min-h-screen bg-[#F5EDE4] text-[#4a3728] font-sans relative overflow-x-hidden">
-      {/* Cover Overlay Modal */}
-      {!isCoverOpen && (
-        <CoverSection
-          title={event.title}
-          guestName={guestName}
-          onOpenCover={handleOpenCover}
-        />
-      )}
-
-      {/* Music Controller Button */}
-      {isCoverOpen && (
+    <div style={{ position: 'relative', width: '100%', minHeight: '100vh', backgroundColor: previewGlobalStyles.bgColor || '#eff2ef', overflowX: 'hidden' }}>
+      {/* Background Music Controller */}
+      {isCoverOpened && details.musicUrl && (
         <MusicPlayer
           isPlayingMusic={isPlayingMusic}
           onToggleMusic={() => setIsPlayingMusic(!isPlayingMusic)}
@@ -143,64 +141,74 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
         />
       )}
 
-      {/* Main Invitation Page Content */}
-      <div className="max-w-md mx-auto min-h-screen bg-white shadow-2xl space-y-16 pb-20">
-        {/* Hero Section */}
-        <section className="relative h-[80vh] flex flex-col items-center justify-center text-center p-6 bg-stone-900 text-amber-50">
-          <img
-            src={details.fotoPria || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800'}
-            alt="Cover"
-            className="absolute inset-0 w-full h-full object-cover opacity-40"
-          />
-          <div className="relative z-10 space-y-4 max-w-xs">
-            <span className="text-xs uppercase tracking-widest text-amber-300 font-serif">
-              Walimatul Ursy
-            </span>
-            <h1 className="text-4xl font-serif font-extrabold leading-tight text-amber-100">
-              {isWedding ? (
-                <>
-                  {details.panggilanPria || 'Pria'} <br /> & <br /> {details.panggilanWanita || 'Wanita'}
-                </>
-              ) : (
-                details.organizerName || event.title
-              )}
-            </h1>
-            <p className="text-xs text-stone-300">{event.date || '21 September 2026'}</p>
-            <CountdownTimer targetDateStr={event.date} />
+      {/* Main Responsive Canvas Container */}
+      <div style={{ maxWidth: '440px', margin: '0 auto', minHeight: '100vh', position: 'relative', boxShadow: '0 0 40px rgba(0,0,0,0.1)', backgroundColor: previewGlobalStyles.bgColor || '#ffffff' }}>
+        {/* Interactive Cover Node Overlay (Slide Up Animation) */}
+        {coverNode && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              maxWidth: '440px',
+              margin: '0 auto',
+              width: '100%',
+              height: '100vh',
+              zIndex: 9999,
+              backgroundColor: coverNode.style?.backgroundColor || previewGlobalStyles.bgColor || '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              transition: 'transform 0.85s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.85s ease',
+              transform: isCoverOpened ? 'translateY(-100%)' : 'translateY(0)',
+              opacity: isCoverOpened ? 0 : 1,
+              pointerEvents: isCoverOpened ? 'none' : 'auto',
+              overflowY: 'auto',
+            }}
+          >
+            <NodeRenderer
+              node={{
+                ...coverNode,
+                style: {
+                  ...coverNode.style,
+                  minHeight: '100%',
+                  height: '100%',
+                },
+              }}
+              allNodes={sortedNodes}
+              selectedNodeId={null}
+              onSelectNode={() => {}}
+              eventDetails={liveEventDetails}
+              viewportMode="mobile"
+              isPreviewMode={true}
+              onOpenCover={handleOpenCover}
+            />
           </div>
-        </section>
+        )}
 
-        {/* Profile Section */}
-        <ProfileSection isWedding={isWedding} details={details} eventTitle={event.title} />
-
-        {/* Schedules Section */}
-        <ScheduleCards schedules={details.schedules} />
-
-        {/* Love Story Section */}
-        <LoveStory story={details.story} />
-
-        {/* Gallery Section */}
-        <GalleryGrid gallery={details.gallery} />
-
-        {/* RSVP Form Section */}
-        <RSVPForm
-          rsvpName={rsvpName}
-          setRsvpName={setRsvpName}
-          rsvpAttendance={rsvpAttendance}
-          setRsvpAttendance={setRsvpAttendance}
-          rsvpPax={rsvpPax}
-          setRsvpPax={setRsvpPax}
-          rsvpWishes={rsvpWishes}
-          setRsvpWishes={setRsvpWishes}
-          submittingRsvp={submittingRsvp}
-          onSubmit={handleRsvpSubmit}
-          wishesList={wishesList}
-          submittedResult={rsvpModalData}
-          onResetResult={() => setRsvpModalData(null)}
-        />
-
-        {/* Gift Section */}
-        <GiftSection details={details} />
+        {/* Main Content Body Nodes */}
+        <div
+          style={{
+            width: '100%',
+            minHeight: '100vh',
+            opacity: isCoverOpened || !coverNode ? 1 : 0.2,
+            transition: 'opacity 0.85s ease',
+          }}
+        >
+          {bodyNodes.map((node) => (
+            <NodeRenderer
+              key={node.id}
+              node={node}
+              allNodes={sortedNodes}
+              selectedNodeId={null}
+              onSelectNode={() => {}}
+              eventDetails={liveEventDetails}
+              viewportMode="mobile"
+              isPreviewMode={true}
+              onOpenCover={handleOpenCover}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
