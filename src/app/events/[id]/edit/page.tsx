@@ -729,11 +729,17 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
             <button
               type="button"
-              onClick={() => setShowPreview(!showPreview)}
+              onClick={() => {
+                if (!eventSubdomain) {
+                  showToast('Mohon isi alamat subdomain terlebih dahulu', 'warning');
+                  return;
+                }
+                window.open(`/invite/${eventSubdomain}`, '_blank');
+              }}
               className="btn btn-secondary"
               style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem', borderRadius: '8px', fontWeight: 700 }}
             >
-              {showPreview ? '🙈 Hide Preview' : '👁️ Preview'}
+              Preview
             </button>
 
             <button
