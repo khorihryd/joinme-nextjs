@@ -171,6 +171,32 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     hiddenSections: hiddenSectionsMap,
   };
 
+  const schedulesList = details.schedules && Array.isArray(details.schedules) && details.schedules.length > 0
+    ? details.schedules
+    : [
+        { title: 'Akad Nikah', date: 'Senin, 21 September 2026', time: '08:00 - 10:00 WIB', place: 'Grand Ballroom Hotel Mulia', address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat', mapsUrl: 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta' },
+        { title: 'Resepsi Pernikahan', date: 'Senin, 21 September 2026', time: '11:00 - 14:00 WIB', place: 'Grand Ballroom Hotel Mulia', address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat', mapsUrl: 'https://maps.google.com/?q=Grand+Ballroom+Hotel+Mulia+Jakarta' },
+      ];
+
+  const handleUpdateSchedule = (index: number, field: string, val: string) => {
+    const updated = [...schedulesList];
+    updated[index] = { ...updated[index], [field]: val };
+    setDetails((prev: any) => ({ ...prev, schedules: updated }));
+  };
+
+  const handleAddSchedule = () => {
+    const updated = [
+      ...schedulesList,
+      { title: 'Syukuran Acara', date: 'Senin, 21 September 2026', time: '16:00 WIB - Selesai', place: 'Gedung Serbaguna', address: 'Jl. Utama No. 12', mapsUrl: '' },
+    ];
+    setDetails((prev: any) => ({ ...prev, schedules: updated }));
+  };
+
+  const handleRemoveSchedule = (index: number) => {
+    const updated = schedulesList.filter((_: any, idx: number) => idx !== index);
+    setDetails((prev: any) => ({ ...prev, schedules: updated }));
+  };
+
   const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)
     ? (details.studioNodes as unknown as StudioNode[])
     : (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
@@ -469,12 +495,137 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               {/* Selected Node Header Badge */}
               <div style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', backgroundColor: 'var(--primary-light, #fff0f5)', border: '1px solid var(--primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                  {selectedNode.type === 'container' ? '📦 Container Section' : selectedNode.type === 'image' ? '📸 Gambar Widget' : `✍️ Teks ${selectedNode.type}`}
+                  {(selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed)
+                    ? '📅 Section Acara & Lokasi'
+                    : selectedNode.type === 'container'
+                    ? '📦 Container Section'
+                    : selectedNode.type === 'image'
+                    ? '📸 Gambar Widget'
+                    : `✍️ Teks ${selectedNode.type}`}
                 </span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                   {selectedNode.label || selectedNode.id}
                 </span>
               </div>
+
+              {/* Event Schedule Form (Shown when clicking any element in Event Section) */}
+              {(selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed) ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    Kelola daftar rangkaian acara (Akad Nikah, Resepsi, Syukuran) di bawah ini. Perubahan langsung ter-update di canvas.
+                  </div>
+
+                  {schedulesList.map((sch: any, idx: number) => (
+                    <div key={`sch-form-item-${idx}`} style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                          Acara #{idx + 1}
+                        </span>
+                        {schedulesList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSchedule(idx)}
+                            style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                          >
+                            🗑️ Hapus
+                          </button>
+                        )}
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Acara</label>
+                        <input
+                          type="text"
+                          placeholder="misal: Akad Nikah"
+                          value={sch.title || sch.name || ''}
+                          onChange={(e) => handleUpdateSchedule(idx, 'title', e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tanggal Acara</label>
+                        <input
+                          type="text"
+                          placeholder="misal: Senin, 21 September 2026"
+                          value={sch.date || ''}
+                          onChange={(e) => handleUpdateSchedule(idx, 'date', e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Waktu / Jam</label>
+                        <input
+                          type="text"
+                          placeholder="misal: 08:00 - 10:00 WIB"
+                          value={sch.time || ''}
+                          onChange={(e) => handleUpdateSchedule(idx, 'time', e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Tempat / Gedung</label>
+                        <input
+                          type="text"
+                          placeholder="misal: Grand Ballroom Hotel Mulia"
+                          value={sch.place || sch.location || ''}
+                          onChange={(e) => {
+                            handleUpdateSchedule(idx, 'place', e.target.value);
+                            handleUpdateSchedule(idx, 'location', e.target.value);
+                          }}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Alamat Lengkap</label>
+                        <textarea
+                          rows={2}
+                          placeholder="Jl. Asia Afrika No. 8, Senayan..."
+                          value={sch.address || ''}
+                          onChange={(e) => handleUpdateSchedule(idx, 'address', e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>URL Google Maps</label>
+                        <input
+                          type="text"
+                          placeholder="https://maps.google.com/..."
+                          value={sch.mapsUrl || sch.mapUrl || ''}
+                          onChange={(e) => {
+                            handleUpdateSchedule(idx, 'mapsUrl', e.target.value);
+                            handleUpdateSchedule(idx, 'mapUrl', e.target.value);
+                          }}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={handleAddSchedule}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      border: '1px dashed var(--primary)',
+                      backgroundColor: 'var(--primary-light, #fff0f5)',
+                      color: 'var(--primary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ➕ Tambah Rangkaian Acara Baru
+                  </button>
+                </div>
+              ) : (
+                <>
 
               {/* Text / Heading / Button Properties */}
               {['heading', 'text', 'button'].includes(selectedNode.type) && (
@@ -660,9 +811,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
+      )}
+    </div>
       </aside>
 
       {/* MAIN VIEWPORT AREA */}
