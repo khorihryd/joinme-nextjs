@@ -198,6 +198,18 @@ export const DEFAULT_NODES = [
           lineHeight: '1.6',
         },
       },
+      {
+        id: 'text-opening-surah',
+        type: 'text',
+        content: '(QS. Ar-Rum: 21)',
+        style: {
+          color: '#e36397',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+          fontWeight: 'bold',
+        },
+      },
     ],
   },
 
@@ -236,9 +248,9 @@ export const DEFAULT_NODES = [
         binding: 'fotoPria',
         content: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
         style: {
-          width: '120px',
-          height: '120px',
-          borderRadius: 60,
+          width: '130px',
+          height: '130px',
+          borderRadius: 65,
           objectFit: 'cover',
         },
       },
@@ -255,14 +267,25 @@ export const DEFAULT_NODES = [
         },
       },
       {
+        id: 'text-groom-parents',
+        type: 'text',
+        content: 'Putra dari Bpk. Hendra & Ibu Siska',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+        },
+      },
+      {
         id: 'image-bride-photo',
         type: 'image',
         binding: 'fotoWanita',
         content: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
         style: {
-          width: '120px',
-          height: '120px',
-          borderRadius: 60,
+          width: '130px',
+          height: '130px',
+          borderRadius: 65,
           objectFit: 'cover',
         },
       },
@@ -276,6 +299,17 @@ export const DEFAULT_NODES = [
           textAlign: 'center',
           fontFamily: 'Playfair Display',
           fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'text-bride-parents',
+        type: 'text',
+        content: 'Putri dari Bpk. Gunawan & Ibu Maya',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
         },
       },
     ],
@@ -311,6 +345,18 @@ export const DEFAULT_NODES = [
         },
       },
       {
+        id: 'feed-event-list',
+        type: 'container',
+        isEventFeed: true,
+        style: {
+          flexDirection: 'column',
+          gap: 16,
+          width: '100%',
+          backgroundColor: 'transparent',
+          padding: '0px',
+        },
+      },
+      {
         id: 'map-schedule',
         type: 'map',
         content: 'Hotel Mulia Jakarta',
@@ -343,7 +389,7 @@ export const DEFAULT_NODES = [
       {
         id: 'heading-livestream-title',
         type: 'heading',
-        content: 'Siaran Langsung Acara',
+        content: 'Siaran Langsung Acara (Virtual Event)',
         style: {
           color: '#e36397',
           fontSize: 20,
@@ -355,12 +401,26 @@ export const DEFAULT_NODES = [
       {
         id: 'text-livestream-desc',
         type: 'text',
-        content: 'Bagi keluarga dan kerabat yang berhalangan hadir secara langsung, Anda dapat mengikuti prosesi acara secara virtual.',
+        content: 'Bagi keluarga dan kerabat yang berhalangan hadir secara langsung, Anda dapat mengikuti prosesi acara secara virtual melalui siaran langsung di bawah ini.',
         style: {
           color: '#64748b',
           fontSize: 12,
           textAlign: 'center',
           fontFamily: 'Inter',
+        },
+      },
+      {
+        id: 'button-livestream-link',
+        type: 'button',
+        content: '🎥 Tonton Live Streaming',
+        style: {
+          backgroundColor: '#e36397',
+          color: '#ffffff',
+          fontSize: 13,
+          padding: '12px 28px',
+          borderRadius: 10,
+          width: 'auto',
+          fontWeight: 'bold',
         },
       },
     ],
@@ -395,6 +455,18 @@ export const DEFAULT_NODES = [
           fontWeight: 'bold',
         },
       },
+      {
+        id: 'text-lovestory-desc',
+        type: 'text',
+        content: 'Kisah kenangan indah perjalanan kami dari awal bertemu hingga mengikat janji suci pernikahan.',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+          margin: '0px 0px 16px 0px',
+        },
+      },
     ],
   },
 
@@ -427,6 +499,32 @@ export const DEFAULT_NODES = [
           fontWeight: 'bold',
         },
       },
+      {
+        id: 'text-gallery-desc',
+        type: 'text',
+        content: 'Momen-momen indah kebersamaan kami yang terekam dalam kenangan abadi.',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+          margin: '0px 0px 16px 0px',
+        },
+      },
+      {
+        id: 'image-gallery-sample1',
+        type: 'image',
+        showInGallery: true,
+        content: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500',
+        style: { width: '100%', height: '180px', borderRadius: 10 },
+      },
+      {
+        id: 'image-gallery-sample2',
+        type: 'image',
+        showInGallery: true,
+        content: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=500',
+        style: { width: '100%', height: '180px', borderRadius: 10 },
+      },
     ],
   },
 
@@ -457,6 +555,17 @@ export const DEFAULT_NODES = [
           textAlign: 'center',
           fontFamily: 'Playfair Display',
           fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'text-rsvp-desc',
+        type: 'text',
+        content: 'Mohon konfirmasi kehadiran Anda untuk membantu kami menyiapkan konsumsi & tempat acara.',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
         },
       },
     ],
@@ -491,6 +600,29 @@ export const DEFAULT_NODES = [
           fontWeight: 'bold',
         },
       },
+      {
+        id: 'text-wishes-desc',
+        type: 'text',
+        content: 'Tinggalkan pesan ucapan dan doa terbaik Anda untuk kedua mempelai.',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+        },
+      },
+      {
+        id: 'feed-wishes-list',
+        type: 'container',
+        isWishesFeed: true,
+        style: {
+          flexDirection: 'column',
+          gap: 12,
+          width: '100%',
+          backgroundColor: 'transparent',
+          padding: '0px',
+        },
+      },
     ],
   },
 
@@ -523,6 +655,17 @@ export const DEFAULT_NODES = [
           fontWeight: 'bold',
         },
       },
+      {
+        id: 'text-gift-desc',
+        type: 'text',
+        content: 'Doa restu Anda merupakan karunia terindah bagi kami. Bagi yang ingin memberikan tanda kasih, dapat mengirimkan angpao digital di bawah ini.',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
+        },
+      },
     ],
   },
 
@@ -546,13 +689,24 @@ export const DEFAULT_NODES = [
       {
         id: 'heading-ig-title',
         type: 'heading',
-        content: 'Bagikan Momen di Instagram',
+        content: 'Bagikan Momen di Instagram Stories',
         style: {
           color: '#e36397',
           fontSize: 20,
           textAlign: 'center',
           fontFamily: 'Playfair Display',
           fontWeight: 'bold',
+        },
+      },
+      {
+        id: 'text-ig-desc',
+        type: 'text',
+        content: 'Bagikan kebahagiaan ini ke Story Instagram Anda dengan tagar #RoniAntiWedding2026.',
+        style: {
+          color: '#64748b',
+          fontSize: 12,
+          textAlign: 'center',
+          fontFamily: 'Inter',
         },
       },
     ],
@@ -578,7 +732,7 @@ export const DEFAULT_NODES = [
       {
         id: 'heading-thankyou-title',
         type: 'heading',
-        content: 'Terimakasih',
+        content: 'Terima Kasih',
         style: {
           color: '#1e293b',
           fontSize: 24,
@@ -590,12 +744,24 @@ export const DEFAULT_NODES = [
       {
         id: 'text-thankyou-desc',
         type: 'text',
-        content: 'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas doa restu Bapak/Ibu/Saudara/i.',
+        content: 'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas doa restu serta kehadiran Bapak/Ibu/Saudara/i.',
         style: {
           color: '#64748b',
           fontSize: 13,
           textAlign: 'center',
           fontFamily: 'Inter',
+        },
+      },
+      {
+        id: 'heading-thankyou-family',
+        type: 'heading',
+        content: 'Kami yang berbahagia,\n{nama_mempelai} & Keluarga Besar',
+        style: {
+          color: '#e36397',
+          fontSize: 16,
+          textAlign: 'center',
+          fontFamily: 'Playfair Display',
+          fontWeight: 'bold',
         },
       },
     ],
