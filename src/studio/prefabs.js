@@ -26,6 +26,8 @@ export const DEFAULT_NODES = [
   {
     id: 'container-1',
     type: 'container',
+    sectionType: 'cover',
+    label: 'Section Cover (Sampul Utama)',
     style: {
       flexDirection: 'column',
       justify: 'center',

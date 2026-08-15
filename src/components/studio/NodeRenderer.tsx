@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StudioNode } from '@/types';
+import { StudioNode, SectionType } from '@/types';
 import { resolveTextVariables, useStudioStore, WishItem, SAMPLE_VARIABLES } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
 import { RsvpResultCard } from '@/components/studio/RsvpResultCard';
@@ -7,6 +7,59 @@ import { GiftRegistryCards } from '@/components/studio/GiftRegistryCards';
 import { LoveStoryTimeline } from '@/components/studio/LoveStoryTimeline';
 import { PhotoGalleryGrid } from '@/components/studio/PhotoGalleryGrid';
 import { ThankYouClosing } from '@/components/studio/ThankYouClosing';
+
+export function getOrderedAndFilteredNodes(
+  nodes: StudioNode[],
+  eventDetails?: any
+): StudioNode[] {
+  if (!Array.isArray(nodes) || nodes.length === 0) return [];
+
+  const sectionOrder: SectionType[] = eventDetails?.sectionOrder || [
+    'cover',
+    'hero',
+    'opening',
+    'bride_groom',
+    'event_schedule',
+    'live_streaming',
+    'love_story',
+    'gallery',
+    'rsvp',
+    'wishes',
+    'gift',
+    'ig_stories',
+    'thank_you',
+    'footer',
+  ];
+
+  const hiddenSections: Record<string, boolean> = eventDetails?.hiddenSections || {};
+
+  // 1. Filter out hidden containers (cover & footer can never be hidden)
+  const visibleNodes = nodes.filter((n) => {
+    if (n.type === 'container' && n.sectionType) {
+      if (n.sectionType === 'cover' || n.sectionType === 'footer') return true;
+      if (hiddenSections[n.sectionType] === true) return false;
+    }
+    return true;
+  });
+
+  // 2. Sort containers according to sectionOrder
+  const sortedNodes = [...visibleNodes].sort((a, b) => {
+    const secA = a.sectionType;
+    const secB = b.sectionType;
+
+    if (secA === 'cover') return -1;
+    if (secB === 'cover') return 1;
+    if (secA === 'footer') return 1;
+    if (secB === 'footer') return -1;
+
+    const idxA = secA ? sectionOrder.indexOf(secA) : 999;
+    const idxB = secB ? sectionOrder.indexOf(secB) : 999;
+
+    return (idxA !== -1 ? idxA : 999) - (idxB !== -1 ? idxB : 999);
+  });
+
+  return sortedNodes;
+}
 
 export function collectGalleryImageUrls(nodes: StudioNode[], eventDetails?: any): string[] {
   let list: string[] = [];

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { StudioNode, DYNAMIC_VARIABLE_CATEGORIES } from '@/types';
+import { StudioNode, DYNAMIC_VARIABLE_CATEGORIES, SECTION_DEFINITIONS, SectionType } from '@/types';
 import { useStudioStore, findParentNode } from '@/store/studio-store';
 import { FontEngineSelect } from './FontEngine';
 
@@ -443,6 +443,65 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
           <div>
             {isContainer && (
               <>
+                {/* Section Mapping Property */}
+                <div
+                  style={{
+                    padding: '0.75rem',
+                    backgroundColor: 'var(--bg-body)',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      marginBottom: '0.35rem',
+                    }}
+                  >
+                    🏷️ Tipe Section Undangan (Section Mapping)
+                  </label>
+                  <select
+                    value={node.sectionType || ''}
+                    onChange={(e) => {
+                      const newSecType = e.target.value as SectionType | '';
+                      if (newSecType) {
+                        const existingNodeWithSec = nodes.find((n) => n.id !== node.id && n.sectionType === newSecType);
+                        if (existingNodeWithSec) {
+                          alert(`Perhatian: Section "${newSecType}" sudah digunakan pada container "${existingNodeWithSec.label || existingNodeWithSec.id}". 1 tipe section hanya dapat dipetakan ke 1 container.`);
+                          return;
+                        }
+                      }
+                      updateNodeProp('sectionType', newSecType || undefined);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: '#ffffff',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <option value="">-- Bukan Root Section (Container Biasa) --</option>
+                    {SECTION_DEFINITIONS.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        {sec.icon} {sec.label} ({sec.id})
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '0.35rem', lineHeight: '1.4' }}>
+                    💡 Menentukan section apa yang diwakili container ini pada tab Editor Undangan pengguna.
+                  </span>
+                </div>
+
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <label>Tipe Tampilan (Display Mode)</label>
                   <select

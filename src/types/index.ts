@@ -279,9 +279,51 @@ export interface NodeStyle {
   [key: string]: string | boolean | number | string[] | undefined;
 }
 
+export type SectionType =
+  | 'cover'
+  | 'hero'
+  | 'opening'
+  | 'bride_groom'
+  | 'event_schedule'
+  | 'live_streaming'
+  | 'love_story'
+  | 'gallery'
+  | 'rsvp'
+  | 'wishes'
+  | 'gift'
+  | 'ig_stories'
+  | 'thank_you'
+  | 'footer';
+
+export interface SectionDefinition {
+  id: SectionType;
+  label: string;
+  icon: string;
+  defaultTitle: string;
+  isFixed?: boolean;
+}
+
+export const SECTION_DEFINITIONS: SectionDefinition[] = [
+  { id: 'cover', label: 'Cover Undangan', icon: '💌', defaultTitle: 'Cover / Sampul Utama', isFixed: true },
+  { id: 'hero', label: 'Hero Banner', icon: '✨', defaultTitle: 'Hero Banner / Judul Utama' },
+  { id: 'opening', label: 'Ucapan Pembuka', icon: '📜', defaultTitle: 'Ucapan Pembuka / Mukadimah' },
+  { id: 'bride_groom', label: 'Profil Mempelai / Penyelenggara', icon: '👩‍❤️‍👨', defaultTitle: 'Profil Mempelai / Penyelenggara' },
+  { id: 'event_schedule', label: 'Waktu & Tempat Acara', icon: '📅', defaultTitle: 'Waktu & Lokasi Acara' },
+  { id: 'live_streaming', label: 'Live Streaming', icon: '🎥', defaultTitle: 'Virtual Event / Live Stream' },
+  { id: 'love_story', label: 'Kisah Cinta (Love Story)', icon: '📖', defaultTitle: 'Timeline Cerita Cinta' },
+  { id: 'gallery', label: 'Galeri Foto & Video', icon: '🖼️', defaultTitle: 'Galeri Foto Kebersamaan' },
+  { id: 'rsvp', label: 'Konfirmasi Kehadiran (RSVP)', icon: '✉️', defaultTitle: 'Formulir Kehadiran RSVP' },
+  { id: 'wishes', label: 'Ucapan & Doa Restu', icon: '💬', defaultTitle: 'Wishes Feed & Ucapan' },
+  { id: 'gift', label: 'Amplop Digital / Hadiah / Tiket', icon: '🎁', defaultTitle: 'Gift Registry & Tiket' },
+  { id: 'ig_stories', label: 'Instagram Stories Template', icon: '📸', defaultTitle: 'Template IG Stories' },
+  { id: 'thank_you', label: 'Ucapan Terimakasih', icon: '🙏', defaultTitle: 'Penutup & Terimakasih' },
+  { id: 'footer', label: 'Footer & Watermark', icon: '📌', defaultTitle: 'Footer & Credit Platform', isFixed: true },
+];
+
 export interface StudioNode {
   id: string;
   type: NodeType;
+  sectionType?: SectionType;
   label?: string;
   content?: string;
   children?: StudioNode[];
