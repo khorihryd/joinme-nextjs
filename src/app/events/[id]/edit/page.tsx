@@ -270,6 +270,25 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     };
 
     const updatedNodes = updateRecursive(currentNodes);
+
+    // Sync image URL changes to details state if bound to fotoPria, fotoWanita, cover_photo, or id matches
+    if ((prop === 'content' || prop === 'src') && selectedNode) {
+      const binding = selectedNode.binding || '';
+      const id = selectedNode.id || '';
+      if (binding === 'fotoPria' || id.includes('pria')) {
+        setDetails((prev: any) => ({ ...prev, fotoPria: val, studioNodes: updatedNodes }));
+        return;
+      }
+      if (binding === 'fotoWanita' || id.includes('wanita')) {
+        setDetails((prev: any) => ({ ...prev, fotoWanita: val, studioNodes: updatedNodes }));
+        return;
+      }
+      if (binding === 'cover_photo' || id.includes('cover')) {
+        setDetails((prev: any) => ({ ...prev, cover_photo: val, studioNodes: updatedNodes }));
+        return;
+      }
+    }
+
     setDetails((prev: any) => ({
       ...prev,
       studioNodes: updatedNodes,

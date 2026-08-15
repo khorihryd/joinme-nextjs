@@ -1170,13 +1170,21 @@ export function NodeRenderer({
   // Image
   if (node.type === 'image') {
     const isGalleryImage = !!node.showInGallery;
-    let imageUrl = node.content || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
+    let imageUrl = node.content || (node as any).src || '';
 
-    if (node.isDynamic && node.binding && eventDetails) {
-      const boundVal = (eventDetails as any)[node.binding] || (SAMPLE_VARIABLES as any)[node.binding];
-      if (boundVal) {
+    if (node.binding && eventDetails) {
+      const boundVal = (eventDetails as any)[node.binding];
+      if (node.content && node.content.trim() !== '' && node.content !== (SAMPLE_VARIABLES as any)[node.binding]) {
+        imageUrl = node.content;
+      } else if (boundVal) {
         imageUrl = boundVal;
+      } else if ((SAMPLE_VARIABLES as any)[node.binding]) {
+        imageUrl = (SAMPLE_VARIABLES as any)[node.binding];
       }
+    }
+
+    if (!imageUrl) {
+      imageUrl = 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
     }
 
     const handleImageClick = (e: React.MouseEvent) => {
