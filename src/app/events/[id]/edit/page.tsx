@@ -375,6 +375,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     ].filter(Boolean),
     ticketUrl: details.ticketUrl,
     liveStreamUrl: details.liveStreamUrl,
+    coverTitle: details.coverTitle,
+    coverCoupleName: details.coverCoupleName,
+    cover_photo: details.cover_photo,
     sectionOrder: currentSectionOrder,
     hiddenSections: hiddenSectionsMap,
   };
@@ -683,17 +686,23 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       💌 1. Section Cover (Sampul Undangan)
                     </h2>
                     <p className="panel-desc" style={{ marginBottom: '2rem' }}>
-                      Cover adalah tampilan pembuka paling depan yang dikunci aktif di posisi teratas.
+                      Atur judul sampul utama, nama mempelai/pasangan yang tampil pada cover, dan foto latar utama.
                     </p>
 
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem' }}>
-                      <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      <div className="form-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Judul Sampul Utama</label>
                         <input type="text" placeholder="WALIMATUL URSY" value={details.coverTitle || ''} onChange={(e) => setDetails({ ...details, coverTitle: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                       </div>
+
                       <div className="form-group">
-                        <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>🖼️ URL Foto Sampul Utama (cover_photo)</label>
-                        <input type="text" placeholder="https://images.unsplash.com/..." value={details.cover_photo || ''} onChange={(e) => setDetails({ ...details, cover_photo: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                        <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nama Mempelai / Pasangan pada Cover</label>
+                        <input type="text" placeholder="Roni &amp; Anti" value={details.coverCoupleName || ''} onChange={(e) => setDetails({ ...details, coverCoupleName: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>🖼️ URL Foto Latar Sampul Utama (cover_photo)</label>
+                        <input type="text" placeholder="https://images.unsplash.com/photo-..." value={details.cover_photo || ''} onChange={(e) => setDetails({ ...details, cover_photo: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
                       </div>
                     </div>
 

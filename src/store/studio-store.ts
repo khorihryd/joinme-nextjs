@@ -89,6 +89,15 @@ export function resolveTextVariables(text: string, eventDetails?: any): string {
     if (eventDetails.address) vars.alamat_lengkap = eventDetails.address;
     if (eventDetails.city) vars.kota_acara = eventDetails.city;
 
+    if (eventDetails.coverTitle) {
+      vars.cover_title = eventDetails.coverTitle;
+      vars.judul_sampul = eventDetails.coverTitle;
+    }
+    if (eventDetails.coverCoupleName) {
+      vars.cover_couple_name = eventDetails.coverCoupleName;
+      vars.nama_mempelai_cover = eventDetails.coverCoupleName;
+    }
+
     if (eventDetails.childName) vars.nama_anak = eventDetails.childName;
     if (eventDetails.birthdayName) vars.nama_yang_ultah = eventDetails.birthdayName;
     if (eventDetails.age) vars.umur = eventDetails.age;
