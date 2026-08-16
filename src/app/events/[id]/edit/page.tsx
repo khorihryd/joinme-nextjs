@@ -830,6 +830,216 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               )}
             </div>
           )}
+
+          {/* TAB 2: MEDIA & FOTO */}
+          {primaryTab === 'media' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                📁 Media & Pustaka Foto
+              </div>
+
+              {/* Foto Mempelai Pria */}
+              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  🤵 Foto Mempelai Pria
+                </div>
+                {details.fotoPria && (
+                  <img src={details.fotoPria} alt="Foto Pria" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px' }} />
+                )}
+                <label style={{ display: 'inline-block', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
+                  📤 Unggah Foto Pria
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => setDetails((prev: any) => ({ ...prev, fotoPria: url })))} />
+                </label>
+                <input type="text" placeholder="atau tempel URL foto..." value={details.fotoPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }} />
+              </div>
+
+              {/* Foto Mempelai Wanita */}
+              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  👰 Foto Mempelai Wanita
+                </div>
+                {details.fotoWanita && (
+                  <img src={details.fotoWanita} alt="Foto Wanita" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px' }} />
+                )}
+                <label style={{ display: 'inline-block', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
+                  📤 Unggah Foto Wanita
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => setDetails((prev: any) => ({ ...prev, fotoWanita: url })))} />
+                </label>
+                <input type="text" placeholder="atau tempel URL foto..." value={details.fotoWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }} />
+              </div>
+
+              {/* Foto Cover Utama */}
+              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  💌 Foto Cover Utama
+                </div>
+                {details.cover_photo && (
+                  <img src={details.cover_photo} alt="Foto Cover" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px' }} />
+                )}
+                <label style={{ display: 'inline-block', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
+                  📤 Unggah Foto Cover
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => setDetails((prev: any) => ({ ...prev, cover_photo: url })))} />
+                </label>
+                <input type="text" placeholder="atau tempel URL foto..." value={details.cover_photo || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, cover_photo: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }} />
+              </div>
+
+              {/* Album Galeri Foto */}
+              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  🖼️ Album Galeri Foto Undangan
+                </div>
+
+                <label style={{ display: 'inline-block', padding: '0.6rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
+                  📤 Unggah Foto Galeri (Bisa Pilih Banyak Foto)
+                  <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => handleMultiFileUpload(e, (urls) => setDetails((prev: any) => ({ ...prev, gallery: urls })))} />
+                </label>
+
+                {Array.isArray(details.gallery) && details.gallery.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    {details.gallery.map((imgUrl: string, gIdx: number) => (
+                      <div key={`gal-item-${gIdx}`} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', height: '90px' }}>
+                        <img src={imgUrl} alt={`Galeri ${gIdx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedGal = details.gallery.filter((_: any, idx: number) => idx !== gIdx);
+                            setDetails((prev: any) => ({ ...prev, gallery: updatedGal }));
+                          }}
+                          style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '50%', width: '22px', height: '22px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: TAMPILAN VISUAL */}
+          {primaryTab === 'visual' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                🎨 Pengaturan Visual Section
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Pilih Section yang Diatur</label>
+                <select
+                  value={selectedVisualSection}
+                  onChange={(e) => setSelectedVisualSection(e.target.value)}
+                  style={{ width: '100%', padding: '0.55rem', fontSize: '0.82rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
+                >
+                  <option value="cover">💌 Section Cover</option>
+                  <option value="hero">👑 Section Hero</option>
+                  <option value="opening">✨ Section Opening</option>
+                  <option value="bride_groom">👩‍❤️‍👨 Section Mempelai</option>
+                  <option value="event_schedule">📅 Section Rangkaian Acara</option>
+                  <option value="love_story">📖 Section Kisah Cinta</option>
+                  <option value="gallery">🖼️ Section Galeri</option>
+                  <option value="rsvp">💌 Section RSVP</option>
+                  <option value="footer">🌸 Section Closing & Footer</option>
+                </select>
+              </div>
+
+              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  ⚙️ Style Background: Section {selectedVisualSection}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Foto Latar Belakang Container</label>
+                  <label style={{ display: 'block', padding: '0.45rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '6px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', marginBottom: '0.35rem' }}>
+                    📤 Unggah Foto Latar
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => {
+                      setDetails((prev: any) => ({
+                        ...prev,
+                        sectionVisuals: {
+                          ...(prev.sectionVisuals || {}),
+                          [selectedVisualSection]: {
+                            ...(prev.sectionVisuals?.[selectedVisualSection] || {}),
+                            backgroundImage: url,
+                          },
+                        },
+                      }));
+                    })} />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://images.unsplash.com/..."
+                    value={details.sectionVisuals?.[selectedVisualSection]?.backgroundImage || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDetails((prev: any) => ({
+                        ...prev,
+                        sectionVisuals: {
+                          ...(prev.sectionVisuals || {}),
+                          [selectedVisualSection]: {
+                            ...(prev.sectionVisuals?.[selectedVisualSection] || {}),
+                            backgroundImage: val,
+                          },
+                        },
+                      }));
+                    }}
+                    style={{ width: '100%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Warna Latar Belakang Tint</label>
+                  <input
+                    type="color"
+                    value={details.sectionVisuals?.[selectedVisualSection]?.backgroundColor || '#ffffff'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDetails((prev: any) => ({
+                        ...prev,
+                        sectionVisuals: {
+                          ...(prev.sectionVisuals || {}),
+                          [selectedVisualSection]: {
+                            ...(prev.sectionVisuals?.[selectedVisualSection] || {}),
+                            backgroundColor: val,
+                          },
+                        },
+                      }));
+                    }}
+                    style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer', background: '#fff' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Visibilitas Section ini</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const isHidden = details.hiddenSections?.[selectedVisualSection];
+                      setDetails((prev: any) => ({
+                        ...prev,
+                        hiddenSections: {
+                          ...(prev.hiddenSections || {}),
+                          [selectedVisualSection]: !isHidden,
+                        },
+                      }));
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: details.hiddenSections?.[selectedVisualSection] ? '#fee2e2' : '#dcfce7',
+                      color: details.hiddenSections?.[selectedVisualSection] ? '#dc2626' : '#16a34a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {details.hiddenSections?.[selectedVisualSection] ? '🙈 Sembunyikan Section Ini' : '👁️ Tampilkan Section Ini'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 
