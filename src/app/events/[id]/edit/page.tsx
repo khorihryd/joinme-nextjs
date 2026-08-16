@@ -225,6 +225,44 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     setDetails((prev: any) => ({ ...prev, story: updated }));
   };
 
+  const [primaryTab, setPrimaryTab] = useState<'data' | 'media' | 'visual'>('data');
+  const [dataSectionTab, setDataSectionTab] = useState<'cover' | 'bride_groom' | 'event_schedule' | 'love_story' | 'gift' | 'general'>('bride_groom');
+  const [selectedVisualSection, setSelectedVisualSection] = useState<string>('cover');
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        callback(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleMultiFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (urls: string[]) => void) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const currentGallery = Array.isArray(details.gallery) ? [...details.gallery] : [];
+    const newUrls: string[] = [];
+    let count = 0;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          newUrls.push(event.target.result as string);
+        }
+        count++;
+        if (count === files.length) {
+          callback([...currentGallery, ...newUrls]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)
     ? (details.studioNodes as unknown as StudioNode[])
     : (event?.details?.studioNodes && Array.isArray(event.details.studioNodes) && event.details.studioNodes.length > 0)
@@ -268,11 +306,26 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const handleSelectMiniNodeOnCanvas = (nodeId: string, sectionType?: string) => {
     setSelectedMiniNodeId(nodeId);
 
-    // Auto open cover if node is not in cover section
-    if (sectionType && sectionType !== 'cover') {
-      setIsCoverOpened(true);
-    } else if (sectionType === 'cover') {
-      setIsCoverOpened(false);
+    const sType = (sectionType || '').toLowerCase();
+    const nid = (nodeId || '').toLowerCase();
+
+    if (sType === 'cover' || nid.includes('cover')) {
+      setPrimaryTab('data');
+      setDataSectionTab('cover');
+    } else if (sType === 'bride_groom' || nid.includes('pria') || nid.includes('wanita') || nid.includes('mempelai')) {
+      setPrimaryTab('data');
+      setDataSectionTab('bride_groom');
+    } else if (sType === 'event_schedule' || nid.includes('schedule') || nid.includes('event')) {
+      setPrimaryTab('data');
+      setDataSectionTab('event_schedule');
+    } else if (sType === 'love_story' || nid.includes('story')) {
+      setPrimaryTab('data');
+      setDataSectionTab('love_story');
+    } else if (sType === 'gallery' || nid.includes('gallery') || nid.includes('galeri')) {
+      setPrimaryTab('media');
+    } else if (sType === 'gift' || nid.includes('gift') || nid.includes('bank') || nid.includes('rekening')) {
+      setPrimaryTab('data');
+      setDataSectionTab('gift');
     }
   };
 
@@ -462,577 +515,322 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           </Link>
         </div>
 
-        {/* Collapsible Button: Informasi Umum */}
-        <div style={{ padding: '0.5rem 1.25rem' }}>
+        {/* PRIMARY SIDEBAR TABS HEADER (3 TABS: DATA, MEDIA, VISUAL) */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)' }}>
           <button
             type="button"
-            onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+            onClick={() => setPrimaryTab('data')}
             style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '10px',
-              border: '1px solid var(--border-color)',
-              backgroundColor: isInfoExpanded ? 'var(--primary-light, #fff0f5)' : 'var(--bg-body)',
-              color: isInfoExpanded ? 'var(--primary)' : 'var(--text-primary)',
-              fontSize: '0.88rem',
+              flex: 1,
+              padding: '0.75rem 0.2rem',
+              fontSize: '0.78rem',
               fontWeight: 800,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              border: 'none',
+              borderBottom: primaryTab === 'data' ? '3px solid var(--primary)' : '3px solid transparent',
+              backgroundColor: primaryTab === 'data' ? 'var(--bg-card)' : 'transparent',
+              color: primaryTab === 'data' ? 'var(--primary)' : 'var(--text-secondary)',
               cursor: 'pointer',
             }}
           >
-            <span>⚙️ Informasi Umum</span>
-            <span>{isInfoExpanded ? '▲' : '▼'}</span>
+            📝 Data
           </button>
-
-          {/* Expanded Metadata Form */}
-          {isInfoExpanded && (
-            <div style={{ marginTop: '0.75rem', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Judul Acara</label>
-                <input type="text" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Slug Subdomain</label>
-                <input type="text" value={eventSubdomain} onChange={(e) => setEventSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Status Undangan</label>
-                <select value={status} onChange={(e) => setStatus(e.target.value as any)} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <option value="Draft">Draft 📄</option>
-                  <option value="Aktif">Aktif 🚀</option>
-                </select>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  loadActiveTemplates();
-                  setIsThemeModalOpen(true);
-                }}
-                className="btn btn-secondary"
-                style={{ fontSize: '0.78rem', padding: '0.5rem', fontWeight: 700, color: 'var(--primary)' }}
-              >
-                ✨ Ganti Tema Undangan
-              </button>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setPrimaryTab('media')}
+            style={{
+              flex: 1,
+              padding: '0.75rem 0.2rem',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              border: 'none',
+              borderBottom: primaryTab === 'media' ? '3px solid var(--primary)' : '3px solid transparent',
+              backgroundColor: primaryTab === 'media' ? 'var(--bg-card)' : 'transparent',
+              color: primaryTab === 'media' ? 'var(--primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+            }}
+          >
+            📁 Media
+          </button>
+          <button
+            type="button"
+            onClick={() => setPrimaryTab('visual')}
+            style={{
+              flex: 1,
+              padding: '0.75rem 0.2rem',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              border: 'none',
+              borderBottom: primaryTab === 'visual' ? '3px solid var(--primary)' : '3px solid transparent',
+              backgroundColor: primaryTab === 'visual' ? 'var(--bg-card)' : 'transparent',
+              color: primaryTab === 'visual' ? 'var(--primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+            }}
+          >
+            🎨 Visual
+          </button>
         </div>
 
-        {/* MAIN PANEL: PROPERTIES */}
+        {/* SIDEBAR TAB CONTENTS */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: '1rem 1.25rem' }}>
-          <div style={{ paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-              Properties
-            </h3>
-            {selectedNode && (
-              <button
-                type="button"
-                onClick={() => setSelectedMiniNodeId(null)}
-                style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: '#ef4444', fontWeight: 800, cursor: 'pointer' }}
-              >
-                ✕ Batal Pilih
-              </button>
-            )}
-          </div>
 
-          {/* PROPERTIES PANEL CONTENT */}
-          {!selectedNode ? (
-            /* Default Empty State when No Element Selected */
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 1rem' }}>
-              <div style={{ fontSize: '2.8rem', marginBottom: '0.75rem', opacity: 0.8 }}>👆</div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-                Pilih Elemen di Canvas
-              </h4>
-              <p style={{ fontSize: '0.78rem', lineHeight: 1.5, margin: 0 }}>
-                Klik salah satu elemen pada canvas pratinjau untuk mulai mengedit teks, variabel, foto, atau warna latar belakangnya.
-              </p>
-            </div>
-          ) : (
-            /* Active Node Customized Properties Form */
+          {/* TAB 1: DATA UNDANGAN */}
+          {primaryTab === 'data' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {/* Selected Node Header Badge */}
-              <div style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', backgroundColor: 'var(--primary-light, #fff0f5)', border: '1px solid var(--primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                  {(selectedNode.sectionType === 'love_story' || selectedNode.id?.includes('love_story') || selectedNode.id?.includes('story') || (selectedNode as any).isLoveStoryFeed)
-                    ? '📖 Section Kisah Cinta'
-                    : (selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed)
-                    ? '📅 Section Acara & Lokasi'
-                    : selectedNode.type === 'container'
-                    ? '📦 Container Section'
-                    : selectedNode.type === 'image'
-                    ? '📸 Gambar Widget'
-                    : `✍️ Teks ${selectedNode.type}`}
-                </span>
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                  {selectedNode.label || selectedNode.id}
-                </span>
+              {/* Data Section Selector Pills */}
+              <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.4rem' }} className="no-scrollbar">
+                {[
+                  { id: 'bride_groom', label: '👩‍❤️‍👨 Mempelai' },
+                  { id: 'event_schedule', label: '📅 Acara' },
+                  { id: 'love_story', label: '📖 Kisah Cinta' },
+                  { id: 'cover', label: '💌 Cover' },
+                  { id: 'gift', label: '💳 Hadiah' },
+                  { id: 'general', label: '⚙️ Pengaturan' },
+                ].map((sec) => (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => setDataSectionTab(sec.id as any)}
+                    style={{
+                      padding: '0.45rem 0.75rem',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      whiteSpace: 'nowrap',
+                      borderRadius: '20px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: dataSectionTab === sec.id ? 'var(--primary)' : 'var(--bg-body)',
+                      color: dataSectionTab === sec.id ? '#ffffff' : 'var(--text-primary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {sec.label}
+                  </button>
+                ))}
               </div>
 
-              {/* Love Story Form (Shown when clicking any element in Love Story Section) */}
-              {(selectedNode.sectionType === 'love_story' || selectedNode.id?.includes('love_story') || selectedNode.id?.includes('story') || (selectedNode as any).isLoveStoryFeed) ? (
+              {/* Data Form: Data Mempelai */}
+              {dataSectionTab === 'bride_groom' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {storyList.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.5rem 1rem', backgroundColor: 'var(--bg-body)', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ fontSize: '2rem' }}>📖</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                        Belum Ada Kisah Cinta
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                        Tambahkan rincian momen perjalanan cinta Anda (seperti Pertemuan Pertama, Pacaran, Lamaran) untuk ditampilkan pada undangan.
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddStory}
-                        style={{
-                          marginTop: '0.5rem',
-                          width: '100%',
-                          padding: '0.65rem',
-                          fontSize: '0.82rem',
-                          fontWeight: 800,
-                          borderRadius: '8px',
-                          backgroundColor: 'var(--primary)',
-                          color: '#ffffff',
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        ➕ Tambah Kisah Cinta Pertama
-                      </button>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    👩‍❤️‍👨 Data Mempelai Pria & Wanita
+                  </div>
+
+                  {/* Mempelai Pria */}
+                  <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      🤵 Mempelai Pria
                     </div>
-                  ) : (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      Kelola rincian cerita momen perjalanan cinta Anda di bawah ini. Perubahan langsung ter-update di canvas.
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Lengkap & Gelar</label>
+                      <input type="text" placeholder="misal: Roni Wijaya, S.Kom." value={details.mempelaiPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, mempelaiPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
                     </div>
-                  )}
-
-                  {storyList.map((st: any, idx: number) => (
-                    <div key={`story-form-item-${idx}`} style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                          Momen #{idx + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveStory(idx)}
-                          style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                        >
-                          🗑️ Hapus
-                        </button>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tahun / Tanggal Momen</label>
-                        <input
-                          type="text"
-                          placeholder="misal: 2021 / 14 Februari 2021"
-                          value={st.year || st.date || ''}
-                          onChange={(e) => {
-                            handleUpdateStory(idx, 'year', e.target.value);
-                            handleUpdateStory(idx, 'date', e.target.value);
-                          }}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Judul Momen</label>
-                        <input
-                          type="text"
-                          placeholder="misal: Pertemuan Pertama"
-                          value={st.title || ''}
-                          onChange={(e) => handleUpdateStory(idx, 'title', e.target.value)}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Cerita Momen</label>
-                        <textarea
-                          rows={3}
-                          placeholder="Tuliskan kisah perjalanan cinta Anda pada momen ini..."
-                          value={st.description || st.story || st.content || ''}
-                          onChange={(e) => {
-                            handleUpdateStory(idx, 'description', e.target.value);
-                            handleUpdateStory(idx, 'story', e.target.value);
-                          }}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>URL Foto Momen (Opsional)</label>
-                        <input
-                          type="text"
-                          placeholder="https://images.unsplash.com/..."
-                          value={st.image || st.photo || ''}
-                          onChange={(e) => {
-                            handleUpdateStory(idx, 'image', e.target.value);
-                            handleUpdateStory(idx, 'photo', e.target.value);
-                          }}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Panggilan</label>
+                      <input type="text" placeholder="misal: Roni" value={details.panggilanPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, panggilanPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
                     </div>
-                  ))}
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Orang Tua & Putra Ke-</label>
+                      <input type="text" placeholder="Putra pertama dari Bapak..." value={details.ortuPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, ortuPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Username Instagram</label>
+                      <input type="text" placeholder="@roni_wijaya" value={details.igPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, igPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                  </div>
 
-                  {storyList.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleAddStory}
-                      style={{
-                        width: '100%',
-                        padding: '0.6rem',
-                        fontSize: '0.8rem',
-                        fontWeight: 800,
-                        borderRadius: '8px',
-                        border: '1px dashed var(--primary)',
-                        backgroundColor: 'var(--primary-light, #fff0f5)',
-                        color: 'var(--primary)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ➕ Tambah Momen Baru
-                    </button>
-                  )}
+                  {/* Mempelai Wanita */}
+                  <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      👰 Mempelai Wanita
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Lengkap & Gelar</label>
+                      <input type="text" placeholder="misal: Anti Kartika, S.T." value={details.mempelaiWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, mempelaiWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Panggilan</label>
+                      <input type="text" placeholder="misal: Anti" value={details.panggilanWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, panggilanWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Orang Tua & Putri Ke-</label>
+                      <input type="text" placeholder="Putri kedua dari Bapak..." value={details.ortuWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, ortuWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Username Instagram</label>
+                      <input type="text" placeholder="@anti_kartika" value={details.igWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, igWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                  </div>
                 </div>
-              ) : (selectedNode.sectionType === 'event_schedule' || selectedNode.id?.includes('schedule') || selectedNode.id?.includes('event') || (selectedNode as any).isEventFeed) ? (
+              )}
+
+              {/* Data Form: Rangkaian Acara */}
+              {dataSectionTab === 'event_schedule' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    📅 Rangkaian Acara & Lokasi
+                  </div>
+
                   {schedulesList.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '1.5rem 1rem', backgroundColor: 'var(--bg-body)', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                       <div style={{ fontSize: '2rem' }}>📅</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                        Belum Ada Rangkaian Acara
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                        Tambahkan rincian acara baru (seperti Akad Nikah, Resepsi, Syukuran) untuk ditampilkan pada undangan.
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddSchedule}
-                        style={{
-                          marginTop: '0.5rem',
-                          width: '100%',
-                          padding: '0.65rem',
-                          fontSize: '0.82rem',
-                          fontWeight: 800,
-                          borderRadius: '8px',
-                          backgroundColor: 'var(--primary)',
-                          color: '#ffffff',
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                      >
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>Belum Ada Acara</div>
+                      <button type="button" onClick={handleAddSchedule} style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', cursor: 'pointer' }}>
                         ➕ Tambah Acara Pertama
                       </button>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      Kelola daftar rangkaian acara (Akad Nikah, Resepsi, Syukuran) di bawah ini. Perubahan langsung ter-update di canvas.
-                    </div>
+                    schedulesList.map((sch: any, idx: number) => (
+                      <div key={`sch-item-${idx}`} style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>Acara #{idx + 1}</span>
+                          <button type="button" onClick={() => handleRemoveSchedule(idx)} style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', fontWeight: 700 }}>🗑️ Hapus</button>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Acara</label>
+                          <input type="text" placeholder="misal: Akad Nikah" value={sch.title || sch.name || ''} onChange={(e) => handleUpdateSchedule(idx, 'title', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tanggal Acara</label>
+                          <input type="text" placeholder="misal: Senin, 21 September 2026" value={sch.date || ''} onChange={(e) => handleUpdateSchedule(idx, 'date', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Waktu / Jam</label>
+                          <input type="text" placeholder="misal: 08:00 - 10:00 WIB" value={sch.time || ''} onChange={(e) => handleUpdateSchedule(idx, 'time', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Tempat / Gedung</label>
+                          <input type="text" placeholder="misal: Grand Ballroom Hotel Mulia" value={sch.place || sch.location || ''} onChange={(e) => handleUpdateSchedule(idx, 'place', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Alamat Lengkap</label>
+                          <textarea rows={2} placeholder="Jl. Asia Afrika No. 8, Senayan..." value={sch.address || ''} onChange={(e) => handleUpdateSchedule(idx, 'address', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>URL Google Maps</label>
+                          <input type="text" placeholder="https://maps.google.com/..." value={sch.mapsUrl || sch.mapUrl || ''} onChange={(e) => handleUpdateSchedule(idx, 'mapsUrl', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                      </div>
+                    ))
                   )}
 
-                  {schedulesList.map((sch: any, idx: number) => (
-                    <div key={`sch-form-item-${idx}`} style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                          Acara #{idx + 1}
-                        </span>
-                        {schedulesList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSchedule(idx)}
-                            style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                          >
-                            🗑️ Hapus
-                          </button>
-                        )}
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Acara</label>
-                        <input
-                          type="text"
-                          placeholder="misal: Akad Nikah"
-                          value={sch.title || sch.name || ''}
-                          onChange={(e) => handleUpdateSchedule(idx, 'title', e.target.value)}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tanggal Acara</label>
-                        <input
-                          type="text"
-                          placeholder="misal: Senin, 21 September 2026"
-                          value={sch.date || ''}
-                          onChange={(e) => handleUpdateSchedule(idx, 'date', e.target.value)}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Waktu / Jam</label>
-                        <input
-                          type="text"
-                          placeholder="misal: 08:00 - 10:00 WIB"
-                          value={sch.time || ''}
-                          onChange={(e) => handleUpdateSchedule(idx, 'time', e.target.value)}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Tempat / Gedung</label>
-                        <input
-                          type="text"
-                          placeholder="misal: Grand Ballroom Hotel Mulia"
-                          value={sch.place || sch.location || ''}
-                          onChange={(e) => {
-                            handleUpdateSchedule(idx, 'place', e.target.value);
-                            handleUpdateSchedule(idx, 'location', e.target.value);
-                          }}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Alamat Lengkap</label>
-                        <textarea
-                          rows={2}
-                          placeholder="Jl. Asia Afrika No. 8, Senayan..."
-                          value={sch.address || ''}
-                          onChange={(e) => handleUpdateSchedule(idx, 'address', e.target.value)}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>URL Google Maps</label>
-                        <input
-                          type="text"
-                          placeholder="https://maps.google.com/..."
-                          value={sch.mapsUrl || sch.mapUrl || ''}
-                          onChange={(e) => {
-                            handleUpdateSchedule(idx, 'mapsUrl', e.target.value);
-                            handleUpdateSchedule(idx, 'mapUrl', e.target.value);
-                          }}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={handleAddSchedule}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 800,
-                      borderRadius: '8px',
-                      border: '1px dashed var(--primary)',
-                      backgroundColor: 'var(--primary-light, #fff0f5)',
-                      color: 'var(--primary)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ➕ Tambah Rangkaian Acara Baru
-                  </button>
+                  {schedulesList.length > 0 && (
+                    <button type="button" onClick={handleAddSchedule} style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '8px', border: '1px dashed var(--primary)', backgroundColor: 'var(--primary-light, #fff0f5)', color: 'var(--primary)', cursor: 'pointer' }}>
+                      ➕ Tambah Rangkaian Acara Baru
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <>
-
-              {/* Text / Heading / Button Properties */}
-              {['heading', 'text', 'button'].includes(selectedNode.type) && (
-                <>
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                      Isi Teks Konten
-                    </label>
-                    {selectedNode.type === 'text' ? (
-                      <textarea
-                        rows={4}
-                        value={selectedNode.content || ''}
-                        onChange={(e) => updateStudioNodeProp(selectedNode.id, 'content', e.target.value, false)}
-                        style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)' }}
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedNode.content || ''}
-                        onChange={(e) => updateStudioNodeProp(selectedNode.id, 'content', e.target.value, false)}
-                        style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)' }}
-                      />
-                    )}
-
-                    {/* Dynamic Variable Chips */}
-                    <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                      {['{nama_mempelai}', '{tanggal_acara}', '{lokasi_acara}', '{nama_tamu}'].map((vTag) => (
-                        <button
-                          key={vTag}
-                          type="button"
-                          onClick={() => updateStudioNodeProp(selectedNode.id, 'content', (selectedNode.content || '') + ' ' + vTag, false)}
-                          style={{ fontSize: '0.68rem', padding: '3px 7px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--primary)', cursor: 'pointer', fontWeight: 700 }}
-                        >
-                          + {vTag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Visual Style: Color & Font Size & Alignment */}
-                  <div style={{ padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                      <div>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Warna Teks</label>
-                        <input
-                          type="color"
-                          value={selectedNode.style?.color || '#1e293b'}
-                          onChange={(e) => updateStudioNodeProp(selectedNode.id, 'color', e.target.value, true)}
-                          style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', background: '#fff' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Ukuran Font (px)</label>
-                        <input
-                          type="number"
-                          value={selectedNode.style?.fontSize || 16}
-                          onChange={(e) => updateStudioNodeProp(selectedNode.id, 'fontSize', parseInt(e.target.value, 10) || 16, true)}
-                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Alignment Teks</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem' }}>
-                        {[
-                          { id: 'left', label: '⬅️ Kiri' },
-                          { id: 'center', label: '↔️ Tengah' },
-                          { id: 'right', label: '➡️ Kanan' },
-                        ].map((align) => (
-                          <button
-                            key={align.id}
-                            type="button"
-                            onClick={() => updateStudioNodeProp(selectedNode.id, 'textAlign', align.id, true)}
-                            style={{
-                              padding: '0.4rem',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              borderRadius: '6px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: selectedNode.style?.textAlign === align.id ? 'var(--primary)' : 'var(--bg-card)',
-                              color: selectedNode.style?.textAlign === align.id ? '#ffffff' : 'var(--text-primary)',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {align.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
               )}
 
-              {/* Image Widget Properties */}
-              {selectedNode.type === 'image' && (
-                <div style={{ padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                      URL Foto / Gambar
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://images.unsplash.com/..."
-                      value={selectedNode.content || (selectedNode as any).src || ''}
-                      onChange={(e) => {
-                        updateStudioNodeProp(selectedNode.id, 'content', e.target.value, false);
-                        updateStudioNodeProp(selectedNode.id, 'src', e.target.value, false);
-                      }}
-                      style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: '#fff' }}
-                    />
+              {/* Data Form: Kisah Cinta */}
+              {dataSectionTab === 'love_story' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    📖 Section Kisah Cinta (Love Story)
                   </div>
 
+                  {storyList.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 1rem', backgroundColor: 'var(--bg-body)', borderRadius: '12px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '2rem' }}>📖</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>Belum Ada Kisah Cinta</div>
+                      <button type="button" onClick={handleAddStory} style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', cursor: 'pointer' }}>
+                        ➕ Tambah Kisah Cinta Pertama
+                      </button>
+                    </div>
+                  ) : (
+                    storyList.map((st: any, idx: number) => (
+                      <div key={`story-item-${idx}`} style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>Momen #{idx + 1}</span>
+                          <button type="button" onClick={() => handleRemoveStory(idx)} style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', fontWeight: 700 }}>🗑️ Hapus</button>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tahun / Tanggal Momen</label>
+                          <input type="text" placeholder="misal: 2021" value={st.year || st.date || ''} onChange={(e) => handleUpdateStory(idx, 'year', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Judul Momen</label>
+                          <input type="text" placeholder="misal: Pertama Pertemuan" value={st.title || ''} onChange={(e) => handleUpdateStory(idx, 'title', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Cerita Momen</label>
+                          <textarea rows={3} placeholder="Tuliskan cerita..." value={st.description || st.story || ''} onChange={(e) => handleUpdateStory(idx, 'description', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  {storyList.length > 0 && (
+                    <button type="button" onClick={handleAddStory} style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '8px', border: '1px dashed var(--primary)', backgroundColor: 'var(--primary-light, #fff0f5)', color: 'var(--primary)', cursor: 'pointer' }}>
+                      ➕ Tambah Momen Baru
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Data Form: Cover */}
+              {dataSectionTab === 'cover' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    💌 Sampul & Cover Undangan
+                  </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                      Binding Variabel Foto Dinamis
-                    </label>
-                    <select
-                      value={selectedNode.binding || ''}
-                      onChange={(e) => updateStudioNodeProp(selectedNode.id, 'binding', e.target.value, false)}
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                    >
-                      <option value="">(Tanpa Binding - Foto Statis)</option>
-                      <option value="fotoPria">🤵 Foto Mempelai Pria (fotoPria)</option>
-                      <option value="fotoWanita">👰 Foto Mempelai Wanita (fotoWanita)</option>
-                      <option value="cover_photo">💌 Foto Sampul Cover (cover_photo)</option>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Judul Teks Cover</label>
+                    <input type="text" placeholder="The Wedding Of" value={details.coverTitle || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, coverTitle: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Nama Pasangan di Cover</label>
+                    <input type="text" placeholder="Roni & Anti" value={details.coverCoupleName || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, coverCoupleName: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Data Form: Hadiah & Rekening */}
+              {dataSectionTab === 'gift' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    💳 Hadiah & Amplop Digital
+                  </div>
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>Bank / E-Wallet #1</div>
+                    <input type="text" placeholder="Nama Bank (misal: BCA)" value={details.bank1Nama || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, bank1Nama: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    <input type="text" placeholder="Nomor Rekening" value={details.bank1Rek || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, bank1Rek: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    <input type="text" placeholder="Atas Nama" value={details.bank1An || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, bank1An: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>Bank / E-Wallet #2</div>
+                    <input type="text" placeholder="Nama Bank (misal: Mandiri / GoPay)" value={details.bank2Nama || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, bank2Nama: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    <input type="text" placeholder="Nomor Rekening" value={details.bank2Rek || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, bank2Rek: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    <input type="text" placeholder="Atas Nama" value={details.bank2An || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, bank2An: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Data Form: Pengaturan */}
+              {dataSectionTab === 'general' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    ⚙️ Pengaturan Undangan
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Judul Undangan</label>
+                    <input type="text" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Slug Subdomain</label>
+                    <input type="text" value={eventSubdomain} onChange={(e) => setEventSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Status Undangan</label>
+                    <select value={status} onChange={(e) => setStatus(e.target.value as any)} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <option value="Draft">Draft 📄</option>
+                      <option value="Aktif">Aktif 🚀</option>
                     </select>
                   </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
-                      Border Radius (px)
-                    </label>
-                    <input
-                      type="number"
-                      value={selectedNode.style?.borderRadius || 0}
-                      onChange={(e) => updateStudioNodeProp(selectedNode.id, 'borderRadius', parseInt(e.target.value, 10) || 0, true)}
-                      style={{ width: '100%', padding: '0.45rem', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                    />
-                  </div>
                 </div>
               )}
-
-              {/* Container Properties */}
-              {selectedNode.type === 'container' && (
-                <div style={{ padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                      URL Foto Latar Belakang Container
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://images.unsplash.com/..."
-                      value={selectedNode.style?.backgroundImage || ''}
-                      onChange={(e) => updateStudioNodeProp(selectedNode.id, 'backgroundImage', e.target.value, true)}
-                      style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: '#fff' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                      Warna Latar Belakang Tint (`backgroundColor`)
-                    </label>
-                    <input
-                      type="color"
-                      value={selectedNode.style?.backgroundColor || '#ffffff'}
-                      onChange={(e) => updateStudioNodeProp(selectedNode.id, 'backgroundColor', e.target.value, true)}
-                      style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer', background: '#fff' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                      Padding (Jarak Dalam)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="24px"
-                      value={selectedNode.style?.padding || ''}
-                      onChange={(e) => updateStudioNodeProp(selectedNode.id, 'padding', e.target.value, true)}
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}
-                    />
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
-      )}
-    </div>
       </aside>
 
       {/* MAIN VIEWPORT AREA */}
