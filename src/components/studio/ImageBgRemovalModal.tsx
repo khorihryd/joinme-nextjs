@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { resolveTextVariables } from '@/store/studio-store';
 
 interface ImageBgRemovalModalProps {
   isOpen: boolean;
@@ -57,9 +58,43 @@ export function ImageBgRemovalModal({
   const undoStackRef = useRef<ImageData[]>([]);
   const [canUndo, setCanUndo] = useState<boolean>(false);
 
-  // Reset state on open
+  // Initialize canvas with original image
+  const initCanvas = useCallback((img: HTMLImageElement) => {
+    const canvas = resultCanvasRef.current;
+    if (!canvas || !img) return;
+
+    const w = img.naturalWidth || img.width || 800;
+    const h = img.naturalHeight || img.height || 600;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+
+    // Save initial AI base backup
+    const aiCanvas = document.createElement('canvas');
+    aiCanvas.width = w;
+    aiCanvas.height = h;
+    const aiCtx = aiCanvas.getContext('2d');
+    if (aiCtx) {
+      aiCtx.drawImage(img, 0, 0, w, h);
+      aiResultCanvasRef.current = aiCanvas;
+    }
+  }, []);
+
+  // Reset state on open & load image
   useEffect(() => {
-    if (!isOpen || !imageUrl) return;
+    if (!isOpen) return;
+
+    // Resolve template variable braces if present
+    let targetUrl = imageUrl ? resolveTextVariables(imageUrl) || imageUrl : '';
+    if (!targetUrl || targetUrl.trim() === '' || targetUrl.startsWith('{')) {
+      targetUrl = 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80';
+    }
 
     setIsLoadingImage(true);
     setIsProcessing(false);
@@ -72,28 +107,38 @@ export function ImageBgRemovalModal({
     undoStackRef.current = [];
     setCanUndo(false);
 
+    let isCancelled = false;
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
-    img.onload = () => {
-      originalImageRef.current = img;
-      initCanvas(img);
+    const onImageLoaded = (loadedImg: HTMLImageElement) => {
+      if (isCancelled) return;
+      originalImageRef.current = loadedImg;
       setIsLoadingImage(false);
+      // Ensure canvas DOM is updated before drawing
+      setTimeout(() => {
+        if (!isCancelled) {
+          initCanvas(loadedImg);
+        }
+      }, 20);
+    };
+
+    img.onload = () => {
+      onImageLoaded(img);
     };
 
     img.onerror = () => {
       // Fallback via local proxy to bypass CORS
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(targetUrl)}`;
       const fallbackImg = new Image();
       fallbackImg.crossOrigin = 'anonymous';
 
       fallbackImg.onload = () => {
-        originalImageRef.current = fallbackImg;
-        initCanvas(fallbackImg);
-        setIsLoadingImage(false);
+        onImageLoaded(fallbackImg);
       };
 
       fallbackImg.onerror = () => {
+        if (isCancelled) return;
         setIsLoadingImage(false);
         setErrorMsg('Gagal memuat gambar. Pastikan URL gambar valid dan dapat diakses.');
       };
@@ -101,33 +146,19 @@ export function ImageBgRemovalModal({
       fallbackImg.src = proxyUrl;
     };
 
-    img.src = imageUrl;
-  }, [isOpen, imageUrl]);
+    img.src = targetUrl;
 
-  // Initialize canvas with original image
-  const initCanvas = (img: HTMLImageElement) => {
-    const canvas = resultCanvasRef.current;
-    if (!canvas) return;
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, imageUrl, initCanvas]);
 
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
-
-    // Save initial AI base backup
-    const aiCanvas = document.createElement('canvas');
-    aiCanvas.width = img.naturalWidth;
-    aiCanvas.height = img.naturalHeight;
-    const aiCtx = aiCanvas.getContext('2d');
-    if (aiCtx) {
-      aiCtx.drawImage(img, 0, 0);
-      aiResultCanvasRef.current = aiCanvas;
+  // Ensure canvas is painted when ready
+  useEffect(() => {
+    if (!isLoadingImage && originalImageRef.current && resultCanvasRef.current) {
+      initCanvas(originalImageRef.current);
     }
-  };
+  }, [isLoadingImage, initCanvas]);
 
   // Push current canvas state to undo stack
   const pushUndo = () => {
@@ -1031,35 +1062,51 @@ export function ImageBgRemovalModal({
               cursor: isEyedropperActive ? 'crosshair' : activeTab === 'brush' ? 'none' : 'default',
             }}
           >
-            {isLoadingImage ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+            {isLoadingImage && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  color: 'var(--text-secondary)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                  zIndex: 20,
+                }}
+              >
                 <span style={{ fontSize: '2rem' }}>⏳</span>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Memuat gambar...</span>
               </div>
-            ) : (
-              <>
-                {/* Result Canvas */}
-                <canvas
-                  ref={resultCanvasRef}
-                  onClick={handleCanvasClick}
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={() => {
-                    setIsDrawing(false);
-                    setCursorPos(null);
-                  }}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '460px',
-                    objectFit: 'contain',
-                    display: showOriginal ? 'none' : 'block',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-                  }}
-                />
+            )}
 
-                {/* Original Image comparison */}
-                {showOriginal && originalImageRef.current && (
+            {/* Result Canvas */}
+            <canvas
+              ref={resultCanvasRef}
+              onClick={handleCanvasClick}
+              onMouseDown={handleCanvasMouseDown}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={() => {
+                setIsDrawing(false);
+                setCursorPos(null);
+              }}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '460px',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                display: showOriginal ? 'none' : 'block',
+                opacity: isLoadingImage ? 0 : 1,
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+              }}
+            />
+
+            {/* Original Image comparison */}
+            {showOriginal && originalImageRef.current && (
                   <img
                     src={originalImageRef.current.src}
                     alt="Original Image"
@@ -1090,8 +1137,6 @@ export function ImageBgRemovalModal({
                     }}
                   />
                 )}
-              </>
-            )}
           </div>
 
           {/* Preview Background Switcher & Compare */}

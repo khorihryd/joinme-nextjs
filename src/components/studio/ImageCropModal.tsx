@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { resolveTextVariables } from '@/store/studio-store';
 
 interface ImageCropModalProps {
   isOpen: boolean;
@@ -64,7 +65,12 @@ export function ImageCropModal({
 
   // Load and cache the image element
   useEffect(() => {
-    if (!isOpen || !imageUrl) return;
+    if (!isOpen) return;
+
+    let targetUrl = imageUrl ? resolveTextVariables(imageUrl) || imageUrl : '';
+    if (!targetUrl || targetUrl.trim() === '' || targetUrl.startsWith('{')) {
+      targetUrl = 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80';
+    }
 
     setLoading(true);
     setErrorMsg(null);
@@ -74,11 +80,13 @@ export function ImageCropModal({
     setZoom(1);
     setSelectedRatio(initialAspectRatio);
 
+    let isCancelled = false;
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
     // Attempt direct load, fallback to proxy if CORS fails
     img.onload = () => {
+      if (isCancelled) return;
       imageRef.current = img;
       setLoading(false);
       resetCropArea(initialAspectRatio, img.naturalWidth, img.naturalHeight);
@@ -86,22 +94,28 @@ export function ImageCropModal({
 
     img.onerror = () => {
       // Try through local proxy if direct CORS failed
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(targetUrl)}`;
       const fallbackImg = new Image();
       fallbackImg.crossOrigin = 'anonymous';
       fallbackImg.onload = () => {
+        if (isCancelled) return;
         imageRef.current = fallbackImg;
         setLoading(false);
         resetCropArea(initialAspectRatio, fallbackImg.naturalWidth, fallbackImg.naturalHeight);
       };
       fallbackImg.onerror = () => {
+        if (isCancelled) return;
         setLoading(false);
         setErrorMsg('Gagal memuat gambar. Pastikan URL gambar valid dan dapat diakses.');
       };
       fallbackImg.src = proxyUrl;
     };
 
-    img.src = imageUrl;
+    img.src = targetUrl;
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, imageUrl, initialAspectRatio]);
 
   // Recalculate crop area when aspect ratio changes
