@@ -244,7 +244,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           />
 
           {/* Canvas Stage */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', height: 'calc(100% - 46px)' }}>
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', height: 'calc(100% - 46px)', zIndex: 1 }}>
             <CanvasStage viewportMode={viewportMode} showRulers={showRulers}>
               {nodes.map((node) => (
                 <NodeRenderer

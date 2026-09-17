@@ -236,13 +236,13 @@ export function StudioToolbar({
   // Popover base style
   const popoverStyle: React.CSSProperties = {
     position: 'absolute',
-    top: 'calc(100% + 6px)',
+    top: 'calc(100% + 4px)',
     left: 0,
-    zIndex: 9999,
+    zIndex: 99999,
     backgroundColor: 'var(--bg-card, #ffffff)',
     border: '1px solid var(--border-color, #e2e8f0)',
     borderRadius: '10px',
-    boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+    boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08)',
     padding: '0.75rem',
     minWidth: '220px',
     display: 'flex',
@@ -264,10 +264,10 @@ export function StudioToolbar({
         alignItems: 'center',
         padding: '0 0.85rem',
         gap: '0.5rem',
-        overflowX: 'auto',
+        overflow: 'visible',
         whiteSpace: 'nowrap',
         flexShrink: 0,
-        zIndex: 60,
+        zIndex: 1050,
         position: 'relative',
         fontSize: '0.78rem',
       }}
@@ -1180,7 +1180,7 @@ export function StudioToolbar({
 
             {openPopover === 'padding' && (
               <div
-                style={{ ...popoverStyle, minWidth: '220px' }}
+                style={{ ...popoverStyle, minWidth: '220px', right: 0, left: 'auto' }}
                 onMouseEnter={() => handleMouseEnter('padding')}
                 onMouseLeave={handleMouseLeave}
               >
