@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useStudio } from '@/hooks/useStudio';
 import { TopBar } from '@/components/studio/TopBar';
 import { SidebarLeft } from '@/components/studio/SidebarLeft';
+import { StudioToolbar } from '@/components/studio/StudioToolbar';
 import { CanvasStage } from '@/components/studio/CanvasStage';
 import { NodeRenderer } from '@/components/studio/NodeRenderer';
 import { SaveAsNewModal } from '@/components/studio/SaveAsNewModal';
@@ -24,6 +25,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     sidebarTab,
     setNodes,
     setGlobalStyles,
+    updateGlobalStyles,
     selectNode,
     setViewportMode,
     setSidebarTab,
@@ -221,24 +223,47 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           onUpdateNode={updateNode}
         />
 
-        {/* Canvas Stage */}
-        <CanvasStage viewportMode={viewportMode} showRulers={showRulers}>
-          {nodes.map((node) => (
-            <NodeRenderer
-              key={node.id}
-              node={node}
-              allNodes={nodes}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={(nodeId) => {
-                selectNode(nodeId);
-                setSidebarTab('properties');
-              }}
-              onDeleteNode={deleteNode}
-              onDuplicateNode={duplicateNode}
-              viewportMode={viewportMode}
-            />
-          ))}
-        </CanvasStage>
+        {/* Central Workspace: Toolbar + Canvas Stage */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          {/* Quick Properties Studio Toolbar */}
+          <StudioToolbar
+            selectedNode={selectedNode}
+            selectedNodeId={selectedNodeId}
+            onUpdateNode={updateNode}
+            onDeleteNode={deleteNode}
+            onDuplicateNode={duplicateNode}
+            onSelectNode={(id) => {
+              selectNode(id);
+            }}
+            globalStyles={globalStyles}
+            onUpdateGlobalStyles={updateGlobalStyles}
+            onOpenProperties={() => setSidebarTab('properties')}
+            onOpenGlobal={() => setSidebarTab('global')}
+            viewportMode={viewportMode}
+            nodes={nodes}
+          />
+
+          {/* Canvas Stage */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', height: 'calc(100% - 46px)' }}>
+            <CanvasStage viewportMode={viewportMode} showRulers={showRulers}>
+              {nodes.map((node) => (
+                <NodeRenderer
+                  key={node.id}
+                  node={node}
+                  allNodes={nodes}
+                  selectedNodeId={selectedNodeId}
+                  onSelectNode={(nodeId) => {
+                    selectNode(nodeId);
+                    setSidebarTab('properties');
+                  }}
+                  onDeleteNode={deleteNode}
+                  onDuplicateNode={duplicateNode}
+                  viewportMode={viewportMode}
+                />
+              ))}
+            </CanvasStage>
+          </div>
+        </div>
       </div>
 
       {/* Save As New Template Modal */}
