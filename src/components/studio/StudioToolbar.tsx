@@ -38,16 +38,38 @@ export function StudioToolbar({
   >(null);
 
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (popoverKey: 'textColor' | 'bgColor' | 'radius' | 'align' | 'padding' | 'border' | 'canvasBg') => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setOpenPopover(popoverKey);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpenPopover(null);
+    }, 180);
+  };
 
   // Close popovers on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
+        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
         setOpenPopover(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
   }, []);
 
   const isCanvasSelected = selectedNodeId === 'canvas' || !selectedNode;
@@ -277,7 +299,11 @@ export function StudioToolbar({
           <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
 
           {/* Canvas Background Color */}
-          <div style={{ position: 'relative' }}>
+          <div
+            style={{ position: 'relative' }}
+            onMouseEnter={() => handleMouseEnter('canvasBg')}
+            onMouseLeave={handleMouseLeave}
+          >
             <button
               type="button"
               onClick={() => setOpenPopover(openPopover === 'canvasBg' ? null : 'canvasBg')}
@@ -287,14 +313,14 @@ export function StudioToolbar({
                 gap: '0.35rem',
                 padding: '4px 8px',
                 borderRadius: '6px',
-                border: '1px solid var(--border-color)',
+                border: openPopover === 'canvasBg' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
                 backgroundColor: 'var(--bg-body)',
                 cursor: 'pointer',
                 fontSize: '0.74rem',
                 fontWeight: 600,
                 color: 'var(--text-primary)',
               }}
-              title="Ubah Warna Latar Belakang Canvas"
+              title="Ubah Warna Latar Belakang Canvas (Arahkan kursor untuk membuka)"
             >
               <span
                 style={{
@@ -310,7 +336,13 @@ export function StudioToolbar({
             </button>
 
             {openPopover === 'canvasBg' && (
-              <div style={popoverStyle}>
+              <div
+                style={popoverStyle}
+                onMouseEnter={() => handleMouseEnter('canvasBg')}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Mouse hover bridge */}
+                <div style={{ position: 'absolute', top: '-8px', left: 0, right: 0, height: '8px', backgroundColor: 'transparent' }} />
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                   🎨 Warna Background Canvas
                 </div>
@@ -457,7 +489,11 @@ export function StudioToolbar({
 
           {/* 2. WARNA TEKS (TEXT COLOR) */}
           {isTextType && (
-            <div style={{ position: 'relative' }}>
+            <div
+              style={{ position: 'relative' }}
+              onMouseEnter={() => handleMouseEnter('textColor')}
+              onMouseLeave={handleMouseLeave}
+            >
               <button
                 type="button"
                 onClick={() => setOpenPopover(openPopover === 'textColor' ? null : 'textColor')}
@@ -474,7 +510,7 @@ export function StudioToolbar({
                   fontSize: '0.74rem',
                   fontWeight: 700,
                 }}
-                title="Ubah Warna Teks"
+                title="Ubah Warna Teks (Arahkan kursor untuk membuka)"
               >
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 900 }}>A</span>
@@ -492,7 +528,13 @@ export function StudioToolbar({
               </button>
 
               {openPopover === 'textColor' && (
-                <div style={popoverStyle}>
+                <div
+                  style={popoverStyle}
+                  onMouseEnter={() => handleMouseEnter('textColor')}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {/* Mouse hover bridge */}
+                  <div style={{ position: 'absolute', top: '-8px', left: 0, right: 0, height: '8px', backgroundColor: 'transparent' }} />
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                     🔤 Warna Teks
                   </div>
@@ -573,7 +615,11 @@ export function StudioToolbar({
           )}
 
           {/* 3. LATAR BELAKANG (BACKGROUND COLOR) */}
-          <div style={{ position: 'relative' }}>
+          <div
+            style={{ position: 'relative' }}
+            onMouseEnter={() => handleMouseEnter('bgColor')}
+            onMouseLeave={handleMouseLeave}
+          >
             <button
               type="button"
               onClick={() => setOpenPopover(openPopover === 'bgColor' ? null : 'bgColor')}
@@ -590,7 +636,7 @@ export function StudioToolbar({
                 fontSize: '0.74rem',
                 fontWeight: 700,
               }}
-              title="Ubah Warna Latar Belakang (Background)"
+              title="Ubah Warna Latar Belakang (Arahkan kursor untuk membuka)"
             >
               <div
                 style={{
@@ -611,7 +657,13 @@ export function StudioToolbar({
             </button>
 
             {openPopover === 'bgColor' && (
-              <div style={popoverStyle}>
+              <div
+                style={popoverStyle}
+                onMouseEnter={() => handleMouseEnter('bgColor')}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Mouse hover bridge */}
+                <div style={{ position: 'absolute', top: '-8px', left: 0, right: 0, height: '8px', backgroundColor: 'transparent' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                     🎨 Warna Background
@@ -712,7 +764,11 @@ export function StudioToolbar({
           </div>
 
           {/* 4. SUDUT / BORDER RADIUS */}
-          <div style={{ position: 'relative' }}>
+          <div
+            style={{ position: 'relative' }}
+            onMouseEnter={() => handleMouseEnter('radius')}
+            onMouseLeave={handleMouseLeave}
+          >
             <button
               type="button"
               onClick={() => setOpenPopover(openPopover === 'radius' ? null : 'radius')}
@@ -729,7 +785,7 @@ export function StudioToolbar({
                 fontSize: '0.74rem',
                 fontWeight: 700,
               }}
-              title="Ubah Sudut / Kelengkungan (Border Radius)"
+              title="Ubah Sudut / Kelengkungan (Arahkan kursor untuk membuka)"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M4 15V9a5 5 0 0 1 5-5h6" />
@@ -740,7 +796,13 @@ export function StudioToolbar({
             </button>
 
             {openPopover === 'radius' && (
-              <div style={{ ...popoverStyle, minWidth: '240px' }}>
+              <div
+                style={{ ...popoverStyle, minWidth: '240px' }}
+                onMouseEnter={() => handleMouseEnter('radius')}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Mouse hover bridge */}
+                <div style={{ position: 'absolute', top: '-8px', left: 0, right: 0, height: '8px', backgroundColor: 'transparent' }} />
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                   ▢ Sudut / Kelengkungan Border Radius
                 </div>
@@ -856,7 +918,11 @@ export function StudioToolbar({
 
           {/* 5B. Flex Alignment for Container Nodes */}
           {isContainer && (
-            <div style={{ position: 'relative' }}>
+            <div
+              style={{ position: 'relative' }}
+              onMouseEnter={() => handleMouseEnter('align')}
+              onMouseLeave={handleMouseLeave}
+            >
               <button
                 type="button"
                 onClick={() => setOpenPopover(openPopover === 'align' ? null : 'align')}
@@ -873,14 +939,20 @@ export function StudioToolbar({
                   fontSize: '0.74rem',
                   fontWeight: 700,
                 }}
-                title="Atur Alignment & Arah Tata Letak Flexbox"
+                title="Atur Alignment & Arah Tata Letak Flexbox (Arahkan kursor untuk membuka)"
               >
                 <span>📐 Alignment</span>
                 <span style={{ fontSize: '0.62rem', opacity: 0.6 }}>▼</span>
               </button>
 
               {openPopover === 'align' && (
-                <div style={{ ...popoverStyle, minWidth: '250px' }}>
+                <div
+                  style={{ ...popoverStyle, minWidth: '250px' }}
+                  onMouseEnter={() => handleMouseEnter('align')}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {/* Mouse hover bridge */}
+                  <div style={{ position: 'absolute', top: '-8px', left: 0, right: 0, height: '8px', backgroundColor: 'transparent' }} />
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                     📐 Arah & Alignment Flexbox
                   </div>
@@ -1079,7 +1151,11 @@ export function StudioToolbar({
           )}
 
           {/* 7. PADDING QUICK SELECTOR */}
-          <div style={{ position: 'relative' }}>
+          <div
+            style={{ position: 'relative' }}
+            onMouseEnter={() => handleMouseEnter('padding')}
+            onMouseLeave={handleMouseLeave}
+          >
             <button
               type="button"
               onClick={() => setOpenPopover(openPopover === 'padding' ? null : 'padding')}
@@ -1096,14 +1172,20 @@ export function StudioToolbar({
                 fontSize: '0.74rem',
                 fontWeight: 700,
               }}
-              title="Ubah Jarak Dalam (Padding)"
+              title="Ubah Jarak Dalam (Padding) (Arahkan kursor untuk membuka)"
             >
               <span>⬚ Pad: {currentPadding}</span>
               <span style={{ fontSize: '0.62rem', opacity: 0.6 }}>▼</span>
             </button>
 
             {openPopover === 'padding' && (
-              <div style={{ ...popoverStyle, minWidth: '220px' }}>
+              <div
+                style={{ ...popoverStyle, minWidth: '220px' }}
+                onMouseEnter={() => handleMouseEnter('padding')}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Mouse hover bridge */}
+                <div style={{ position: 'absolute', top: '-8px', left: 0, right: 0, height: '8px', backgroundColor: 'transparent' }} />
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                   ⬚ Jarak Dalam (Padding)
                 </div>
