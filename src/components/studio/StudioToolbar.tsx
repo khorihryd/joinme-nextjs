@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StudioNode, GlobalStyles, GlobalColorTokens } from '@/types';
 import { findParentNode, DEFAULT_GLOBAL_STYLES } from '@/store/studio-store';
+import { ImageCropModal } from './ImageCropModal';
 
 interface StudioToolbarProps {
   selectedNode: StudioNode | null;
@@ -36,6 +37,20 @@ export function StudioToolbar({
   const [openPopover, setOpenPopover] = useState<
     'textColor' | 'bgColor' | 'radius' | 'align' | 'padding' | 'border' | 'canvasBg' | null
   >(null);
+
+  // Image Cropping Modal State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState('');
+  const [cropModalTitle, setCropModalTitle] = useState('Crop Gambar');
+  const [onCropCallback, setOnCropCallback] = useState<((url: string) => void) | null>(null);
+
+  const openCropModal = (url: string, callback: (newUrl: string) => void, title?: string) => {
+    if (!url) return;
+    setCropImageUrl(url);
+    setOnCropCallback(() => callback);
+    if (title) setCropModalTitle(title);
+    setIsCropModalOpen(true);
+  };
 
   const toolbarRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -412,6 +427,37 @@ export function StudioToolbar({
             ))}
           </div>
 
+          {/* Canvas Background Image Crop */}
+          {globalStyles.backgroundImage && (
+            <button
+              type="button"
+              onClick={() =>
+                openCropModal(
+                  globalStyles.backgroundImage || '',
+                  (url) => onUpdateGlobalStyles({ backgroundImage: url }),
+                  'Crop Background Canvas'
+                )
+              }
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(227, 99, 151, 0.4)',
+                backgroundColor: 'rgba(227, 99, 151, 0.08)',
+                color: 'var(--primary)',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+              title="Crop Gambar Latar Belakang Canvas"
+            >
+              <span>✂️</span>
+              <span>Crop BG Canvas</span>
+            </button>
+          )}
+
           <div style={{ flex: 1 }} />
 
           {/* Shortcut to full Global Styles in sidebar */}
@@ -486,6 +532,75 @@ export function StudioToolbar({
           )}
 
           <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
+
+          {/* 1.2 Image / Background Quick Crop Buttons */}
+          {selectedNode.type === 'image' && selectedNode.content && (
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  openCropModal(
+                    selectedNode.content || '',
+                    (url) => onUpdateNode({ ...selectedNode, content: url }),
+                    'Crop Gambar Elemen'
+                  )
+                }
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(227, 99, 151, 0.4)',
+                  backgroundColor: 'rgba(227, 99, 151, 0.1)',
+                  color: 'var(--primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Crop & Sesuaikan Gambar Elemen"
+              >
+                <span>✂️</span>
+                <span>Crop Gambar</span>
+              </button>
+              <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
+            </>
+          )}
+
+          {selectedNode.type !== 'image' && Boolean(getResponsiveVal('backgroundImage', '')) && (
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  openCropModal(
+                    getResponsiveVal('backgroundImage', ''),
+                    (url) => updateStyleProp('backgroundImage', url),
+                    'Crop Background Elemen'
+                  )
+                }
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(227, 99, 151, 0.4)',
+                  backgroundColor: 'rgba(227, 99, 151, 0.1)',
+                  color: 'var(--primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Crop Gambar Latar Belakang Elemen"
+              >
+                <span>✂️</span>
+                <span>Crop Background</span>
+              </button>
+              <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
+            </>
+          )}
 
           {/* 2. WARNA TEKS (TEXT COLOR) */}
           {isTextType && (
@@ -1303,6 +1418,18 @@ export function StudioToolbar({
           </div>
         </div>
       )}
+
+      {/* Image Crop Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        imageUrl={cropImageUrl}
+        targetTitle={cropModalTitle}
+        onCropComplete={(croppedUrl) => {
+          if (onCropCallback) onCropCallback(croppedUrl);
+          setIsCropModalOpen(false);
+        }}
+      />
     </div>
   );
 }

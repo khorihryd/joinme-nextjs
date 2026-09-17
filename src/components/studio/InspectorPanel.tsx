@@ -9,6 +9,7 @@ import { compressImage } from '@/lib/image-compression';
 import { MediaLibraryModal } from './MediaLibraryModal';
 import { getRegisteredFunctionsList, FUNCTION_REGISTRY } from '@/utils/customFunctions';
 import { IconPickerModal } from './IconPickerModal';
+import { ImageCropModal } from './ImageCropModal';
 import { normalizeSvgString, isSvgMarkup } from '@/utils/svgNormalizer';
 
 interface TokenColorPickerProps {
@@ -193,11 +194,23 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
   const [mediaModalFolders, setMediaModalFolders] = useState<string[]>(['studio']);
   const [onMediaSelectCallback, setOnMediaSelectCallback] = useState<((url: string) => void) | null>(null);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState<boolean>(false);
+  const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
+  const [cropImageUrl, setCropImageUrl] = useState<string>('');
+  const [cropModalTitle, setCropModalTitle] = useState<string>('Crop & Sesuaikan Gambar');
+  const [onCropCallback, setOnCropCallback] = useState<((url: string) => void) | null>(null);
 
   const openMediaLibrary = (foldersList: string[], callback: (url: string) => void) => {
     setMediaModalFolders(foldersList);
     setOnMediaSelectCallback(() => callback);
     setIsMediaModalOpen(true);
+  };
+
+  const openCropModal = (url: string, callback: (newUrl: string) => void, title?: string) => {
+    if (!url) return;
+    setCropImageUrl(url);
+    setOnCropCallback(() => callback);
+    if (title) setCropModalTitle(title);
+    setIsCropModalOpen(true);
   };
 
   const getAllContainers = (nodeList: StudioNode[]): StudioNode[] => {
@@ -430,6 +443,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     placeholder="https://images.unsplash.com/..."
                     style={{ flex: 1 }}
                   />
+                  {globalStyles.backgroundImage && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openCropModal(
+                          globalStyles.backgroundImage || '',
+                          (url) => updateGlobalStyles({ backgroundImage: url }),
+                          'Crop Background Canvas'
+                        )
+                      }
+                      style={{
+                        padding: '6px 10px',
+                        background: 'var(--bg-card)',
+                        color: 'var(--primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        whiteSpace: 'nowrap',
+                        margin: 0,
+                      }}
+                      title="Crop background canvas ini"
+                    >
+                      ✂️ Crop
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => openMediaLibrary(['studio'], (url) => updateGlobalStyles({ backgroundImage: url }))}
@@ -2437,6 +2480,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                       placeholder="https://images.unsplash.com/..."
                       style={{ flex: 1 }}
                     />
+                    {node.content && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openCropModal(
+                            node.content || '',
+                            (url) => updateNodeProp('content', url),
+                            'Crop Gambar Elemen'
+                          )
+                        }
+                        style={{
+                          padding: '6px 10px',
+                          background: 'var(--bg-card)',
+                          color: 'var(--primary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          whiteSpace: 'nowrap',
+                          margin: 0,
+                        }}
+                        title="Crop gambar elemen ini"
+                      >
+                        ✂️ Crop
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => openMediaLibrary(['studio'], (url) => updateNodeProp('content', url))}
@@ -3126,6 +3199,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                         placeholder="https://images.unsplash.com/..."
                         style={{ flex: 1 }}
                       />
+                      {getResponsiveVal('backgroundImage', '') && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openCropModal(
+                              getResponsiveVal('backgroundImage', ''),
+                              (url) => updateStyleProp('backgroundImage', url),
+                              'Crop Background Container'
+                            )
+                          }
+                          style={{
+                            padding: '6px 10px',
+                            background: 'var(--bg-card)',
+                            color: 'var(--primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            fontSize: '0.68rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            whiteSpace: 'nowrap',
+                            margin: 0,
+                          }}
+                          title="Crop background container ini"
+                        >
+                          ✂️ Crop
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => openMediaLibrary(['studio'], (url) => updateStyleProp('backgroundImage', url))}
@@ -3579,6 +3682,17 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
           updateNodeProp('icon', iconValue);
         }}
         currentIcon={node.icon}
+      />
+
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        imageUrl={cropImageUrl}
+        targetTitle={cropModalTitle}
+        onCropComplete={(croppedUrl) => {
+          if (onCropCallback) onCropCallback(croppedUrl);
+          setIsCropModalOpen(false);
+        }}
       />
     </div>
   );
