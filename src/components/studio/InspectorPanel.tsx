@@ -1,9 +1,109 @@
 'use client';
 
 import React, { useState } from 'react';
-import { StudioNode, DYNAMIC_VARIABLE_CATEGORIES, SECTION_DEFINITIONS, SectionType } from '@/types';
-import { useStudioStore, findParentNode } from '@/store/studio-store';
+import { StudioNode, DYNAMIC_VARIABLE_CATEGORIES, SECTION_DEFINITIONS, SectionType, GlobalStyles, GlobalColorTokens } from '@/types';
+import { useStudioStore, findParentNode, DEFAULT_GLOBAL_STYLES } from '@/store/studio-store';
 import { FontEngineSelect } from './FontEngine';
+import { supabase } from '@/lib/supabase';
+import { compressImage } from '@/lib/image-compression';
+import { MediaLibraryModal } from './MediaLibraryModal';
+import { getRegisteredFunctionsList, FUNCTION_REGISTRY } from '@/utils/customFunctions';
+import { IconPickerModal } from './IconPickerModal';
+import { normalizeSvgString, isSvgMarkup } from '@/utils/svgNormalizer';
+
+interface TokenColorPickerProps {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  globalStyles: GlobalStyles;
+}
+
+export function TokenColorPicker({ label, value, onChange, globalStyles }: TokenColorPickerProps) {
+  const colors = globalStyles.colors || DEFAULT_GLOBAL_STYLES.colors!;
+
+  const tokenSwatches: { key: keyof GlobalColorTokens; name: string; varName: string }[] = [
+    { key: 'primary', name: 'Primary', varName: 'var(--global-primary)' },
+    { key: 'secondary', name: 'Secondary', varName: 'var(--global-secondary)' },
+    { key: 'background', name: 'Background', varName: 'var(--global-background)' },
+    { key: 'surface', name: 'Surface', varName: 'var(--global-surface)' },
+    { key: 'textPrimary', name: 'Text Primary', varName: 'var(--global-text-primary)' },
+    { key: 'textSecondary', name: 'Text Secondary', varName: 'var(--global-text-secondary)' },
+    { key: 'accentLuxury', name: 'Accent', varName: 'var(--global-accent-luxury)' },
+    { key: 'border', name: 'Border', varName: 'var(--global-border)' },
+  ];
+
+  let resolvedHex = value || '#000000';
+  let activeTokenName = '';
+
+  for (const sw of tokenSwatches) {
+    if (value === sw.varName || value === `global:${sw.key}` || value === sw.key) {
+      resolvedHex = colors[sw.key] || '#000000';
+      activeTokenName = sw.name;
+      break;
+    }
+  }
+
+  return (
+    <div className="form-group" style={{ marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+        <label style={{ margin: 0 }}>{label}</label>
+        {activeTokenName ? (
+          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: 'var(--bg-body)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+            🔗 Token: {activeTokenName}
+          </span>
+        ) : (
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Custom</span>
+        )}
+      </div>
+
+      {/* 8 Color Swatches */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '0.45rem' }}>
+        {tokenSwatches.map((sw) => {
+          const isSelected = value === sw.varName || value === `global:${sw.key}` || value === sw.key;
+          const hex = colors[sw.key] || '#cccccc';
+          return (
+            <button
+              key={sw.key}
+              type="button"
+              onClick={() => onChange(sw.varName)}
+              title={`${sw.name} (${hex})`}
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: hex,
+                border: isSelected ? '2.5px solid var(--primary, #e36397)' : '1.5px solid var(--border-color)',
+                outline: isSelected ? '2px solid rgba(227,99,151,0.4)' : 'none',
+                outlineOffset: '1px',
+                cursor: 'pointer',
+                padding: 0,
+                position: 'relative',
+                transition: 'transform 0.15s ease',
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Hex Picker & Custom Input */}
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <input
+          type="color"
+          value={resolvedHex && resolvedHex.startsWith('#') ? resolvedHex : '#000000'}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ width: '38px', height: '34px', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer', padding: 0 }}
+        />
+        <input
+          type="text"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="ex: var(--global-primary) atau #db2777"
+          style={{ flex: 1, fontSize: '0.75rem', padding: '0.35rem 0.5rem', fontFamily: 'monospace' }}
+        />
+      </div>
+    </div>
+  );
+}
 
 interface InspectorPanelProps {
   node: StudioNode | null;
@@ -87,6 +187,32 @@ export const THANK_YOU_PRESETS = [
 
 export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
   const [selectedVarCat, setSelectedVarCat] = useState<string>('all');
+  const [copySourceId, setCopySourceId] = useState<string>('');
+  const [copyType, setCopyType] = useState<'all' | 'bg' | 'border' | 'spacing'>('all');
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState<boolean>(false);
+  const [mediaModalFolders, setMediaModalFolders] = useState<string[]>(['studio']);
+  const [onMediaSelectCallback, setOnMediaSelectCallback] = useState<((url: string) => void) | null>(null);
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState<boolean>(false);
+
+  const openMediaLibrary = (foldersList: string[], callback: (url: string) => void) => {
+    setMediaModalFolders(foldersList);
+    setOnMediaSelectCallback(() => callback);
+    setIsMediaModalOpen(true);
+  };
+
+  const getAllContainers = (nodeList: StudioNode[]): StudioNode[] => {
+    let result: StudioNode[] = [];
+    for (const n of nodeList) {
+      if (n.type === 'container') {
+        result.push(n);
+      }
+      if (n.children && n.children.length > 0) {
+        result = [...result, ...getAllContainers(n.children)];
+      }
+    }
+    return result;
+  };
+
   const {
     activeInspectorTab,
     setActiveInspectorTab,
@@ -95,6 +221,7 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
     selectedNodeId,
     globalStyles,
     updateGlobalStyles,
+    setSidebarTab,
   } = useStudioStore();
 
   const isCanvasSelected = selectedNodeId === 'canvas';
@@ -112,6 +239,21 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
             🌐 Canvas Stage (Halaman Terluar)
           </span>
           <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>ID: canvas</span>
+        </div>
+
+        {/* Global Design Tokens Quick Banner */}
+        <div style={{ margin: '0.75rem 1rem 0 1rem', padding: '0.65rem 0.75rem', background: 'linear-gradient(135deg, rgba(227, 99, 151, 0.1), rgba(139, 94, 60, 0.1))', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <div>
+            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)' }}>🎨 Global Design Tokens</div>
+            <div style={{ fontSize: '0.64rem', color: 'var(--text-secondary)' }}>8 Palet Warna, Font &amp; Hierarki Spasi</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSidebarTab('global')}
+            style={{ padding: '4px 8px', fontSize: '0.68rem', fontWeight: 700, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            Buka Menu 🎨
+          </button>
         </div>
 
         {/* 3 Inspector Sub-tabs (Layout / Style / Advanced) */}
@@ -160,17 +302,39 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   onChange={(e) => updateGlobalStyles({ padding: e.target.value })}
                   placeholder="24px"
                 />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.35rem' }}>
-                  {['0px', '12px', '24px', '40px 24px', '60px 24px'].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => updateGlobalStyles({ padding: preset })}
-                      style={{ padding: '2px 6px', fontSize: '0.68rem', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                    >
-                      {preset}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.45rem' }}>
+                  {[
+                    { label: '0', val: '0px' },
+                    { label: 'XS', val: globalStyles.spacing?.paddingXS || '8px' },
+                    { label: 'SM', val: globalStyles.spacing?.paddingSM || '12px' },
+                    { label: 'MD', val: globalStyles.spacing?.paddingMD || '16px' },
+                    { label: 'LG', val: globalStyles.spacing?.paddingLG || '24px' },
+                    { label: 'XL', val: globalStyles.spacing?.paddingXL || '40px' },
+                    { label: '2XL', val: globalStyles.spacing?.padding2XL || '60px' },
+                    { label: '40px 24px', val: '40px 24px' },
+                    { label: '60px 24px', val: '60px 24px' },
+                  ].map((p) => {
+                    const isSelected = globalStyles.padding === p.val;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => updateGlobalStyles({ padding: p.val })}
+                        style={{
+                          padding: '3px 7px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                          color: isSelected ? '#fff' : 'var(--text-secondary)',
+                          border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -186,17 +350,39 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   onChange={(e) => updateGlobalStyles({ margin: e.target.value })}
                   placeholder="0px"
                 />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.35rem' }}>
-                  {['0px', '0px 0px 24px 0px', '20px auto'].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => updateGlobalStyles({ margin: preset })}
-                      style={{ padding: '2px 6px', fontSize: '0.68rem', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                    >
-                      {preset}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.45rem' }}>
+                  {[
+                    { label: '0', val: '0px' },
+                    { label: 'XS', val: globalStyles.spacing?.marginXS || '4px' },
+                    { label: 'SM', val: globalStyles.spacing?.marginSM || '8px' },
+                    { label: 'MD', val: globalStyles.spacing?.marginMD || '16px' },
+                    { label: 'LG', val: globalStyles.spacing?.marginLG || '24px' },
+                    { label: 'XL', val: globalStyles.spacing?.marginXL || '40px' },
+                    { label: '2XL', val: globalStyles.spacing?.margin2XL || '60px' },
+                    { label: '0 0 24px 0', val: '0px 0px 24px 0px' },
+                    { label: '20px auto', val: '20px auto' },
+                  ].map((p) => {
+                    const isSelected = globalStyles.margin === p.val;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => updateGlobalStyles({ margin: p.val })}
+                        style={{
+                          padding: '3px 7px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                          color: isSelected ? '#fff' : 'var(--text-secondary)',
+                          border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -236,12 +422,116 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
 
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <label>Gambar Latar Canvas (Background Image URL)</label>
-                <input
-                  type="text"
-                  value={globalStyles.backgroundImage || ''}
-                  onChange={(e) => updateGlobalStyles({ backgroundImage: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                />
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <input
+                    type="text"
+                    value={globalStyles.backgroundImage || ''}
+                    onChange={(e) => updateGlobalStyles({ backgroundImage: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openMediaLibrary(['studio'], (url) => updateGlobalStyles({ backgroundImage: url }))}
+                    style={{
+                      padding: '6px 10px',
+                      background: 'var(--primary)',
+                      color: '#fff',
+                      borderRadius: '6px',
+                      fontSize: '0.68rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      whiteSpace: 'nowrap',
+                      margin: 0,
+                      border: 'none',
+                    }}
+                  >
+                    📁 Upload
+                  </button>
+                </div>
+                {/* Dynamic Global Background Image Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.55rem', marginBottom: '0.45rem' }}>
+                  <label style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    ✨ Latar Belakang Canvas Dinamis
+                  </label>
+                  <input
+                    type="checkbox"
+                    checked={globalStyles.isBgDynamic || false}
+                    onChange={(e) => {
+                      updateGlobalStyles({ isBgDynamic: e.target.checked });
+                      if (e.target.checked && !globalStyles.backgroundImageBinding) {
+                        updateGlobalStyles({ backgroundImageBinding: 'cover_photo' });
+                      }
+                    }}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                </div>
+
+                {globalStyles.isBgDynamic && (
+                  <div style={{ marginTop: '0.4rem', marginBottom: '0.45rem' }}>
+                    <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>
+                      Pilih/Ketik Variabel Latar Belakang Canvas:
+                    </label>
+                    {(() => {
+                      const isPreset = ['fotoPria', 'fotoWanita', 'cover_photo'].includes(globalStyles.backgroundImageBinding || '');
+                      const selectVal = isPreset ? (globalStyles.backgroundImageBinding || 'cover_photo') : 'custom';
+                      return (
+                        <>
+                          <select
+                            value={selectVal}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === 'custom') {
+                                updateGlobalStyles({ backgroundImageBinding: 'custom_variabel' });
+                              } else {
+                                updateGlobalStyles({ backgroundImageBinding: val });
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.4rem 0.5rem',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              borderRadius: '6px',
+                              border: '1px solid var(--border-color)',
+                              backgroundColor: '#fff',
+                            }}
+                          >
+                            <option value="cover_photo">🖼️ cover_photo (Foto Sampul Utama / Couple)</option>
+                            <option value="fotoPria">🤵 fotoPria (Foto Mempelai Pria)</option>
+                            <option value="fotoWanita">👰 fotoWanita (Foto Mempelai Wanita)</option>
+                            <option value="custom">✍️ Kustom / Nama Variabel Lain...</option>
+                          </select>
+
+                          {selectVal === 'custom' && (
+                            <input
+                              type="text"
+                              placeholder="misal: foto_background_kustom"
+                              value={globalStyles.backgroundImageBinding || ''}
+                              onChange={(e) => updateGlobalStyles({ backgroundImageBinding: e.target.value.replace(/[^a-zA-Z0-9_]/g, '') })}
+                              style={{
+                                width: '100%',
+                                padding: '0.4rem 0.5rem',
+                                fontSize: '0.78rem',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-color)',
+                                marginTop: '0.35rem',
+                                background: '#fff',
+                                color: '#000',
+                              }}
+                            />
+                          )}
+                        </>
+                      );
+                    })()}
+                    <span style={{ fontSize: '0.64rem', color: '#64748b', display: 'block', marginTop: '0.25rem', lineHeight: '1.3' }}>
+                      💡 URL di atas hanya digunakan sebagai fallback/pratinjau studio. Latar belakang canvas akan otomatis digantikan oleh berkas yang diunggah pengguna untuk variabel ini.
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -558,6 +848,52 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   </>
                 )}
 
+                {/* 1-Click Layout & Text Alignment Presets */}
+                <div style={{ marginBottom: '1rem', padding: '0.65rem', background: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.45rem' }}>
+                    🎯 Penyelarasan Instan (Layout &amp; Teks)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+                    {[
+                      { label: '👈 Kiri', align: 'flex-start', txtAlign: 'left' },
+                      { label: '🎯 Tengah', align: 'center', txtAlign: 'center' },
+                      { label: '👉 Kanan', align: 'flex-end', txtAlign: 'right' },
+                      { label: '↔️ Stretch', align: 'stretch', txtAlign: undefined },
+                    ].map((btn) => {
+                      const currentAlign = getResponsiveVal('alignItems', 'center');
+                      const currentTxtAlign = getResponsiveVal('textAlign', '');
+                      const isActive = currentAlign === btn.align && (btn.txtAlign === undefined || currentTxtAlign === btn.txtAlign);
+
+                      return (
+                        <button
+                          key={btn.label}
+                          type="button"
+                          onClick={() => {
+                            const updates: Record<string, any> = { alignItems: btn.align };
+                            if (btn.txtAlign !== undefined) {
+                              updates.textAlign = btn.txtAlign;
+                            }
+                            updateMultipleStyleProps(updates);
+                          }}
+                          style={{
+                            padding: '5px 4px',
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+                            backgroundColor: isActive ? 'var(--primary-light, #fff0f5)' : 'var(--bg-card)',
+                            color: isActive ? 'var(--primary)' : 'var(--text-main)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {btn.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                     <label style={{ margin: 0 }}>Align Items (Posisi Sejajar Silang)</label>
@@ -572,15 +908,50 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     <option value="center">Tengah (center)</option>
                     <option value="flex-end">Akhir (flex-end)</option>
                   </select>
+                  <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', marginTop: '0.25rem', lineHeight: '1.3' }}>
+                    💡 Tips: Gunakan tombol <strong>Penyelarasan Instan</strong> di atas untuk sekaligus menggeser kontainer dan teks ke Kiri / Tengah / Kanan.
+                  </span>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                  <label>Jarak Antar Anak (Gap px)</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <label style={{ margin: 0 }}>Jarak Antar Anak (Gap px)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700 }}>
+                        {deviceIcon} {viewportMode.toUpperCase()}
+                      </span>
+                      {viewportMode !== 'desktop' && (style[viewportMode === 'mobile' ? 'gapMobile' : 'gapTablet'] !== undefined) && (
+                        <button
+                          type="button"
+                          onClick={() => updateStyleProp('gap', undefined)}
+                          title="Reset ke nilai bawaan Desktop"
+                          style={{
+                            fontSize: '0.64rem',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: '#ffffff',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Auto (Inherit)
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <input
                     type="number"
+                    min={0}
+                    max={200}
                     value={getResponsiveVal('gap', 12)}
-                    onChange={(e) => updateStyleProp('gap', parseInt(e.target.value) || 0)}
+                    onChange={(e) => updateStyleProp('gap', parseInt(e.target.value, 10) || 0)}
                   />
+                  {viewportMode !== 'desktop' && (style[viewportMode === 'mobile' ? 'gapMobile' : 'gapTablet'] === undefined) && (
+                    <span style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.2rem' }}>
+                      *(Mewarisi nilai {style.gapTablet !== undefined && viewportMode === 'mobile' ? 'Tablet' : 'Desktop'}: {getResponsiveVal('gap', 12)}px)
+                    </span>
+                  )}
                 </div>
               </>
             )}
@@ -655,6 +1026,49 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   💡 Pilih <strong>0 (Cegah Menyusut)</strong> agar kontainer/elemen anak tidak pernah gepeng saat tinggi kontainer induknya sempit.
                 </span>
               </div>
+
+              {/* Flex Order Control */}
+              <div className="form-group" style={{ marginTop: '1rem', marginBottom: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ margin: 0 }}>Urutan Visual (Flex Order)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700 }}>
+                      {deviceIcon} {viewportMode.toUpperCase()}
+                    </span>
+                    {viewportMode !== 'desktop' && (style[viewportMode === 'mobile' ? 'orderMobile' : 'orderTablet'] !== undefined) && (
+                      <button
+                        type="button"
+                        onClick={() => updateStyleProp('order', undefined)}
+                        title="Reset ke nilai bawaan Desktop"
+                        style={{
+                          fontSize: '0.64rem',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: '#ffffff',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Auto (Inherit)
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  placeholder="0 (Default)"
+                  value={getResponsiveVal('order', '')}
+                  onChange={(e) => updateStyleProp('order', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                  style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
+                />
+                <span style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.35rem' }}>
+                  *(Nilai kecil tampil lebih awal, contoh: <strong>-1</strong> tampil paling atas/kiri, <strong>1</strong> tampil di bawah/kanan)
+                  {viewportMode !== 'desktop' && (style[viewportMode === 'mobile' ? 'orderMobile' : 'orderTablet'] === undefined) && (
+                    <> • Mewarisi {style.orderTablet !== undefined && viewportMode === 'mobile' ? 'Tablet' : 'Desktop'}: {getResponsiveVal('order', 0)}</>
+                  )}
+                </span>
+              </div>
             </div>
 
             {/* Dimension & Spacing Section */}
@@ -690,7 +1104,7 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
               </div>
 
               {/* Padding Control */}
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                   <label style={{ margin: 0 }}>Padding (Jarak Dalam)</label>
                   <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{deviceIcon}</span>
@@ -701,22 +1115,45 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   onChange={(e) => updateStyleProp('padding', e.target.value)}
                   placeholder="ex: 24px atau 60px 24px"
                 />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.35rem' }}>
-                  {['0px', '16px', '24px', '40px 20px', '60px 24px'].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => updateStyleProp('padding', preset)}
-                      style={{ padding: '2px 6px', fontSize: '0.68rem', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                    >
-                      {preset}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.45rem' }}>
+                  {[
+                    { label: '0', val: '0px' },
+                    { label: 'XS', val: globalStyles.spacing?.paddingXS || '8px' },
+                    { label: 'SM', val: globalStyles.spacing?.paddingSM || '12px' },
+                    { label: 'MD', val: globalStyles.spacing?.paddingMD || '16px' },
+                    { label: 'LG', val: globalStyles.spacing?.paddingLG || '24px' },
+                    { label: 'XL', val: globalStyles.spacing?.paddingXL || '40px' },
+                    { label: '2XL', val: globalStyles.spacing?.padding2XL || '60px' },
+                    { label: '40px 20px', val: '40px 20px' },
+                    { label: '60px 24px', val: '60px 24px' },
+                  ].map((p) => {
+                    const currentPadding = getResponsiveVal('padding', '');
+                    const isSelected = currentPadding === p.val;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => updateStyleProp('padding', p.val)}
+                        style={{
+                          padding: '3px 7px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                          color: isSelected ? '#fff' : 'var(--text-secondary)',
+                          border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Margin Control */}
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                   <label style={{ margin: 0 }}>Margin (Jarak Luar)</label>
                   <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{deviceIcon}</span>
@@ -727,17 +1164,42 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   onChange={(e) => updateStyleProp('margin', e.target.value)}
                   placeholder="ex: 0px 0px 24px 0px"
                 />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.35rem' }}>
-                  {['0px', '0px 0px 16px 0px', '0px 0px 24px 0px', '0px 0px 40px 0px', 'auto'].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => updateStyleProp('margin', preset)}
-                      style={{ padding: '2px 6px', fontSize: '0.68rem', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                    >
-                      {preset}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.45rem' }}>
+                  {[
+                    { label: '0', val: '0px' },
+                    { label: 'XS', val: globalStyles.spacing?.marginXS || '4px' },
+                    { label: 'SM', val: globalStyles.spacing?.marginSM || '8px' },
+                    { label: 'MD', val: globalStyles.spacing?.marginMD || '16px' },
+                    { label: 'LG', val: globalStyles.spacing?.marginLG || '24px' },
+                    { label: 'XL', val: globalStyles.spacing?.marginXL || '40px' },
+                    { label: '2XL', val: globalStyles.spacing?.margin2XL || '60px' },
+                    { label: '0 0 16px 0', val: '0px 0px 16px 0px' },
+                    { label: '0 0 24px 0', val: '0px 0px 24px 0px' },
+                    { label: '0 0 40px 0', val: '0px 0px 40px 0px' },
+                    { label: 'auto', val: 'auto' },
+                  ].map((p) => {
+                    const currentMargin = getResponsiveVal('margin', '');
+                    const isSelected = currentMargin === p.val;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => updateStyleProp('margin', p.val)}
+                        style={{
+                          padding: '3px 7px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                          color: isSelected ? '#fff' : 'var(--text-secondary)',
+                          border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -796,6 +1258,11 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     <option value="fixed">Fixed (Tetap Layar)</option>
                     <option value="sticky">Sticky (Menempel)</option>
                   </select>
+                  {['fixed', 'sticky'].includes(getResponsiveVal('position', 'static')) && (
+                    <span style={{ fontSize: '0.66rem', color: '#0284c7', display: 'block', marginTop: '0.35rem', lineHeight: '1.4' }}>
+                      ℹ️ Posisi <b>{getResponsiveVal('position', 'static')}</b> terkunci di dalam bingkai Workplace Canvas Studio agar tidak menutupi UI menu Admin.
+                    </span>
+                  )}
                 </div>
 
                 {/* Conditional Position Offsets (Top, Right, Bottom, Left, Z-Index) */}
@@ -907,6 +1374,131 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
         {/* STYLE TAB */}
         {activeInspectorTab === 'style' && (
           <div>
+            {node.type === 'container' && (() => {
+              const otherContainers = getAllContainers(nodes)
+                .filter((c) => c.id !== node.id)
+                .filter((value, index, self) => self.findIndex((t) => t.id === value.id) === index);
+              if (otherContainers.length === 0) return null;
+
+              return (
+                <div style={{
+                  marginBottom: '1rem',
+                  padding: '0.75rem',
+                  background: 'linear-gradient(135deg, rgba(139, 94, 60, 0.05), rgba(227, 99, 151, 0.05))',
+                  borderRadius: '10px',
+                  border: '1px dashed var(--primary)'
+                }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    📋 Salin Desain dari Kontainer Lain
+                  </div>
+                  
+                  <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Pilih Kontainer Sumber:</label>
+                    <select
+                      value={copySourceId}
+                      onChange={(e) => setCopySourceId(e.target.value)}
+                      style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px', backgroundColor: '#fff', border: '1px solid var(--border-color)' }}
+                    >
+                      <option value="">-- Pilih Kontainer --</option>
+                      {otherContainers.map((c) => {
+                        const name = c.label || c.content?.substring(0, 15) || `Container (${c.id})`;
+                        return <option key={c.id} value={c.id}>{name}</option>;
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '0.6rem' }}>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Kategori Gaya yang Disalin:</label>
+                    <select
+                      value={copyType}
+                      onChange={(e) => setCopyType(e.target.value as any)}
+                      style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px', backgroundColor: '#fff', border: '1px solid var(--border-color)' }}
+                    >
+                      <option value="all">⭐ Semua Gaya (Latar Belakang, Spasi, Border)</option>
+                      <option value="bg">🎨 Hanya Latar Belakang (Warna, Gambar, Gradien)</option>
+                      <option value="spacing">📐 Hanya Padding &amp; Margin (Spasi)</option>
+                      <option value="border">🔲 Hanya Border &amp; Corner Radius (Sudut)</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={!copySourceId}
+                    onClick={() => {
+                      const srcNode = otherContainers.find(c => c.id === copySourceId);
+                      if (!srcNode || !srcNode.style) return;
+                      const currentStyle = { ...node.style };
+                      const srcStyle = srcNode.style;
+                      let updatedStyle = { ...currentStyle };
+
+                      if (copyType === 'all') {
+                        updatedStyle = { ...currentStyle, ...srcStyle };
+                      } else if (copyType === 'bg') {
+                        updatedStyle = {
+                          ...currentStyle,
+                          bgType: srcStyle.bgType,
+                          backgroundColor: srcStyle.backgroundColor,
+                          backgroundImage: srcStyle.backgroundImage,
+                          isBgDynamic: srcStyle.isBgDynamic,
+                          backgroundImageBinding: srcStyle.backgroundImageBinding,
+                          gradientColor1: srcStyle.gradientColor1,
+                          gradientColor2: srcStyle.gradientColor2,
+                          gradientDirection: srcStyle.gradientDirection,
+                          gradientColors: srcStyle.gradientColors,
+                          bgSlideshowInterval: srcStyle.bgSlideshowInterval,
+                          bgSlideshowEffect: srcStyle.bgSlideshowEffect,
+                          backgroundOverlayColor: srcStyle.backgroundOverlayColor,
+                        };
+                      } else if (copyType === 'spacing') {
+                        updatedStyle = {
+                          ...currentStyle,
+                          padding: srcStyle.padding,
+                          margin: srcStyle.margin,
+                          paddingDesktop: srcStyle.paddingDesktop,
+                          paddingTablet: srcStyle.paddingTablet,
+                          paddingMobile: srcStyle.paddingMobile,
+                          marginDesktop: srcStyle.marginDesktop,
+                          marginTablet: srcStyle.marginTablet,
+                          marginMobile: srcStyle.marginMobile,
+                        };
+                      } else if (copyType === 'border') {
+                        updatedStyle = {
+                          ...currentStyle,
+                          borderWidth: srcStyle.borderWidth,
+                          borderColor: srcStyle.borderColor,
+                          borderStyle: srcStyle.borderStyle,
+                          borderRadius: srcStyle.borderRadius,
+                          useIndividualRadius: srcStyle.useIndividualRadius,
+                          borderTopLeftRadius: srcStyle.borderTopLeftRadius,
+                          borderTopRightRadius: srcStyle.borderTopRightRadius,
+                          borderBottomRightRadius: srcStyle.borderBottomRightRadius,
+                          borderBottomLeftRadius: srcStyle.borderBottomLeftRadius,
+                          boxShadow: srcStyle.boxShadow,
+                        };
+                      }
+
+                      onUpdateNode({ ...node, style: updatedStyle });
+                      alert('Gaya kontainer berhasil disalin! 📋✨');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem',
+                      background: 'var(--primary)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: copySourceId ? 'pointer' : 'not-allowed',
+                      opacity: copySourceId ? 1 : 0.6
+                    }}
+                  >
+                    🤝 Salin &amp; Terapkan Gaya
+                  </button>
+                </div>
+              );
+            })()}
+
             {node.type === 'container' && node.widgetType === 'opening-prayer' && (
               <div className="form-group" style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                 <label style={{ fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
@@ -1083,11 +1675,417 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     </button>
                   ))}
                 </div>
-                <span style={{ fontSize: '0.66rem', color: '#64748b', display: 'block', marginTop: '0.4rem', lineHeight: '1.4' }}>
-                  💡 Gunakan <b>{'{link_maps}'}</b> agar otomatis mengambil URL Google Map yang diinput oleh user saat membuat undangan di wizard. Di Studio ini akan menampilkan peta contoh.
-                </span>
+                 <span style={{ fontSize: '0.66rem', color: '#64748b', display: 'block', marginTop: '0.4rem', lineHeight: '1.4' }}>
+                   💡 Gunakan <b>{'{link_maps}'}</b> agar otomatis mengambil URL Google Map yang diinput oleh user saat membuat undangan di wizard. Di Studio ini akan menampilkan peta contoh.
+                 </span>
+
+                 <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '0.5rem 0' }} />
+
+                 <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                   ⚙️ Visibilitas Elemen
+                 </label>
+
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                     <label style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>🗺️ Tampilkan Iframe Peta</label>
+                     <input
+                       type="checkbox"
+                       checked={getResponsiveVal('mapShowIframe', true) !== false}
+                       onChange={(e) => updateStyleProp('mapShowIframe', e.target.checked)}
+                       style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                     />
+                   </div>
+
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                     <label style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>🔘 Tampilkan Tombol Navigasi</label>
+                     <input
+                       type="checkbox"
+                       checked={getResponsiveVal('mapShowButton', true) !== false}
+                       onChange={(e) => updateStyleProp('mapShowButton', e.target.checked)}
+                       style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                     />
+                   </div>
+                 </div>
+
+                 {getResponsiveVal('mapShowIframe', true) !== false && (
+                   <>
+                     <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '0.5rem 0' }} />
+                     <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                       🖼️ Gaya Box Peta (Iframe)
+                     </label>
+                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                       <div className="form-group" style={{ margin: 0 }}>
+                         <label style={{ fontSize: '0.65rem' }}>Tinggi Peta</label>
+                         <input
+                           type="text"
+                           value={String(getResponsiveVal('mapIframeHeight', '260px'))}
+                           onChange={(e) => updateStyleProp('mapIframeHeight', e.target.value)}
+                           placeholder="260px"
+                           style={{ padding: '0.35rem' }}
+                         />
+                       </div>
+                       <div className="form-group" style={{ margin: 0 }}>
+                         <label style={{ fontSize: '0.65rem' }}>Sudut Box (px)</label>
+                         <input
+                           type="number"
+                           value={Number(getResponsiveVal('mapIframeBorderRadius', 14))}
+                           onChange={(e) => updateStyleProp('mapIframeBorderRadius', parseInt(e.target.value) || 0)}
+                           placeholder="14"
+                           style={{ padding: '0.35rem' }}
+                         />
+                       </div>
+                     </div>
+                   </>
+                 )}
+
+                 {getResponsiveVal('mapShowButton', true) !== false && (
+                   <>
+                     <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '0.5rem 0' }} />
+                     <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                       🔘 Gaya Tombol Navigasi
+                     </label>
+                     <div className="form-group" style={{ margin: '0 0 0.5rem 0' }}>
+                       <label style={{ fontSize: '0.65rem' }}>Teks Tombol</label>
+                       <input
+                         type="text"
+                         value={String(getResponsiveVal('mapButtonText', '🗺️ Buka di Google Maps'))}
+                         onChange={(e) => updateStyleProp('mapButtonText', e.target.value)}
+                         placeholder="🗺️ Buka di Google Maps"
+                         style={{ padding: '0.35rem' }}
+                       />
+                     </div>
+                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                       <div className="form-group" style={{ margin: 0 }}>
+                         <label style={{ fontSize: '0.65rem' }}>Latar Tombol</label>
+                         <input
+                           type="text"
+                           value={String(getResponsiveVal('mapButtonBgColor', '#0284c7'))}
+                           onChange={(e) => updateStyleProp('mapButtonBgColor', e.target.value)}
+                           placeholder="#0284c7"
+                           style={{ padding: '0.35rem' }}
+                         />
+                       </div>
+                       <div className="form-group" style={{ margin: 0 }}>
+                         <label style={{ fontSize: '0.65rem' }}>Warna Teks</label>
+                         <input
+                           type="text"
+                           value={String(getResponsiveVal('mapButtonTextColor', '#ffffff'))}
+                           onChange={(e) => updateStyleProp('mapButtonTextColor', e.target.value)}
+                           placeholder="#ffffff"
+                           style={{ padding: '0.35rem' }}
+                         />
+                       </div>
+                       <div className="form-group" style={{ margin: 0 }}>
+                         <label style={{ fontSize: '0.65rem' }}>Padding Tombol</label>
+                         <input
+                           type="text"
+                           value={String(getResponsiveVal('mapButtonPadding', '10px 16px'))}
+                           onChange={(e) => updateStyleProp('mapButtonPadding', e.target.value)}
+                           placeholder="10px 16px"
+                           style={{ padding: '0.35rem' }}
+                         />
+                       </div>
+                       <div className="form-group" style={{ margin: 0 }}>
+                         <label style={{ fontSize: '0.65rem' }}>Sudut Tombol (px)</label>
+                         <input
+                           type="number"
+                           value={Number(getResponsiveVal('mapButtonBorderRadius', 12))}
+                           onChange={(e) => updateStyleProp('mapButtonBorderRadius', parseInt(e.target.value) || 0)}
+                           placeholder="12"
+                           style={{ padding: '0.35rem' }}
+                         />
+                       </div>
+                       <div className="form-group" style={{ margin: 0 }}>
+                         <label style={{ fontSize: '0.65rem' }}>Ukuran Font</label>
+                         <input
+                           type="text"
+                           value={String(getResponsiveVal('mapButtonFontSize', '0.8rem'))}
+                           onChange={(e) => updateStyleProp('mapButtonFontSize', e.target.value)}
+                           placeholder="0.8rem"
+                           style={{ padding: '0.35rem' }}
+                         />
+                       </div>
+                     </div>
+                   </>
+                 )}
+
+                 {getResponsiveVal('mapShowIframe', true) !== false && getResponsiveVal('mapShowButton', true) !== false && (
+                   <div className="form-group" style={{ margin: 0 }}>
+                     <label style={{ fontSize: '0.65rem' }}>Jarak Antara (Gap - px)</label>
+                     <input
+                       type="number"
+                       value={Number(getResponsiveVal('mapGap', 8))}
+                       onChange={(e) => updateStyleProp('mapGap', parseInt(e.target.value) || 0)}
+                       placeholder="8"
+                       style={{ padding: '0.35rem' }}
+                     />
+                   </div>
+                 )}
+               </div>
+            )}
+
+            {node.type === 'countdown' && (
+              <div className="form-group" style={{ padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.2rem' }}>
+                  ⏳ Pengaturan Countdown Timer
+                </label>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Tanggal Target (Custom / Dynamic):</label>
+                  <input
+                    type="text"
+                    value={node.countdownTargetDate || '{event_date}'}
+                    onChange={(e) => updateNodeProp('countdownTargetDate', e.target.value)}
+                    placeholder="{event_date} atau YYYY-MM-DD"
+                  />
+                  <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>Gunakan <code>{'{event_date}'}</code> untuk mengambil tanggal dari database secara dinamis.</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                  <label style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    ⏱️ Tampilkan Detik
+                  </label>
+                  <input
+                    type="checkbox"
+                    checked={style.countdownShowSeconds !== false}
+                    onChange={(e) => updateStyleProp('countdownShowSeconds', e.target.checked)}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                </div>
+
+                <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '0.25rem 0' }} />
+
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary)' }}>🎨 Gaya Elemen Pembentuk</span>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Latar Box</label>
+                    <input
+                      type="text"
+                      value={String(getResponsiveVal('countdownBgColor', 'rgba(0,0,0,0.05)'))}
+                      onChange={(e) => updateStyleProp('countdownBgColor', e.target.value)}
+                      placeholder="rgba(0,0,0,0.05)"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Warna Angka</label>
+                    <input
+                      type="text"
+                      value={String(getResponsiveVal('countdownTextColor', ''))}
+                      onChange={(e) => updateStyleProp('countdownTextColor', e.target.value)}
+                      placeholder="inherit / #000"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Warna Label</label>
+                    <input
+                      type="text"
+                      value={String(getResponsiveVal('countdownLabelColor', ''))}
+                      onChange={(e) => updateStyleProp('countdownLabelColor', e.target.value)}
+                      placeholder="inherit / #666"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Jarak Box (px)</label>
+                    <input
+                      type="number"
+                      value={Number(getResponsiveVal('countdownGap', 8))}
+                      onChange={(e) => updateStyleProp('countdownGap', parseInt(e.target.value) || 0)}
+                      placeholder="8"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Padding Box</label>
+                    <input
+                      type="text"
+                      value={String(getResponsiveVal('countdownPadding', '8px 12px'))}
+                      onChange={(e) => updateStyleProp('countdownPadding', e.target.value)}
+                      placeholder="8px 12px"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Sudut Box (px)</label>
+                    <input
+                      type="number"
+                      value={Number(getResponsiveVal('countdownBorderRadius', 8))}
+                      onChange={(e) => updateStyleProp('countdownBorderRadius', parseInt(e.target.value) || 0)}
+                      placeholder="8"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Ukuran Angka</label>
+                    <input
+                      type="text"
+                      value={String(getResponsiveVal('countdownFontSize', '1.2rem'))}
+                      onChange={(e) => updateStyleProp('countdownFontSize', e.target.value)}
+                      placeholder="1.2rem"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Ukuran Label</label>
+                    <input
+                      type="text"
+                      value={String(getResponsiveVal('countdownLabelSize', '0.65rem'))}
+                      onChange={(e) => updateStyleProp('countdownLabelSize', e.target.value)}
+                      placeholder="0.65rem"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                </div>
               </div>
             )}
+
+            {node.type === 'divider' && (
+              <div className="form-group" style={{ padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.2rem' }}>
+                  ➖ Pengaturan Divider / Garis Pemisah
+                </label>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Tipe Divider:</label>
+                  <select
+                    value={style.dividerType !== undefined && style.dividerType !== true ? String(style.dividerType) : 'solid'}
+                    onChange={(e) => updateStyleProp('dividerType', e.target.value)}
+                  >
+                    <option value="solid">➖ Garis Lurus (Solid)</option>
+                    <option value="dashed">--- Garis Putus-putus (Dashed)</option>
+                    <option value="dotted">... Garis Titik-titik (Dotted)</option>
+                    <option value="double">== Garis Ganda (Double)</option>
+                    <option value="icon">✨ Dengan Simbol/Karakter di Tengah</option>
+                  </select>
+                </div>
+
+                {style.dividerType === 'icon' && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Karakter/Simbol Tengah:</label>
+                    <input
+                      type="text"
+                      value={style.dividerIconSymbol !== undefined && style.dividerIconSymbol !== true ? String(style.dividerIconSymbol) : '✨'}
+                      onChange={(e) => updateStyleProp('dividerIconSymbol', e.target.value)}
+                      placeholder="✨, 🌸, ⚜️, ♥, ❦"
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Warna Garis</label>
+                    <input
+                      type="text"
+                      value={style.dividerColor !== undefined && style.dividerColor !== true ? String(style.dividerColor) : '#cbd5e1'}
+                      onChange={(e) => updateStyleProp('dividerColor', e.target.value)}
+                      placeholder="#cbd5e1"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Ketebalan (px)</label>
+                    <input
+                      type="number"
+                      value={style.dividerHeight !== undefined && typeof style.dividerHeight === 'number' ? style.dividerHeight : 1}
+                      onChange={(e) => updateStyleProp('dividerHeight', parseInt(e.target.value) || 1)}
+                      placeholder="1"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>Lebar (%)</label>
+                    <input
+                      type="number"
+                      value={style.dividerWidth !== undefined && typeof style.dividerWidth === 'number' ? style.dividerWidth : 100}
+                      onChange={(e) => updateStyleProp('dividerWidth', parseInt(e.target.value) || 100)}
+                      placeholder="100"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  {style.dividerType === 'icon' && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.65rem' }}>Ukuran Simbol</label>
+                      <input
+                        type="text"
+                        value={style.dividerIconSize !== undefined && style.dividerIconSize !== true ? String(style.dividerIconSize) : '1rem'}
+                        onChange={(e) => updateStyleProp('dividerIconSize', e.target.value)}
+                        placeholder="1rem"
+                        style={{ padding: '0.35rem' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Function Registry Selection Panel (Available for all element types) */}
+            <div className="form-group" style={{ padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.2rem' }}>
+                ⚡ Function Registry (Aksi Klik Element)
+              </label>
+              <p style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>
+                Pilih fungsi helper terdaftar di sistem yang akan dijalankan saat elemen ini di-klik pengunjung.
+              </p>
+
+              <select
+                value={node.customAction || node.buttonAction || 'none'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateNodeProp('customAction', val);
+                  if (node.type === 'button') {
+                    updateNodeProp('buttonAction', val);
+                  }
+                }}
+                style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+              >
+                <option value="none">-- Tanpa Aksi Klik --</option>
+                {getRegisteredFunctionsList().map((fn) => (
+                  <option key={fn.id} value={fn.id}>
+                    {fn.name}
+                  </option>
+                ))}
+                <option value="submit-rsvp">✉️ Kirim Form RSVP &amp; Ucapan</option>
+                <option value="open-instagram">📸 Buka Instagram ({'{ig_wanita}'}, {'{ig_pria}'}, dll.)</option>
+                <option value="open-tiktok">🎵 Buka TikTok ({'{tiktok_wanita}'}, {'{tiktok_pria}'})</option>
+                <option value="open-facebook">📘 Buka Facebook ({'{fb_wanita}'}, {'{fb_pria}'})</option>
+                <option value="open-whatsapp">💬 Chat WhatsApp ({'{wa_contact}'})</option>
+                <option value="open-youtube">🎥 Buka YouTube ({'{yt_organizer}'})</option>
+              </select>
+
+              {(() => {
+                const currentActionId = node.customAction || node.buttonAction || '';
+                const registeredFn = FUNCTION_REGISTRY[currentActionId];
+                const needsParam = registeredFn?.requiresParam || ['open-instagram', 'open-tiktok', 'open-facebook', 'open-whatsapp', 'open-youtube', 'open-url'].includes(currentActionId);
+
+                if (!needsParam) return null;
+
+                return (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--primary)', display: 'block', marginBottom: '0.2rem' }}>
+                      {registeredFn?.paramLabel || 'Target / Parameter (URL / Username / Text)'}:
+                    </label>
+                    <input
+                      type="text"
+                      value={node.customActionParam || node.buttonUrl || ''}
+                      onChange={(e) => {
+                        updateNodeProp('customActionParam', e.target.value);
+                        if (node.type === 'button') {
+                          updateNodeProp('buttonUrl', e.target.value);
+                        }
+                      }}
+                      placeholder={registeredFn?.paramPlaceholder || 'Masukkan parameter...'}
+                      style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                    />
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
+                      Mendukung penulisan variabel dinamis seperti <code>{'{ig_wanita}'}</code> atau <code>{'{rekening_pria}'}</code>.
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
 
             {node.type === 'button' && (
               <>
@@ -1154,35 +2152,86 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     🎨 Ikon Tombol &amp; Posisi Penempatan
                   </label>
 
-                  {/* Icon Input */}
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Ikon / Emoji Tombol:</label>
-                    <input
-                      type="text"
-                      value={node.icon || ''}
-                      onChange={(e) => updateNodeProp('icon', e.target.value)}
-                      placeholder="Contoh: 📸, 🎵, 💬, 📍, ✉️"
-                      style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
-                    />
+                  {/* Icon Input & SVG Library Finder Trigger */}
+                  <div style={{ marginBottom: '0.65rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>Ikon / SVG Tombol:</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsIconPickerOpen(true)}
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: 'var(--primary-light, rgba(227, 99, 151, 0.15))',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                        }}
+                      >
+                        🎨 Pilih dari Library Ikon (SVG)
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.2rem',
+                          flexShrink: 0,
+                          color: 'var(--primary)',
+                          padding: '4px',
+                        }}
+                      >
+                        {isSvgMarkup(node.icon) ? (
+                          <div className="studio-btn-svg-icon" style={{ width: '22px', height: '22px' }} dangerouslySetInnerHTML={{ __html: normalizeSvgString(node.icon) }} />
+                        ) : node.icon?.startsWith('http') || node.icon?.startsWith('data:') ? (
+                          <img src={node.icon} alt="icon" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                        ) : (
+                          node.icon || '—'
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        value={node.icon || ''}
+                        onChange={(e) => updateNodeProp('icon', e.target.value)}
+                        placeholder="Kode <svg>, 📸, atau URL..."
+                        style={{ width: '100%', padding: '0.45rem', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontFamily: 'monospace' }}
+                      />
+                    </div>
                   </div>
 
                   {/* Quick Icon Picker Bar */}
                   <div style={{ marginBottom: '0.65rem' }}>
-                    <span style={{ fontSize: '0.66rem', color: '#64748b', display: 'block', marginBottom: '0.3rem' }}>Pilih Ikon Cepat:</span>
+                    <span style={{ fontSize: '0.66rem', color: '#64748b', display: 'block', marginBottom: '0.3rem' }}>Pilih Emoji Cepat:</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      {['📸', '🎵', '📘', '💬', '🎥', '✉️', '💌', '📍', '📅', '🔗', '❤️', '⭐', '🎉', '✨', '🎁', '🗺️', '🔔', '🚀'].map((ic) => (
+                      {['📸', '🎵', '💬', '📍', '📅', '🔗', '❤️', '🎉', '✨', '🎁', '🔔', '💍', '💐', '✉️', '🚀'].map((ic) => (
                         <button
                           key={ic}
                           type="button"
                           onClick={() => updateNodeProp('icon', ic)}
                           style={{
                             padding: '3px 7px',
-                            fontSize: '0.85rem',
+                            fontSize: '0.82rem',
                             border: '1px solid var(--border-color)',
                             borderRadius: '6px',
                             backgroundColor: node.icon === ic ? 'var(--primary)' : '#ffffff',
                             color: node.icon === ic ? '#ffffff' : 'inherit',
                             cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
                           }}
                         >
                           {ic}
@@ -1191,7 +2240,7 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     </div>
                   </div>
 
-                  {/* Icon Position & Gap Controls */}
+                  {/* Icon Position, Gap, Size, & Color Controls */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                     <div>
                       <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Posisi Penempatan:</label>
@@ -1215,6 +2264,49 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                         onChange={(e) => updateNodeProp('iconGap', parseInt(e.target.value, 10) || 0)}
                         style={{ width: '100%', padding: '0.45rem', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
                       />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Ukuran Ikon (px):</label>
+                      <input
+                        type="number"
+                        min={8}
+                        max={100}
+                        value={node.iconSize ?? 20}
+                        onChange={(e) => updateNodeProp('iconSize', parseInt(e.target.value, 10) || 20)}
+                        style={{ width: '100%', padding: '0.45rem', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Warna / Fill Ikon:</label>
+                      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={node.iconColor || '#e36397'}
+                          onChange={(e) => updateNodeProp('iconColor', e.target.value)}
+                          style={{ width: '28px', height: '28px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateNodeProp('iconColor', '')}
+                          style={{
+                            fontSize: '0.66rem',
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: !node.iconColor ? 'var(--primary)' : '#ffffff',
+                            color: !node.iconColor ? '#ffffff' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            flex: 1,
+                            textAlign: 'center',
+                          }}
+                        >
+                          Auto (Teks)
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1266,24 +2358,64 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                       <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
                         Pilih Variabel Foto Pengguna:
                       </label>
-                      <select
-                        value={node.binding || 'fotoPria'}
-                        onChange={(e) => updateNodeProp('binding', e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.45rem 0.65rem',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-color)',
-                          backgroundColor: '#ffffff',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        <option value="fotoPria">🤵 fotoPria (Foto Mempelai Pria)</option>
-                        <option value="fotoWanita">👰 fotoWanita (Foto Mempelai Wanita)</option>
-                        <option value="cover_photo">🖼️ cover_photo (Foto Sampul Utama / Couple)</option>
-                      </select>
+                      {(() => {
+                        const isPresetBinding = ['fotoPria', 'fotoWanita', 'cover_photo'].includes(node.binding || '');
+                        const selectValue = isPresetBinding ? (node.binding || 'fotoPria') : 'custom';
+
+                        return (
+                          <>
+                            <select
+                              value={selectValue}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'custom') {
+                                  updateNodeProp('binding', 'custom_variabel');
+                                } else {
+                                  updateNodeProp('binding', val);
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '0.45rem 0.65rem',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: '#ffffff',
+                                color: 'var(--text-primary)',
+                              }}
+                            >
+                              <option value="fotoPria">🤵 fotoPria (Foto Mempelai Pria)</option>
+                              <option value="fotoWanita">👰 fotoWanita (Foto Mempelai Wanita)</option>
+                              <option value="cover_photo">🖼️ cover_photo (Foto Sampul Utama / Couple)</option>
+                              <option value="custom">✍️ Kustom / Nama Variabel Lain...</option>
+                            </select>
+
+                            {selectValue === 'custom' && (
+                              <div style={{ marginTop: '0.45rem' }}>
+                                <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>
+                                  Nama Variabel Kustom:
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="misal: foto_detail_1"
+                                  value={node.binding || ''}
+                                  onChange={(e) => updateNodeProp('binding', e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.4rem 0.6rem',
+                                    fontSize: '0.8rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    background: '#fff',
+                                    color: '#000',
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '0.35rem', lineHeight: '1.4' }}>
                         💡 Foto ini akan terisi otomatis dari foto yang diunggah pengguna di Editor Undangan. Gambar sampel di bawah digunakan sebagai fallback studio.
                       </span>
@@ -1297,12 +2429,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
 
                 <div className="form-group">
                   <label>{node.isDynamic ? 'URL Gambar Sampel / Fallback Studio' : 'URL Gambar Statis'}</label>
-                  <input
-                    type="text"
-                    value={node.content || ''}
-                    onChange={(e) => updateNodeProp('content', e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                  />
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <input
+                      type="text"
+                      value={node.content || ''}
+                      onChange={(e) => updateNodeProp('content', e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => openMediaLibrary(['studio'], (url) => updateNodeProp('content', url))}
+                      style={{
+                        padding: '6px 10px',
+                        background: 'var(--primary)',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        whiteSpace: 'nowrap',
+                        margin: 0,
+                        border: 'none',
+                      }}
+                    >
+                      📁 Upload
+                    </button>
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: 'var(--studio-border)', marginBottom: '1rem' }}>
@@ -1381,13 +2537,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     placeholder="guest_name"
                   />
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.65rem', background: '#ffffff', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <label htmlFor="inp-lock-guestname" style={{ margin: 0, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}>
+                    🔒 Kunci Nama (Isi Otomatis dari Link Tamu)
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="inp-lock-guestname"
+                    checked={node.isGuestNameInput ?? (node.inputName === 'guest_name')}
+                    onChange={(e) => updateNodeProp('isGuestNameInput', e.target.checked)}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                </div>
               </div>
             )}
 
             {node.type === 'select' && (
               <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)' }}>
-                  📋 Pengaturan Field Select (Pilihan Dropdown)
+                  📋 Pengaturan Field Select / Pilihan RSVP
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Tipe Tampilan Form</label>
+                  <select
+                    value={node.renderAsButtons !== false ? 'buttons' : 'dropdown'}
+                    onChange={(e) => updateNodeProp('renderAsButtons', e.target.value === 'buttons')}
+                    style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.78rem', backgroundColor: '#ffffff' }}
+                  >
+                    <option value="buttons">🔘 Tombol Pilihan Interaktif (Segmented Choice Buttons)</option>
+                    <option value="dropdown">🔽 Dropdown Menu (&lt;select&gt;)</option>
+                  </select>
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>Opsi Pilihan (Dipisah Koma)</label>
@@ -1395,7 +2574,7 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     type="text"
                     value={node.selectOptions || ''}
                     onChange={(e) => updateNodeProp('selectOptions', e.target.value)}
-                    placeholder="Hadir, Tidak Hadir, Ragu-ragu"
+                    placeholder="✅ Hadir, ❌ Tidak Hadir"
                   />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
@@ -1439,25 +2618,115 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
             {/* Typography */}
             {!isContainer && (
               <>
-                <div className="form-group">
-                  <label>Font Family</label>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ margin: 0 }}>Font Family</label>
+                    {style.fontFamily?.includes('font-primary') ? (
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: 'var(--bg-body)', padding: '2px 6px', borderRadius: '4px' }}>
+                        👑 Font Primary
+                      </span>
+                    ) : style.fontFamily?.includes('font-secondary') ? (
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: 'var(--bg-body)', padding: '2px 6px', borderRadius: '4px' }}>
+                        📖 Font Secondary
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* Fast Preset Buttons for Primary & Secondary */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', marginBottom: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => updateStyleProp('fontFamily', 'var(--global-font-primary)')}
+                      style={{
+                        padding: '4px 6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        background: style.fontFamily === 'var(--global-font-primary)' || style.fontFamily === 'font-primary' ? 'var(--primary)' : 'var(--bg-body)',
+                        color: style.fontFamily === 'var(--global-font-primary)' || style.fontFamily === 'font-primary' ? '#fff' : 'var(--text-main)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      👑 Font Primary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateStyleProp('fontFamily', 'var(--global-font-secondary)')}
+                      style={{
+                        padding: '4px 6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        background: style.fontFamily === 'var(--global-font-secondary)' || style.fontFamily === 'font-secondary' ? 'var(--primary)' : 'var(--bg-body)',
+                        color: style.fontFamily === 'var(--global-font-secondary)' || style.fontFamily === 'font-secondary' ? '#fff' : 'var(--text-main)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      📖 Font Secondary
+                    </button>
+                  </div>
+
                   <FontEngineSelect
                     value={style.fontFamily || 'Plus Jakarta Sans'}
                     onChange={(font) => updateStyleProp('fontFamily', font)}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Ukuran Font (Font Size px)</label>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ margin: 0 }}>Ukuran Font (Font Size)</label>
+                    <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{deviceIcon}</span>
+                  </div>
+
+                  {/* 8 Scale Pills */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '0.45rem' }}>
+                    {[
+                      { label: 'H1', token: 'var(--global-size-h1)' },
+                      { label: 'H2', token: 'var(--global-size-h2)' },
+                      { label: 'H3', token: 'var(--global-size-h3)' },
+                      { label: 'H4', token: 'var(--global-size-h4)' },
+                      { label: 'Body-L', token: 'var(--global-size-body-large)' },
+                      { label: 'Body', token: 'var(--global-size-body)' },
+                      { label: 'Body-S', token: 'var(--global-size-body-small)' },
+                      { label: 'Caption', token: 'var(--global-size-caption)' },
+                    ].map((pill) => {
+                      const isPillSelected = style.fontSize === pill.token || style.fontSize === pill.label || style.fontSize === pill.label.toLowerCase();
+                      return (
+                        <button
+                          key={pill.label}
+                          type="button"
+                          onClick={() => updateStyleProp('fontSize', pill.token)}
+                          style={{
+                            padding: '3px 2px',
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: isPillSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                            background: isPillSelected ? 'var(--primary)' : 'var(--bg-body)',
+                            color: isPillSelected ? '#fff' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {pill.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <input
-                    type="number"
+                    type="text"
                     value={getResponsiveVal('fontSize', '')}
-                    onChange={(e) => updateStyleProp('fontSize', parseInt(e.target.value) || '')}
-                    placeholder="16"
+                    onChange={(e) => updateStyleProp('fontSize', e.target.value)}
+                    placeholder="ex: var(--global-size-h1) atau 24"
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <label>Ketebalan Font (Font Weight)</label>
                   <select
                     value={getResponsiveVal('fontWeight', '400')}
@@ -1471,44 +2740,160 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Warna Teks (Color)</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <TokenColorPicker
+                  label="Warna Teks (Text Color)"
+                  value={style.color || ''}
+                  onChange={(val) => updateStyleProp('color', val)}
+                  globalStyles={globalStyles}
+                />
+
+                {/* Jarak Antar Huruf (Letter Spacing) */}
+                <div className="form-group" style={{ marginBottom: '1rem', marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ margin: 0 }}>🔤 Jarak Antar Huruf (Letter Spacing)</label>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '0.45rem' }}>
+                    {['0px', '1px', '2px', '4px', '6px', '8px', '12px'].map((ls) => (
+                      <button
+                        key={ls}
+                        type="button"
+                        onClick={() => updateStyleProp('letterSpacing', ls)}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          borderRadius: '4px',
+                          border: style.letterSpacing === ls ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                          background: style.letterSpacing === ls ? 'var(--primary)' : 'var(--bg-body)',
+                          color: style.letterSpacing === ls ? '#fff' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {ls}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={style.letterSpacing || ''}
+                    onChange={(e) => updateStyleProp('letterSpacing', e.target.value)}
+                    placeholder="contoh: 2px atau 0.1em"
+                    style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
+                  />
+                </div>
+
+                {/* Kelengkungan Teks (Curved Text) */}
+                <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label htmlFor={`inp-curved-${node.id}`} style={{ margin: 0, fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', cursor: 'pointer' }}>
+                      🌙 Efek Teks Melengkung (Curved Text)
+                    </label>
                     <input
-                      type="color"
-                      value={style.color && style.color.startsWith('#') ? style.color : '#000000'}
-                      onChange={(e) => updateStyleProp('color', e.target.value)}
-                      style={{ width: '40px', height: '36px', border: 'none', cursor: 'pointer' }}
-                    />
-                    <input
-                      type="text"
-                      value={style.color || ''}
-                      onChange={(e) => updateStyleProp('color', e.target.value)}
-                      placeholder="#db2777"
+                      type="checkbox"
+                      id={`inp-curved-${node.id}`}
+                      checked={!!style.isCurvedText}
+                      onChange={(e) => updateStyleProp('isCurvedText', e.target.checked)}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                     />
                   </div>
+                  {style.isCurvedText && (
+                    <div style={{ marginTop: '0.6rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                        <span>Radius Kelengkungan:</span>
+                        <span style={{ color: 'var(--primary)', fontWeight: 800 }}>{style.textCurveRadius !== undefined ? style.textCurveRadius : 120}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-300"
+                        max="300"
+                        step="10"
+                        value={style.textCurveRadius !== undefined ? style.textCurveRadius : 120}
+                        onChange={(e) => updateStyleProp('textCurveRadius', parseInt(e.target.value, 10))}
+                        style={{ width: '100%', cursor: 'pointer' }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        <span>-300 (Cembung Bawah)</span>
+                        <span>0 (Datar)</span>
+                        <span>+300 (Cembung Atas)</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
 
-            {/* Background Color & Image */}
-            <div className="form-group">
-              <label>Warna Latar (Background Color)</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="color"
-                  value={style.backgroundColor && style.backgroundColor.startsWith('#') ? style.backgroundColor : '#ffffff'}
-                  onChange={(e) => updateStyleProp('backgroundColor', e.target.value)}
-                  style={{ width: '40px', height: '36px', border: 'none', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={style.backgroundColor || ''}
-                  onChange={(e) => updateStyleProp('backgroundColor', e.target.value)}
-                  placeholder="#ffffff"
-                />
+            {/* Rotasi Elemen / Teks (Rotation Angle) */}
+            <div className="form-group" style={{ marginBottom: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ margin: 0, fontWeight: 700, fontSize: '0.78rem' }}>
+                  🔄 Rotasi Elemen / Teks (Rotation Angle)
+                </label>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)' }}>
+                  {style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0)}°
+                </span>
               </div>
+
+              {/* Preset Buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '0.45rem' }}>
+                {[
+                  { label: '0°', val: 0 },
+                  { label: '15°', val: 15 },
+                  { label: '45°', val: 45 },
+                  { label: '90°', val: 90 },
+                  { label: '-15°', val: -15 },
+                  { label: '-45°', val: -45 },
+                  { label: '-90°', val: -90 },
+                ].map((preset) => {
+                  const currentRot = Number(style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0));
+                  const isSelected = currentRot === preset.val;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        updateStyleProp('transformRotate', preset.val);
+                        updateStyleProp('rotate', preset.val);
+                      }}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        borderRadius: '4px',
+                        border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                        background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                        color: isSelected ? '#fff' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Angle Slider */}
+              <input
+                type="range"
+                min="-180"
+                max="180"
+                step="1"
+                value={Number(style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0))}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  updateStyleProp('transformRotate', val);
+                  updateStyleProp('rotate', val);
+                }}
+                style={{ width: '100%', cursor: 'pointer' }}
+              />
             </div>
+
+            {/* Background Color & Image */}
+            <TokenColorPicker
+              label="Warna Latar (Background Color)"
+              value={style.backgroundColor || ''}
+              onChange={(val) => updateStyleProp('backgroundColor', val)}
+              globalStyles={globalStyles}
+            />
 
             {isContainer && (
               <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
@@ -1678,23 +3063,7 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                       </select>
                     </div>
 
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label>Warna Overlay Transparan Latar (Agar Teks Jelas)</label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input
-                          type="color"
-                          value={style.backgroundOverlayColor && style.backgroundOverlayColor.startsWith('#') ? style.backgroundOverlayColor : '#000000'}
-                          onChange={(e) => updateStyleProp('backgroundOverlayColor', e.target.value)}
-                          style={{ width: '40px', height: '36px', border: 'none', cursor: 'pointer' }}
-                        />
-                        <input
-                          type="text"
-                          value={style.backgroundOverlayColor || ''}
-                          onChange={(e) => updateStyleProp('backgroundOverlayColor', e.target.value)}
-                          placeholder="rgba(0,0,0,0.4)"
-                        />
-                      </div>
-                    </div>
+
 
                     <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', margin: 0 }}>
                       💡 Container akan otomatis memutar seluruh foto yang tercentang <strong style={{ color: 'var(--primary)' }}>"Tambahkan ke Galeri Lightbox"</strong>.
@@ -1705,24 +3074,265 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                 {style.bgType !== 'gradient' && style.bgType !== 'gallery-slideshow' && (
                   <div className="form-group" style={{ margin: 0, marginTop: '0.75rem' }}>
                     <label>Gambar Latar (Background Image URL)</label>
-                    <input
-                      type="text"
-                      value={getResponsiveVal('backgroundImage', '')}
-                      onChange={(e) => updateStyleProp('backgroundImage', e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                    />
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <input
+                        type="text"
+                        value={getResponsiveVal('backgroundImage', '')}
+                        onChange={(e) => updateStyleProp('backgroundImage', e.target.value)}
+                        placeholder="https://images.unsplash.com/..."
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => openMediaLibrary(['studio'], (url) => updateStyleProp('backgroundImage', url))}
+                        style={{
+                          padding: '6px 10px',
+                          background: 'var(--primary)',
+                          color: '#fff',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          whiteSpace: 'nowrap',
+                          margin: 0,
+                          border: 'none',
+                        }}
+                      >
+                        📁 Upload
+                      </button>
+                    </div>
+                    {/* Dynamic Background Image Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.55rem', marginBottom: '0.45rem' }}>
+                      <label style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                        ✨ Latar Belakang Dinamis
+                      </label>
+                      <input
+                        type="checkbox"
+                        checked={style.isBgDynamic === true}
+                        onChange={(e) => {
+                          updateStyleProp('isBgDynamic', e.target.checked);
+                          if (e.target.checked && !style.backgroundImageBinding) {
+                            updateStyleProp('backgroundImageBinding', 'cover_photo');
+                          }
+                        }}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    {style.isBgDynamic && (
+                      <div style={{ marginTop: '0.4rem', marginBottom: '0.45rem' }}>
+                        <label style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>
+                          Pilih/Ketik Variabel Latar Belakang:
+                        </label>
+                        {(() => {
+                          const isPreset = ['fotoPria', 'fotoWanita', 'cover_photo'].includes(String(style.backgroundImageBinding || ''));
+                          const selectVal = isPreset ? String(style.backgroundImageBinding || 'cover_photo') : 'custom';
+                          return (
+                            <>
+                              <select
+                                value={selectVal}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === 'custom') {
+                                    updateStyleProp('backgroundImageBinding', 'custom_variabel');
+                                  } else {
+                                    updateStyleProp('backgroundImageBinding', val);
+                                  }
+                                }}
+                                style={{
+                                  width: '100%',
+                                  padding: '0.4rem 0.5rem',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  borderRadius: '6px',
+                                  border: '1px solid var(--border-color)',
+                                  backgroundColor: '#fff',
+                                }}
+                              >
+                                <option value="cover_photo">🖼️ cover_photo (Foto Sampul Utama / Couple)</option>
+                                <option value="fotoPria">🤵 fotoPria (Foto Mempelai Pria)</option>
+                                <option value="fotoWanita">👰 fotoWanita (Foto Mempelai Wanita)</option>
+                                <option value="custom">✍️ Kustom / Nama Variabel Lain...</option>
+                              </select>
+
+                              {selectVal === 'custom' && (
+                                <input
+                                  type="text"
+                                  placeholder="misal: foto_background_kustom"
+                                  value={String(style.backgroundImageBinding || '')}
+                                  onChange={(e) => updateStyleProp('backgroundImageBinding', e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.4rem 0.5rem',
+                                    fontSize: '0.78rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    marginTop: '0.35rem',
+                                    background: '#fff',
+                                    color: '#000',
+                                  }}
+                                />
+                              )}
+                            </>
+                          );
+                        })()}
+                        <span style={{ fontSize: '0.64rem', color: '#64748b', display: 'block', marginTop: '0.25rem', lineHeight: '1.3' }}>
+                          💡 URL di atas hanya digunakan sebagai fallback/pratinjau studio. Latar belakang akan otomatis digantikan oleh berkas yang diunggah pengguna untuk variabel ini.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
+                    {/* Background Overlay settings for all containers */}
+                    <div style={{ marginTop: '0.75rem', padding: '0.65rem', background: 'var(--bg-card)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.45rem' }}>
+                        🖤 Overlay Latar Belakang (Gelap/Terang)
+                      </span>
+                      
+                      <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700 }}>Warna Overlay</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            type="color"
+                            value={style.backgroundOverlayColor && style.backgroundOverlayColor.startsWith('#') ? style.backgroundOverlayColor : '#000000'}
+                            onChange={(e) => updateStyleProp('backgroundOverlayColor', e.target.value)}
+                            style={{ width: '36px', height: '30px', border: 'none', cursor: 'pointer', padding: 0 }}
+                          />
+                          <input
+                            type="text"
+                            value={style.backgroundOverlayColor || ''}
+                            onChange={(e) => updateStyleProp('backgroundOverlayColor', e.target.value)}
+                            placeholder="rgba(0,0,0,0.4) atau #000000"
+                            style={{ flex: 1, padding: '4px 8px', fontSize: '0.75rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>Kekuatan Overlay (Opacity)</span>
+                          <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{Math.round((parseFloat(String(style.backgroundOverlayOpacity ?? 0.5)) || 0) * 100)}%</span>
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={style.backgroundOverlayOpacity ?? 0.5}
+                          onChange={(e) => updateStyleProp('backgroundOverlayOpacity', parseFloat(e.target.value))}
+                          style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                      </div>
+                    </div>
               </div>
             )}
 
-            <div className="form-group">
-              <label>Border Radius (px)</label>
-              <input
-                type="number"
-                value={style.borderRadius || ''}
-                onChange={(e) => updateStyleProp('borderRadius', parseInt(e.target.value) || '')}
-                placeholder="12"
+            {/* Border & Corner Radius Controls */}
+            <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.65rem' }}>
+                🔲 Pengaturan Border &amp; Sudut
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                <label style={{ margin: 0, fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  📐 Atur Radius Per Sudut
+                </label>
+                <input
+                  type="checkbox"
+                  checked={style.useIndividualRadius === true}
+                  onChange={(e) => updateStyleProp('useIndividualRadius', e.target.checked)}
+                  style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                />
+              </div>
+
+              {style.useIndividualRadius === true ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem', marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-card)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>↖️ Kiri Atas (px)</label>
+                    <input
+                      type="number"
+                      value={style.borderTopLeftRadius ?? ''}
+                      onChange={(e) => updateStyleProp('borderTopLeftRadius', e.target.value !== '' ? parseInt(e.target.value) : '')}
+                      placeholder="0"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>↗️ Kanan Atas (px)</label>
+                    <input
+                      type="number"
+                      value={style.borderTopRightRadius ?? ''}
+                      onChange={(e) => updateStyleProp('borderTopRightRadius', e.target.value !== '' ? parseInt(e.target.value) : '')}
+                      placeholder="0"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>↙️ Kiri Bawah (px)</label>
+                    <input
+                      type="number"
+                      value={style.borderBottomLeftRadius ?? ''}
+                      onChange={(e) => updateStyleProp('borderBottomLeftRadius', e.target.value !== '' ? parseInt(e.target.value) : '')}
+                      placeholder="0"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.65rem' }}>↘️ Kanan Bawah (px)</label>
+                    <input
+                      type="number"
+                      value={style.borderBottomRightRadius ?? ''}
+                      onChange={(e) => updateStyleProp('borderBottomRightRadius', e.target.value !== '' ? parseInt(e.target.value) : '')}
+                      placeholder="0"
+                      style={{ padding: '0.35rem' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                  <label>Border Radius / Sudut Membulat (px)</label>
+                  <input
+                    type="number"
+                    value={style.borderRadius || ''}
+                    onChange={(e) => updateStyleProp('borderRadius', parseInt(e.target.value) || '')}
+                    placeholder="12"
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Ketebalan Border (px)</label>
+                  <input
+                    type="number"
+                    value={style.borderWidth || ''}
+                    onChange={(e) => updateStyleProp('borderWidth', parseInt(e.target.value) || '')}
+                    placeholder="1"
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Tipe Garis</label>
+                  <select
+                    value={style.borderStyle || 'none'}
+                    onChange={(e) => updateStyleProp('borderStyle', e.target.value)}
+                  >
+                    <option value="none">None (Tanpa Garis)</option>
+                    <option value="solid">Solid (Garis Lurus)</option>
+                    <option value="dashed">Dashed (Putus-putus)</option>
+                    <option value="dotted">Dotted (Titik-titik)</option>
+                    <option value="double">Double (Ganda)</option>
+                  </select>
+                </div>
+              </div>
+
+              <TokenColorPicker
+                label="Warna Garis Border"
+                value={style.borderColor || ''}
+                onChange={(c) => updateStyleProp('borderColor', c)}
+                globalStyles={globalStyles}
               />
             </div>
 
@@ -1908,6 +3518,24 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
           </div>
         )}
       </div>
+
+      <MediaLibraryModal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
+        onSelectImage={(url) => {
+          if (onMediaSelectCallback) onMediaSelectCallback(url);
+        }}
+        folders={mediaModalFolders}
+      />
+
+      <IconPickerModal
+        isOpen={isIconPickerOpen}
+        onClose={() => setIsIconPickerOpen(false)}
+        onSelectIcon={(iconValue) => {
+          updateNodeProp('icon', iconValue);
+        }}
+        currentIcon={node.icon}
+      />
     </div>
   );
 }

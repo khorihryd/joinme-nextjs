@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { NodeRenderer, getOrderedAndFilteredNodes } from '@/components/studio/NodeRenderer';
-import { DEFAULT_NODES, loadNodeFonts, ensureGoogleFontLoaded } from '@/store/studio-store';
+import { DEFAULT_NODES, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables } from '@/store/studio-store';
 import { StudioNode, SECTION_DEFINITIONS, SectionType } from '@/types';
 import { MusicPlayer } from '@/components/invitation/MusicPlayer';
 
@@ -17,19 +17,50 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
   const [loading, setLoading] = useState(true);
   const [isCoverOpened, setIsCoverOpened] = useState(false);
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
+  const [wishes, setWishes] = useState<any[]>([]);
+
+  const loadWishes = async (eventId: string) => {
+    try {
+      const res = await fetch(`/api/guests?eventId=${eventId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWishes(data);
+      }
+    } catch (err) {
+      console.error('Error fetching wishes:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (event?.id) {
+      (window as any).refreshWishes = () => loadWishes(event.id);
+      loadWishes(event.id);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).refreshWishes;
+      }
+    };
+  }, [event?.id]);
 
   useEffect(() => {
     async function loadEvent() {
       if (!subdomain) return;
       try {
-        const res = await fetch('/api/events');
+        const res = await fetch(`/api/events?subdomain=${subdomain}`);
         if (res.ok) {
-          const events = await res.json();
-          const found = events.find((e: any) => e.subdomain === subdomain);
+          const found = await res.json();
           if (found) {
             setEvent(found);
-            if (found.details?.globalStyles?.fontFamily) {
-              ensureGoogleFontLoaded(found.details.globalStyles.fontFamily);
+            const g = found.details?.globalStyles;
+            if (g?.fontFamily) {
+              ensureGoogleFontLoaded(g.fontFamily);
+            }
+            if (g?.typography?.fontPrimary) {
+              ensureGoogleFontLoaded(g.typography.fontPrimary);
+            }
+            if (g?.typography?.fontSecondary) {
+              ensureGoogleFontLoaded(g.typography.fontSecondary);
             }
             if (Array.isArray(found.details?.studioNodes) && found.details.studioNodes.length > 0) {
               loadNodeFonts(found.details.studioNodes);
@@ -62,6 +93,7 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
   const hiddenSectionsMap: Record<string, boolean> = details.hiddenSections || {};
 
   const liveEventDetails = {
+    eventId: event?.id,
     title: event?.title,
     subdomain: event?.subdomain,
     type: event?.type,
@@ -87,6 +119,9 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
     schedules: details.schedules || [],
     story: details.story || [],
     gallery: details.gallery || [],
+    galleryImages: details.gallery || [],
+    photos: details.gallery || [],
+    images: details.gallery || [],
     bankAccounts: [
       details.bank1Nama && { bankName: details.bank1Nama, accountNumber: details.bank1Rek, accountHolder: details.bank1An },
       details.bank2Nama && { bankName: details.bank2Nama, accountNumber: details.bank2Rek, accountHolder: details.bank2An },
@@ -96,8 +131,13 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
     coverTitle: details.coverTitle,
     coverCoupleName: details.coverCoupleName,
     cover_photo: details.cover_photo,
+    showStory: details.showStory !== false,
+    showGallery: details.showGallery !== false,
+    showDresscode: details.showDresscode === true,
+    isPublicInvitation: true,
     sectionOrder: currentSectionOrder,
     hiddenSections: hiddenSectionsMap,
+    wishesList: wishes,
   };
 
   const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)
@@ -142,8 +182,35 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
     );
   }
 
+  const cssVars = getGlobalCssVariables(previewGlobalStyles);
+
+  const globalBgUrl = (() => {
+    let bgUrl = previewGlobalStyles.backgroundImage || '';
+    if (previewGlobalStyles.isBgDynamic && previewGlobalStyles.backgroundImageBinding) {
+      const boundVal = (liveEventDetails as any)[previewGlobalStyles.backgroundImageBinding];
+      if (boundVal && boundVal.trim() !== '') {
+        bgUrl = boundVal;
+      }
+    }
+    return bgUrl;
+  })();
+
   return (
-    <div style={{ position: 'relative', width: '100%', minHeight: '100vh', backgroundColor: previewGlobalStyles.bgColor || '#eff2ef', overflowX: 'hidden' }}>
+    <div
+      style={{
+        ...cssVars,
+        position: 'relative',
+        width: '100%',
+        minHeight: '100vh',
+        backgroundColor: previewGlobalStyles.bgColor || previewGlobalStyles.colors?.background || '#eff2ef',
+        backgroundImage: globalBgUrl ? `url(${globalBgUrl})` : undefined,
+        backgroundSize: previewGlobalStyles.backgroundSize || 'cover',
+        backgroundPosition: previewGlobalStyles.backgroundPosition || 'center',
+        backgroundRepeat: previewGlobalStyles.backgroundRepeat || 'no-repeat',
+        fontFamily: previewGlobalStyles.fontFamily || previewGlobalStyles.typography?.fontPrimary || 'inherit',
+        overflowX: 'hidden',
+      }}
+    >
       {/* Background Music Controller */}
       {isCoverOpened && details.musicUrl && (
         <MusicPlayer

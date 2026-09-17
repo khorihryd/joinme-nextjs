@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import prisma from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { auth } from '@/lib/auth';
 
 // GET /api/users (Admin only)
@@ -11,25 +11,26 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        plan: true,
-        status: true,
-        joinedDate: true,
-        eventsCount: true,
-        createdAt: true,
-        events: {
-          select: { id: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
+    const { data: users, error } = await supabaseAdmin
+      .from('User')
+      .select('id, name, email, role, plan, status, joinedDate, eventsCount, createdAt, Event(id)')
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching users from Supabase:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Format output to match Prisma nested relation 'events'
+    const formattedUsers = (users || []).map((u: any) => {
+      const { Event, ...rest } = u;
+      return {
+        ...rest,
+        events: Event || [],
+      };
     });
 
-    return NextResponse.json(users);
+    return NextResponse.json(formattedUsers);
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -46,9 +47,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nama dan email wajib diisi' }, { status: 400 });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+    const { data: existingUser } = await supabaseAdmin
+      .from('User')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
 
     if (existingUser) {
       return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 409 });
@@ -57,26 +60,23 @@ export async function POST(request: Request) {
     const userPassword = password || 'user123';
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    const user = await prisma.user.create({
-      data: {
+    const { data: user, error } = await supabaseAdmin
+      .from('User')
+      .insert({
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
         role: role || 'user',
         plan: plan || 'Free',
         status: status || 'Aktif',
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        plan: true,
-        status: true,
-        joinedDate: true,
-        eventsCount: true,
-      },
-    });
+      })
+      .select('id, name, email, role, plan, status, joinedDate, eventsCount')
+      .single();
+
+    if (error) {
+      console.error('Error creating user in Supabase:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
@@ -100,26 +100,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const updated = await prisma.user.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(email && { email: email.toLowerCase() }),
-        ...(role && { role }),
-        ...(plan && { plan }),
-        ...(status && { status }),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        plan: true,
-        status: true,
-        joinedDate: true,
-        eventsCount: true,
-      },
-    });
+    const updateData: Record<string, any> = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email.toLowerCase();
+    if (role) updateData.role = role;
+    if (plan) updateData.plan = plan;
+    if (status) updateData.status = status;
+    updateData.updatedAt = new Date().toISOString();
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('User')
+      .update(updateData)
+      .eq('id', id)
+      .select('id, name, email, role, plan, status, joinedDate, eventsCount')
+      .single();
+
+    if (error) {
+      console.error('Error updating user in Supabase:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -143,9 +142,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    await prisma.user.delete({
-      where: { id },
-    });
+    const { error } = await supabaseAdmin
+      .from('User')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting user in Supabase:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

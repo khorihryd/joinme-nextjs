@@ -1,0 +1,36 @@
+/**
+ * JoinMe Studio Sample Variables for Previews
+ */
+export const SAMPLE_VARIABLES = {
+  'guest_name': 'Budi Santoso & Partner',
+  'nama_tamu': 'Budi Santoso & Partner',
+  'groom_name': 'Jonathan Wijaya',
+  'nama_pria': 'Jonathan Wijaya',
+  'bride_name': 'Anti Rahmawati',
+  'nama_wanita': 'Anti Rahmawati',
+  'couple_name': 'Jonathan & Anti',
+  'nama_mempelai': 'Jonathan & Anti',
+  'event_title': 'Akad Nikah',
+  'nama_acara': 'Akad Nikah',
+  'event_date': '21 September 2026',
+  'tanggal_acara': '21 September 2026',
+  'event_time': '08:00 - 10:00 WIB',
+  'waktu_acara': '08:00 - 10:00 WIB',
+  'event_location': 'Grand Ballroom Hotel Mulia, Jakarta',
+  'lokasi_acara': 'Grand Ballroom Hotel Mulia, Jakarta',
+  'event_address': 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+  'alamat_lengkap': 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+  'story_year': '2020',
+  'tahun_momen': '2020',
+  'story_title': 'Pertama Kali Bertemu',
+  'judul_momen': 'Pertama Kali Bertemu',
+  'story_description': 'Pertama kali saling mengenal di kampus saat kegiatan orientasi mahasiswa dan mulai menjadi teman dekat.',
+  'deskripsi_momen': 'Pertama kali saling mengenal di kampus saat kegiatan orientasi mahasiswa dan mulai menjadi teman dekat.',
+  'story_image': 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  'foto_momen': 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  'story_photo': 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  'story_img': 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  'organizer_name': 'Denny Sumargo',
+  'nama_penyelenggara': 'Denny Sumargo',
+  'cover_photo': 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80'
+};

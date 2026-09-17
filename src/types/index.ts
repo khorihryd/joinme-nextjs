@@ -105,6 +105,67 @@ export interface Guest {
 // ===== Template Types =====
 export type TemplateTier = 'Free' | 'Pro' | 'Enterprise';
 
+export interface GlobalColorTokens {
+  primary: string;
+  secondary: string;
+  background: string;
+  surface: string;
+  textPrimary: string;
+  textSecondary: string;
+  accentLuxury: string;
+  border: string;
+}
+
+export interface GlobalTypographyTokens {
+  fontPrimary: string;
+  fontSecondary: string;
+  sizeH1: number;
+  sizeH2: number;
+  sizeH3: number;
+  sizeH4: number;
+  sizeBodyLarge: number;
+  sizeBody: number;
+  sizeBodySmall: number;
+  sizeCaption: number;
+}
+
+export interface GlobalSpacingTokens {
+  marginNone: string;
+  marginXS: string;
+  marginSM: string;
+  marginMD: string;
+  marginLG: string;
+  marginXL: string;
+  margin2XL: string;
+  paddingNone: string;
+  paddingXS: string;
+  paddingSM: string;
+  paddingMD: string;
+  paddingLG: string;
+  paddingXL: string;
+  padding2XL: string;
+}
+
+export interface GlobalStyles {
+  bgColor?: string;
+  padding?: string;
+  margin?: string;
+  fontFamily?: string;
+  backgroundImage?: string;
+  isBgDynamic?: boolean;
+  backgroundImageBinding?: string;
+  backgroundPosition?: string;
+  backgroundSize?: string;
+  backgroundRepeat?: string;
+  hideScrollbar?: boolean;
+  viewportWidthDesktop?: string;
+  viewportWidthTablet?: string;
+  viewportWidthMobile?: string;
+  colors?: GlobalColorTokens;
+  typography?: GlobalTypographyTokens;
+  spacing?: GlobalSpacingTokens;
+}
+
 export interface Template {
   id: string;
   name: string;
@@ -113,7 +174,7 @@ export interface Template {
   status: 'Aktif' | 'Nonaktif';
   views: number;
   thumbnail: string | null;
-  globalStyles: Record<string, string> | null;
+  globalStyles: Record<string, any> | GlobalStyles | null;
   nodes: StudioNode[] | null;
   createdAt: Date;
   updatedAt: Date;
@@ -178,11 +239,15 @@ export interface NodeStyle {
   alignItems?: string;
   flexWrap?: string;
   gap?: string;
+  gapTablet?: string;
   gapMobile?: string;
   flexShrink?: number | string;
   flexShrinkMobile?: number | string;
   flexShrinkTablet?: number | string;
   flexGrow?: number | string;
+  order?: number | string;
+  orderTablet?: number | string;
+  orderMobile?: number | string;
   // Spacing
   padding?: string;
   paddingMobile?: string;
@@ -240,6 +305,10 @@ export interface NodeStyle {
   borderBottomRightRadius?: number;
   // Effects & Shadow
   opacity?: string | number;
+  rotate?: number | string;
+  transformRotate?: number;
+  isCurvedText?: boolean;
+  textCurveRadius?: number;
   boxShadow?: string;
   boxShadowColor?: string;
   boxShadowX?: number;
@@ -331,19 +400,28 @@ export interface StudioNode {
   widgetType?: 'rsvp-form' | 'wishes-feed' | 'event-list' | 'groom-bride' | 'gift-widget' | 'opening-prayer' | 'lovestory' | 'gallery-feed' | 'thank-you';
   isWishesFeed?: boolean;
   isEventFeed?: boolean;
+  isStoryFeed?: boolean;
+  isGalleryFeed?: boolean;
   isDynamic?: boolean;
   binding?: string;
   placeholder?: string;
   inputName?: string;
   selectOptions?: string;
+  renderAsButtons?: boolean;
+  isGuestNameInput?: boolean;
   buttonAction?: ButtonAction;
   buttonUrl?: string;
   icon?: string;
   iconPosition?: 'left' | 'right';
   iconGap?: number;
+  iconSize?: number;
+  iconColor?: string;
   showInGallery?: boolean;
   hideDots?: boolean;
   kenBurns?: boolean;
+  countdownTargetDate?: string;
+  customAction?: string;
+  customActionParam?: string;
 }
 
 export interface StudioState {
@@ -399,7 +477,10 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   keluarga_pria: 'Kel. Bpk. H. Bambang Wijaya & Ibu Hj. Siti Rahma',
   keluarga_wanita: 'Kel. Bpk. Ir. H. Ahmad Kartika & Ibu Hj. Nurbaeti',
 
-  // Date & Time
+  // Date & Time & Event Title
+  event_title: 'Akad Nikah',
+  nama_acara: 'Akad Nikah',
+  title: 'Akad Nikah',
   event_date: '21 September 2026',
   tanggal_acara: '21 September 2026',
   event_time: '08:00 - 14:00 WIB',
@@ -412,6 +493,7 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   event_location: 'Grand Ballroom Hotel Mulia, Jakarta',
   lokasi_acara: 'Grand Ballroom Hotel Mulia',
   nama_lokasi: 'Grand Ballroom Hotel Mulia',
+  event_address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
   alamat_lengkap: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
   kota_acara: 'Jakarta Pusat',
 
@@ -447,14 +529,34 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   kutipan_ayat: 'وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً',
   terjemahan_ayat: 'Dan di antara tanda-tanda kekuasaan-Nya ialah Dia menciptakan untukmu isteri-isteri dari jenismu sendiri, supaya kamu cenderung dan merasa tenteram kepadanya, dan dijadikan-Nya diantaramu rasa kasih dan sayang.',
   nama_surah: 'QS. Ar-Rum: 21',
+  opening_verse: 'Maha Suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Ya Allah semoga ridho-Mu tercurah mengiringi pernikahan kami.',
+  salam_pembuka: 'Assalamu\'alaikum Warahmatullahi Wabarakatuh',
+  opening_greeting: 'Assalamu\'alaikum Warahmatullahi Wabarakatuh',
+
+  // Closing & Thank You
+  pesan_penutup: 'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas doa restu serta kehadiran Bapak/Ibu/Saudara/i.',
+  closing_message: 'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas doa restu serta kehadiran Bapak/Ibu/Saudara/i.',
+  nama_keluarga_penutup: 'Roni & Anti & Keluarga Besar',
+  closing_family: 'Roni & Anti & Keluarga Besar',
+  hashtag: '#RoniAntiWedding2026',
 
   // Love Story
   enableLoveStory: true,
   enable_love_story: true,
+  story_year: '2020',
+  tahun_momen: '2020',
+  story_title: 'Pertama Kali Bertemu',
+  judul_momen: 'Pertama Kali Bertemu',
+  story_description: 'Pertama kali saling mengenal di kampus saat kegiatan orientasi mahasiswa dan mulai menjadi teman dekat.',
+  deskripsi_momen: 'Pertama kali saling mengenal di kampus saat kegiatan orientasi mahasiswa dan mulai menjadi teman dekat.',
+  story_image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  foto_momen: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  story_photo: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  story_img: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
   loveStories: [
-    { year: '2020', title: 'Pertama Bertemu', description: 'Pertama kali saling mengenal di kampus saat kegiatan orientasi mahasiswa.' },
-    { year: '2023', title: 'Lamaran Khidmat', description: 'Momen berharga saat keluarga besar saling bertukar niat suci menuju pernikahan.' },
-    { year: '2026', title: 'Menikah & Bahagia', description: 'Mengikat janji suci pernikahan untuk mengarungi hidup bersama selamanya.' },
+    { year: '2020', title: 'Pertama Bertemu', description: 'Pertama kali saling mengenal di kampus saat kegiatan orientasi mahasiswa.', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80' },
+    { year: '2023', title: 'Lamaran Khidmat', description: 'Momen berharga saat keluarga besar saling bertukar niat suci menuju pernikahan.', image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&auto=format&fit=crop&q=80' },
+    { year: '2026', title: 'Menikah & Bahagia', description: 'Mengikat janji suci pernikahan untuk mengarungi hidup bersama selamanya.', image: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=800&auto=format&fit=crop&q=80' },
   ],
 
   // Media & Gallery
@@ -518,13 +620,19 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
     label: 'Waktu & Tempat',
     icon: '📅',
     variables: [
+      { tag: '{nama_acara}', label: 'Nama Acara', desc: 'Nama Sesi Acara (Akad Nikah / Resepsi)' },
+      { tag: '{event_title}', label: 'Judul Acara', desc: 'Judul Acara / Session Title' },
       { tag: '{tanggal_acara}', label: 'Tanggal Acara', desc: 'Tanggal Pelaksanaan Acara' },
+      { tag: '{event_date}', label: 'Tanggal Acara (EN)', desc: 'Tanggal Acara Format Baku' },
       { tag: '{waktu_acara}', label: 'Waktu Acara', desc: 'Jam / Waktu Pelaksanaan' },
+      { tag: '{event_time}', label: 'Waktu Acara (EN)', desc: 'Waktu Acara Format Baku' },
       { tag: '{hari_acara}', label: 'Hari Acara', desc: 'Nama Hari' },
       { tag: '{bulan_acara}', label: 'Bulan Acara', desc: 'Nama Bulan' },
       { tag: '{tahun_acara}', label: 'Tahun Acara', desc: 'Tahun Pelaksanaan' },
       { tag: '{nama_lokasi}', label: 'Nama Lokasi', desc: 'Nama Gedung / Tempat' },
+      { tag: '{event_location}', label: 'Lokasi Acara (EN)', desc: 'Nama Tempat / Venue' },
       { tag: '{alamat_lengkap}', label: 'Alamat Lengkap', desc: 'Detail Alamat Gedung' },
+      { tag: '{event_address}', label: 'Alamat Acara (EN)', desc: 'Detail Alamat Gedung' },
       { tag: '{kota_acara}', label: 'Kota Acara', desc: 'Kota Tempat Acara' },
       { tag: '{link_maps}', label: 'URL Google Maps', desc: 'Link / Embed Google Maps Acara' },
     ],
@@ -558,6 +666,19 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
       { tag: '{yt_organizer}', label: 'YouTube Channel', desc: 'YouTube Channel Perusahaan' },
       { tag: '{fb_organizer}', label: 'Facebook Page', desc: 'Facebook Page Perusahaan' },
       { tag: '{wa_contact}', label: 'WhatsApp Contact', desc: 'Nomor WhatsApp Official / Admin' },
+    ],
+  },
+  {
+    id: 'lovestory',
+    label: 'Kisah Cinta (Love Story)',
+    icon: '💕',
+    variables: [
+      { tag: '{story_title}', label: 'Judul Momen', desc: 'Judul Kisah Cinta / Momen' },
+      { tag: '{judul_momen}', label: 'Judul Momen (ID)', desc: 'Judul Kisah Cinta' },
+      { tag: '{story_year}', label: 'Tahun Momen', desc: 'Tahun Momen (misal: 2020)' },
+      { tag: '{tahun_momen}', label: 'Tahun Momen (ID)', desc: 'Tahun Momen' },
+      { tag: '{story_description}', label: 'Deskripsi Cerita', desc: 'Cerita Kenangan Momen' },
+      { tag: '{deskripsi_momen}', label: 'Deskripsi (ID)', desc: 'Cerita Kenangan Momen' },
     ],
   },
 ];

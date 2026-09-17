@@ -4,11 +4,12 @@ import React from 'react';
 import { WidgetsPanel } from './WidgetsPanel';
 import { NavigatorTree } from './NavigatorTree';
 import { InspectorPanel } from './InspectorPanel';
+import { GlobalPropertiesPanel } from './GlobalPropertiesPanel';
 import { StudioNode } from '@/types';
 
 interface SidebarLeftProps {
-  sidebarTab: 'widgets' | 'navigator' | 'properties';
-  setSidebarTab: (tab: 'widgets' | 'navigator' | 'properties') => void;
+  sidebarTab: 'widgets' | 'navigator' | 'global' | 'properties';
+  setSidebarTab: (tab: 'widgets' | 'navigator' | 'global' | 'properties') => void;
   nodes: StudioNode[];
   selectedNodeId: string | null;
   selectedNode: StudioNode | null;
@@ -39,29 +40,37 @@ export function SidebarLeft({
 }: SidebarLeftProps) {
   return (
     <aside className="studio-sidebar-left" style={{ overflowY: 'hidden' }}>
-      {/* 3 Sidebar Mode Tabs */}
+      {/* 4 Sidebar Mode Tabs */}
       <div className="sidebar-modes-tabs" style={{ display: 'flex', borderBottom: 'var(--studio-border)', backgroundColor: 'var(--bg-body)', flexShrink: 0 }}>
         <button
           type="button"
           className={`sidebar-mode-btn ${sidebarTab === 'widgets' ? 'active' : ''}`}
           onClick={() => setSidebarTab('widgets')}
-          style={{ flex: 1, padding: '0.75rem 0.25rem', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.05em', fontFamily: 'inherit' }}
+          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
         >
-          🧱 Widgets
+          🧱 Widget
         </button>
         <button
           type="button"
           className={`sidebar-mode-btn ${sidebarTab === 'navigator' ? 'active' : ''}`}
           onClick={() => setSidebarTab('navigator')}
-          style={{ flex: 1, padding: '0.75rem 0.25rem', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.05em', fontFamily: 'inherit' }}
+          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
         >
-          🌳 Navigator
+          🌳 Nav
+        </button>
+        <button
+          type="button"
+          className={`sidebar-mode-btn ${sidebarTab === 'global' ? 'active' : ''}`}
+          onClick={() => setSidebarTab('global')}
+          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
+        >
+          🎨 Global
         </button>
         <button
           type="button"
           className={`sidebar-mode-btn ${sidebarTab === 'properties' ? 'active' : ''}`}
           onClick={() => setSidebarTab('properties')}
-          style={{ flex: 1, padding: '0.75rem 0.25rem', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.05em', fontFamily: 'inherit' }}
+          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
         >
           ⚙️ Properti
         </button>
@@ -96,7 +105,14 @@ export function SidebarLeft({
         </div>
       )}
 
-      {/* TAB CONTENT 3: PROPERTIES (INSPECTOR) */}
+      {/* TAB CONTENT 3: GLOBAL PROPERTIES (DESIGN TOKENS) */}
+      {sidebarTab === 'global' && (
+        <div id="sidebar-content-global" className="sidebar-tab-content" style={{ display: 'block', height: 'calc(100% - 38px)', overflowY: 'auto' }}>
+          <GlobalPropertiesPanel />
+        </div>
+      )}
+
+      {/* TAB CONTENT 4: PROPERTIES (INSPECTOR) */}
       {sidebarTab === 'properties' && (
         <div id="sidebar-content-properties" className="sidebar-tab-content" style={{ display: 'block', height: 'calc(100% - 38px)', overflowY: 'auto' }}>
           <InspectorPanel

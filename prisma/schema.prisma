@@ -49,7 +49,10 @@ model Guest {
   eventId    String
   event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   name       String
-  attendance String   @default("Hadir")
+  group      String?  @default("Umum")
+  category   String?  @default("Umum")
+  phone      String?
+  attendance String   @default("Belum Konfirmasi")
   pax        Int      @default(1)
   wishes     String?
   createdAt  DateTime @default(now())

@@ -246,7 +246,7 @@ export function NavigatorTree({
     const isContainer = node.type === 'container' || !!node.widgetType;
 
     return (
-      <div key={node.id} className="nav-tree-node" style={{ marginBottom: '2px' }}>
+      <div key={`${node.id}-${index}-${depth}`} className="nav-tree-node" style={{ marginBottom: '2px' }}>
         {/* Node Item Row */}
         <div
           draggable={true}

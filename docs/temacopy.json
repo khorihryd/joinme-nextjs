@@ -1,0 +1,55 @@
+{
+  "name": "Celestial Garden",
+  "category": "Pernikahan",
+  "tier": "Free",
+  "status": "Aktif",
+  "thumbnail":"https://plus.unsplash.com/premium_photo-1748191247139-c7babaf04c15?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "globalStyles":{
+    "colors":{
+      "border": "#E2E8F0",
+      "primary": "#1A2238",
+      "surface": "#F9F6EE",
+      "secondary": "#D4AF37",
+      "background": "#87A96B",
+      "textPrimary": "#1E293B",
+      "accentLuxury": "#917400",
+      "textSecondary": "#64748B"
+    },
+    "margin": "0px",
+    "bgColor": "#eff2ef",
+    "padding": "0px",
+    "spacing": {
+      "marginLG": "24px",
+      "marginMD": "16px",
+      "marginSM": "8px",
+      "marginXL": "40px",
+      "marginXS": "4px",
+      "margin2XL": "60px",
+      "paddingLG": "24px",
+      "paddingMD": "16px",
+      "paddingSM": "12px",
+      "paddingXL": "40px",
+      "paddingXS": "8px",
+      "marginNone": "0px",
+      "padding2XL": "60px",
+      "paddingNone": "0px"
+    },
+    "fontFamily": "Playfair Display",
+    "typography": {
+      "sizeH1": 36,
+      "sizeH2": 28,
+      "sizeH3": 22,
+      "sizeH4": 18,
+      "sizeBody": 14,
+      "fontPrimary": "Playfair Display",
+      "sizeCaption": 10,
+      "fontSecondary": "Montserrat",
+      "sizeBodyLarge": 16,
+      "sizeBodySmall": 12
+    },
+    "backgroundImage": "https://ozfyzcyllsweczdnsurz.supabase.co/storage/v1/object/public/uploads/studio/1787470289515-1p84o9opqru.png"
+  },
+  "nodes":[
+
+  ]
+}

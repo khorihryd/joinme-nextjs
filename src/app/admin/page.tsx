@@ -11,6 +11,7 @@ import { EventsTable } from '@/components/admin/EventsTable';
 import { TemplatesTable } from '@/components/admin/TemplatesTable';
 import { TransactionsTable } from '@/components/admin/TransactionsTable';
 import { SettingsTab } from '@/components/admin/SettingsTab';
+import { IconLibraryTab } from '@/components/admin/IconLibraryTab';
 import { UserModal } from '@/components/admin/UserModal';
 
 const TAB_TITLES: Record<string, string> = {
@@ -19,13 +20,14 @@ const TAB_TITLES: Record<string, string> = {
   events: 'Manajemen & Moderasi Undangan',
   transactions: 'Riwayat Transaksi & Pembayaran',
   templates: 'Katalog Template & Tema Undangan',
+  'icon-library': 'Library Ikon SVG Platform',
   settings: 'Pengaturan Global Platform JoinMe',
 };
 
 export default function AdminDashboardPage() {
   const { data: session } = useSession();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'transactions' | 'templates' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'transactions' | 'templates' | 'icon-library' | 'settings'>('overview');
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -132,6 +134,10 @@ export default function AdminDashboardPage() {
     } catch (err) {
       showToast('Gagal menghapus template', 'error');
     }
+  };
+
+  const handleUpdateTemplateInState = (updated: any) => {
+    setTemplates(templates.map((t) => (t.id === updated.id ? updated : t)));
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -244,6 +250,18 @@ export default function AdminDashboardPage() {
 
           <button
             type="button"
+            onClick={() => { setActiveTab('icon-library'); setMobileSidebarOpen(false); }}
+            className={`db-menu-item admin-nav-btn ${activeTab === 'icon-library' ? 'active' : ''}`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>Library Ikon SVG</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => { setActiveTab('settings'); setMobileSidebarOpen(false); }}
             className={`db-menu-item admin-nav-btn ${activeTab === 'settings' ? 'active' : ''}`}
           >
@@ -349,8 +367,11 @@ export default function AdminDashboardPage() {
             <TemplatesTable
               templates={templates}
               onDelete={handleDeleteTemplate}
+              onUpdate={handleUpdateTemplateInState}
             />
           )}
+
+          {activeTab === 'icon-library' && <IconLibraryTab />}
 
           {activeTab === 'settings' && <SettingsTab />}
         </div>

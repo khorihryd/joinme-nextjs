@@ -3,7 +3,7 @@
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { NodeRenderer } from '@/components/studio/NodeRenderer';
-import { DEFAULT_NODES, GlobalStyles, loadNodeFonts, ensureGoogleFontLoaded } from '@/store/studio-store';
+import { DEFAULT_NODES, GlobalStyles, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables, DEFAULT_SAMPLE_STORIES, DEFAULT_SAMPLE_SCHEDULES, DEFAULT_SAMPLE_BANKS, DEFAULT_SAMPLE_GALLERY } from '@/store/studio-store';
 import { StudioNode } from '@/types';
 
 export default function StudioPreviewPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
@@ -25,11 +25,20 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
   const eventDetails = {
     mempelaiPria: 'Roni Wijaya, S.Kom.',
     panggilanPria: 'Roni',
+    ortuPria: 'Putra dari Bp. Wawan & Ibu Asih',
     mempelaiWanita: 'Anti Kartika, S.T.',
     panggilanWanita: 'Anti',
+    ortuWanita: 'Putri dari Bp. Haryanto & Ibu Dewi',
     event_date: '21 September 2026',
     event_time: '08:00 - 14:00 WIB',
     event_location: 'Grand Ballroom Hotel Mulia, Jakarta',
+    story: DEFAULT_SAMPLE_STORIES,
+    schedules: DEFAULT_SAMPLE_SCHEDULES,
+    gallery: DEFAULT_SAMPLE_GALLERY,
+    bankAccounts: DEFAULT_SAMPLE_BANKS,
+    showStory: true,
+    showGallery: true,
+    isCatalogPreview: true,
   };
 
   // 1. Reactive Window Resize Listener for Responsive Viewport Mode
@@ -70,6 +79,8 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
               const parsedGlobal = JSON.parse(savedGlobalStyles);
               setGlobalStyles(parsedGlobal);
               if (parsedGlobal.fontFamily) ensureGoogleFontLoaded(parsedGlobal.fontFamily);
+              if (parsedGlobal.typography?.fontPrimary) ensureGoogleFontLoaded(parsedGlobal.typography.fontPrimary);
+              if (parsedGlobal.typography?.fontSecondary) ensureGoogleFontLoaded(parsedGlobal.typography.fontSecondary);
             } catch (e) {}
           }
 
@@ -90,16 +101,18 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
           const data = await res.json();
           if (data.name) setTemplateName(data.name);
 
-          const rawGStyles = data.globalStyles || data.details?.globalStyles;
-          if (rawGStyles) {
-            const parsedG = typeof rawGStyles === 'string' ? JSON.parse(rawGStyles) : rawGStyles;
-            setGlobalStyles(parsedG);
-            if (parsedG.fontFamily) ensureGoogleFontLoaded(parsedG.fontFamily);
+          const gStyles = data.globalStyles || data.details?.globalStyles;
+          if (gStyles) {
+            const parsedGlobal = typeof gStyles === 'string' ? JSON.parse(gStyles) : gStyles;
+            setGlobalStyles(parsedGlobal);
+            if (parsedGlobal.fontFamily) ensureGoogleFontLoaded(parsedGlobal.fontFamily);
+            if (parsedGlobal.typography?.fontPrimary) ensureGoogleFontLoaded(parsedGlobal.typography.fontPrimary);
+            if (parsedGlobal.typography?.fontSecondary) ensureGoogleFontLoaded(parsedGlobal.typography.fontSecondary);
           }
 
           const rawNodes = data.nodes || data.details?.studioNodes;
           if (rawNodes) {
-            const parsedNodes = typeof rawNodes === 'string' ? JSON.parse(rawNodes) : rawNodes;
+            const parsedNodes = Array.isArray(rawNodes) ? rawNodes : JSON.parse(rawNodes);
             if (Array.isArray(parsedNodes) && parsedNodes.length > 0) {
               setNodes(parsedNodes);
               loadNodeFonts(parsedNodes);
@@ -109,19 +122,10 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
           }
         }
 
-        // 3. Fallback check for default preview template IDs
-        if (id === 'default' || id === 'tmpl-sage' || id === 'tmpl-neon' || id === 'tmpl-warm' || id === 'tmpl-corp') {
-          const defaultList = DEFAULT_NODES as unknown as StudioNode[];
-          setNodes(defaultList);
-          loadNodeFonts(defaultList);
-          setLoading(false);
-          return;
-        }
-
-        // 4. If template has no nodes in DB & not default ID -> Theme is not ready!
-        setNotReady(true);
+        // 3. Fallback default
+        setNodes(DEFAULT_NODES as unknown as StudioNode[]);
       } catch (err) {
-        console.error('Failed to load studio preview:', err);
+        console.error('Error loading template preview:', err);
         setNotReady(true);
       } finally {
         setLoading(false);
@@ -131,96 +135,60 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
     loadTemplate();
   }, [id]);
 
-  const handleOpenCover = () => {
-    setIsCoverOpened(true);
-  };
-
   if (loading) {
     return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', color: '#64748b' }}>
-        <p style={{ fontWeight: 600 }}>Memuat Pratinjau Undangan...</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff2ef' }}>
+        <div style={{ textAlign: 'center', color: '#666', fontFamily: 'sans-serif' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
+          <p>Memuat Pratinjau Undangan...</p>
+        </div>
       </div>
     );
   }
 
-  // Alert State: Theme is Not Ready
-  if (notReady) {
+  if (notReady || nodes.length === 0) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          minHeight: '100vh',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#0f172a',
-          color: '#ffffff',
-          padding: '2rem',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: '#1e293b',
-            borderRadius: '20px',
-            padding: '36px 28px',
-            maxWidth: '480px',
-            width: '100%',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
-            border: '1px solid #334155',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '16px',
-          }}
-        >
-          <span style={{ fontSize: '3rem' }}>🎨</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            ⚠️ Informasi Pratinjau Desain
-          </span>
-          <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#ffffff' }}>
-            Tema Belum Siap
-          </h3>
-          <p style={{ fontSize: '0.88rem', color: '#94a3b8', lineHeight: '1.6', margin: 0 }}>
-            Desain template {templateName ? <strong>"{templateName}"</strong> : 'ini'} sedang dalam proses penyusunan oleh desainer kami dan belum memiliki node desain yang aktif.
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff2ef', padding: '1.5rem' }}>
+        <div style={{ textAlign: 'center', backgroundColor: '#fff', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', maxWidth: '400px', width: '100%' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🎨</div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: '#111' }}>Belum Ada Pratinjau</h3>
+          <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+            Template ini belum memiliki node desain canvas atau belum disimpan.
           </p>
           <Link
-            href="/#templates"
-            style={{
-              marginTop: '10px',
-              backgroundColor: '#e36397',
-              color: '#ffffff',
-              padding: '12px 28px',
-              borderRadius: '30px',
-              fontWeight: 800,
-              fontSize: '0.88rem',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 4px 14px rgba(227,99,151,0.4)',
-            }}
+            href={`/studio/${id}`}
+            style={{ display: 'inline-block', backgroundColor: 'var(--primary, #db2777)', color: '#fff', padding: '0.625rem 1.25rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}
           >
-            ← Kembali ke Katalog Template
+            Buka Studio Editor 🛠️
           </Link>
         </div>
       </div>
     );
   }
 
+  const handleOpenCover = () => {
+    setIsCoverOpened(true);
+  };
+
   const hasMultipleContainers = nodes.length > 1;
-  const coverNode = hasMultipleContainers ? nodes[0] : null;
+  const isFirstNodeCover = hasMultipleContainers && (nodes[0].sectionType === 'cover' || nodes[0].id?.toLowerCase().includes('cover'));
+  const coverNode = isFirstNodeCover ? nodes[0] : null;
   const bodyNodes = hasMultipleContainers ? nodes.slice(1) : nodes;
 
+  const cssVars = getGlobalCssVariables(globalStyles);
+
   const previewWrapperStyle: React.CSSProperties = {
+    ...cssVars,
     minHeight: '100vh',
     width: '100%',
     margin: globalStyles.margin || '0px',
     padding: globalStyles.padding || '0px',
-    backgroundColor: globalStyles.bgColor || '#eff2ef',
+    backgroundColor: globalStyles.bgColor || globalStyles.colors?.background || '#eff2ef',
     backgroundImage: globalStyles.backgroundImage ? `url(${globalStyles.backgroundImage})` : undefined,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
-    fontFamily: globalStyles.fontFamily || 'inherit',
+    fontFamily: globalStyles.fontFamily || globalStyles.typography?.fontPrimary || 'inherit',
     position: 'relative',
     overflowX: 'hidden',
   };

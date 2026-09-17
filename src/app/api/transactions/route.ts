@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { auth } from '@/lib/auth';
 
 // GET /api/transactions
@@ -12,17 +12,29 @@ export async function GET() {
 
     const isUserAdmin = session.user.role === 'admin';
 
-    const transactions = await prisma.transaction.findMany({
-      where: isUserAdmin ? {} : { userId: session.user.id },
-      include: {
-        user: {
-          select: { name: true, email: true },
-        },
-      },
-      orderBy: { date: 'desc' },
+    let query = supabaseAdmin.from('Transaction').select('*, User(name, email)');
+
+    if (!isUserAdmin) {
+      query = query.eq('userId', session.user.id);
+    }
+
+    const { data: transactions, error } = await query.order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching transactions from Supabase:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Format output to match Prisma nested relation 'user'
+    const formatted = (transactions || []).map((t: any) => {
+      const { User, ...rest } = t;
+      return {
+        ...rest,
+        user: User,
+      };
     });
 
-    return NextResponse.json(transactions);
+    return NextResponse.json(formatted);
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

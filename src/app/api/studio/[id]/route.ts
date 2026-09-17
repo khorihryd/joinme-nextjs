@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { auth } from '@/lib/auth';
 
 // GET /api/studio/[id]
@@ -10,12 +10,22 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const template = await prisma.template.findUnique({ where: { id } });
+    const { data: template } = await supabaseAdmin
+      .from('Template')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
     if (template) {
       return NextResponse.json(template);
     }
 
-    const event = await prisma.event.findUnique({ where: { id } });
+    const { data: event } = await supabaseAdmin
+      .from('Event')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
     if (event) {
       return NextResponse.json(event);
     }
@@ -42,21 +52,49 @@ export async function PATCH(
     const body = await request.json();
     const { nodes, globalStyles } = body;
 
-    const template = await prisma.template.findUnique({ where: { id } });
+    const { data: template } = await supabaseAdmin
+      .from('Template')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
     if (template) {
-      const updated = await prisma.template.update({
-        where: { id },
-        data: { nodes, globalStyles },
-      });
+      const { data: updated, error } = await supabaseAdmin
+        .from('Template')
+        .update({ nodes, globalStyles, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
       return NextResponse.json(updated);
     }
 
-    const event = await prisma.event.findUnique({ where: { id } });
+    const { data: event } = await supabaseAdmin
+      .from('Event')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
     if (event) {
-      const updated = await prisma.event.update({
-        where: { id },
-        data: { details: { ...(event.details as any), studioNodes: nodes, globalStyles } },
-      });
+      const updatedDetails = {
+        ...(event.details as any),
+        studioNodes: nodes,
+        globalStyles
+      };
+
+      const { data: updated, error } = await supabaseAdmin
+        .from('Event')
+        .update({ details: updatedDetails, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
       return NextResponse.json(updated);
     }
 

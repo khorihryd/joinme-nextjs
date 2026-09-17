@@ -25,20 +25,70 @@ export function StepProfile({ isWedding, details, setDetails, onNext }: StepProf
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Mempelai Pria</h3>
             </div>
 
-            <div style={{ border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-body)', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>📷</div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Belum ada foto</span>
+            <div style={{ border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '1rem', textAlign: 'center', backgroundColor: 'var(--bg-body)', marginBottom: '1.25rem', overflow: 'hidden' }}>
+              {details.fotoPria ? (
+                <div style={{ position: 'relative' }}>
+                  <img src={details.fotoPria} alt="Mempelai Pria" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '12px' }} />
+                  <button
+                    type="button"
+                    onClick={() => setDetails((prev: any) => ({ ...prev, fotoPria: '' }))}
+                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: '1rem 0' }}>
+                  <div style={{ fontSize: '1.8rem', marginBottom: '0.25rem' }}>👨‍💼</div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Belum ada foto mempelai pria</span>
+                </div>
+              )}
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Tautan Foto Mempelai Pria (URL)</label>
-              <input
-                type="text"
-                value={details.fotoPria || ''}
-                onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoPria: e.target.value }))}
-                placeholder="Contoh: https://images.unsplash.com/photo-..."
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-              />
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Foto Mempelai Pria</label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <label
+                  style={{
+                    padding: '0.65rem 1rem',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--primary)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  📁 Upload Foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          const res = evt.target?.result as string;
+                          if (res) setDetails((prev: any) => ({ ...prev, fotoPria: res }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={details.fotoPria || ''}
+                  onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoPria: e.target.value }))}
+                  placeholder="atau tempel URL foto..."
+                  style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                />
+              </div>
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
@@ -81,20 +131,70 @@ export function StepProfile({ isWedding, details, setDetails, onNext }: StepProf
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Mempelai Wanita</h3>
             </div>
 
-            <div style={{ border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-body)', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>📷</div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Belum ada foto</span>
+            <div style={{ border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '1rem', textAlign: 'center', backgroundColor: 'var(--bg-body)', marginBottom: '1.25rem', overflow: 'hidden' }}>
+              {details.fotoWanita ? (
+                <div style={{ position: 'relative' }}>
+                  <img src={details.fotoWanita} alt="Mempelai Wanita" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '12px' }} />
+                  <button
+                    type="button"
+                    onClick={() => setDetails((prev: any) => ({ ...prev, fotoWanita: '' }))}
+                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: '1rem 0' }}>
+                  <div style={{ fontSize: '1.8rem', marginBottom: '0.25rem' }}>👩‍💼</div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Belum ada foto mempelai wanita</span>
+                </div>
+              )}
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Tautan Foto Mempelai Wanita (URL)</label>
-              <input
-                type="text"
-                value={details.fotoWanita || ''}
-                onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoWanita: e.target.value }))}
-                placeholder="Contoh: https://images.unsplash.com/photo-..."
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-              />
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Foto Mempelai Wanita</label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <label
+                  style={{
+                    padding: '0.65rem 1rem',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--primary)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  📁 Upload Foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          const res = evt.target?.result as string;
+                          if (res) setDetails((prev: any) => ({ ...prev, fotoWanita: res }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={details.fotoWanita || ''}
+                  onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoWanita: e.target.value }))}
+                  placeholder="atau tempel URL foto..."
+                  style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                />
+              </div>
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>

@@ -7,8 +7,12 @@ import { useToast } from '@/components/ui/Toast';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useSession, signOut } from 'next-auth/react';
 import { NodeRenderer, getOrderedAndFilteredNodes } from '@/components/studio/NodeRenderer';
-import { DEFAULT_NODES, loadNodeFonts, ensureGoogleFontLoaded } from '@/store/studio-store';
+import { useStudioStore, DEFAULT_NODES, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables } from '@/store/studio-store';
 import { StudioNode, SECTION_DEFINITIONS, SectionType } from '@/types';
+
+import { MediaLibraryModal } from '@/components/studio/MediaLibraryModal';
+import { DatePickerInput } from '@/components/ui/DatePickerInput';
+import { TimePickerInput } from '@/components/ui/TimePickerInput';
 
 export default function EditEventPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const resolvedParams = typeof (params as any)?.then === 'function' ? use(params as Promise<{ id: string }>) : (params as { id: string });
@@ -25,6 +29,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [isCoverOpened, setIsCoverOpened] = useState(false);
   const [viewportMode, setViewportMode] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
 
   // Selected Node State for Properties Panel
   const [selectedMiniNodeId, setSelectedMiniNodeId] = useState<string | null>(null);
@@ -116,6 +121,10 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
             }
             if (Array.isArray(data.details.studioNodes) && data.details.studioNodes.length > 0) {
               loadNodeFonts(data.details.studioNodes);
+              useStudioStore.getState().setNodes(data.details.studioNodes);
+            }
+            if (data.details.globalStyles) {
+              useStudioStore.getState().setGlobalStyles(data.details.globalStyles);
             }
           }
         } else {
@@ -138,14 +147,14 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     title: eventTitle,
     subdomain: eventSubdomain,
     type: eventType,
-    mempelaiPria: details.mempelaiPria || 'Roni Wijaya, S.Kom.',
-    panggilanPria: details.panggilanPria || 'Roni',
-    ortuPria: details.ortuPria,
+    mempelaiPria: details.mempelaiPria || 'Nama Lengkap Mempelai Pria',
+    panggilanPria: details.panggilanPria || 'Nama Panggilan Pria',
+    ortuPria: details.ortuPria || 'Nama Orang Tua Mempelai Pria',
     igPria: details.igPria,
     fotoPria: details.fotoPria,
-    mempelaiWanita: details.mempelaiWanita || 'Anti Kartika, S.T.',
-    panggilanWanita: details.panggilanWanita || 'Anti',
-    ortuWanita: details.ortuWanita,
+    mempelaiWanita: details.mempelaiWanita || 'Nama Lengkap Mempelai Wanita',
+    panggilanWanita: details.panggilanWanita || 'Nama Panggilan Wanita',
+    ortuWanita: details.ortuWanita || 'Nama Orang Tua Mempelai Wanita',
     igWanita: details.igWanita,
     fotoWanita: details.fotoWanita,
     organizerName: details.organizerName || 'Keluarga Besar Wijaya',
@@ -158,6 +167,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     schedules: Array.isArray(details.schedules) ? details.schedules : [],
     story: details.story || [],
     gallery: details.gallery || [],
+    galleryImages: details.gallery || [],
+    photos: details.gallery || [],
+    images: details.gallery || [],
     bankAccounts: [
       details.bank1Nama && { bankName: details.bank1Nama, accountNumber: details.bank1Rek, accountHolder: details.bank1An },
       details.bank2Nama && { bankName: details.bank2Nama, accountNumber: details.bank2Rek, accountHolder: details.bank2An },
@@ -167,8 +179,26 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     coverTitle: details.coverTitle,
     coverCoupleName: details.coverCoupleName,
     cover_photo: details.cover_photo,
+    showStory: details.showStory !== false,
+    showGallery: details.showGallery !== false,
+    showDresscode: details.showDresscode === true,
+    // Opening data
+    salamPembuka: details.salamPembuka,
+    kutipanAyat: details.kutipanAyat,
+    namaSurah: details.namaSurah,
+    // Music & streaming
+    musicUrl: details.musicUrl,
+    liveStreamPlatform: details.liveStreamPlatform,
+    // Closing data
+    pesanPenutup: details.pesanPenutup,
+    namaKeluargaPenutup: details.namaKeluargaPenutup,
+    hashtag: details.hashtag,
+    isUserEditor: true,
+    isMiniStudioMode: true,
     sectionOrder: currentSectionOrder,
     hiddenSections: hiddenSectionsMap,
+    sectionVisuals: details.sectionVisuals || {},
+    isCoverOpened,
   };
 
   const schedulesList: any[] = Array.isArray(details.schedules) ? details.schedules : [];
@@ -179,16 +209,31 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     setDetails((prev: any) => ({ ...prev, schedules: updated }));
   };
 
+  const handleCopyLocationFrom = (currentIndex: number, sourceIndex: number) => {
+    const targetSch = schedulesList[sourceIndex];
+    if (!targetSch) return;
+
+    const updated = [...schedulesList];
+    updated[currentIndex] = {
+      ...updated[currentIndex],
+      place: targetSch.place || targetSch.location || '',
+      address: targetSch.address || '',
+      mapsUrl: targetSch.mapsUrl || targetSch.mapUrl || '',
+    };
+    setDetails((prev: any) => ({ ...prev, schedules: updated }));
+  };
+
   const handleAddSchedule = () => {
+    const lastSch = schedulesList.length > 0 ? schedulesList[schedulesList.length - 1] : null;
     const updated = [
       ...schedulesList,
       {
         title: '',
-        date: '',
+        date: lastSch?.date || '',
         time: '',
-        place: '',
-        address: '',
-        mapsUrl: '',
+        place: lastSch?.place || lastSch?.location || '',
+        address: lastSch?.address || '',
+        mapsUrl: lastSch?.mapsUrl || lastSch?.mapUrl || '',
       },
     ];
     setDetails((prev: any) => ({ ...prev, schedules: updated }));
@@ -225,43 +270,21 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     setDetails((prev: any) => ({ ...prev, story: updated }));
   };
 
-  const [primaryTab, setPrimaryTab] = useState<'data' | 'media' | 'visual'>('data');
-  const [dataSectionTab, setDataSectionTab] = useState<'cover' | 'bride_groom' | 'event_schedule' | 'love_story' | 'gift' | 'general'>('bride_groom');
+  const [primaryTab, setPrimaryTab] = useState<'data' | 'visual'>('data');
+  const [dataSectionTab, setDataSectionTab] = useState<'cover' | 'bride_groom' | 'event_schedule' | 'love_story' | 'gallery' | 'gift' | 'opening' | 'music' | 'closing' | 'general'>('bride_groom');
   const [selectedVisualSection, setSelectedVisualSection] = useState<string>('cover');
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState<boolean>(false);
+  const [mediaModalFolders, setMediaModalFolders] = useState<string[]>(['images', 'gallery']);
+  const [onMediaSelectCallback, setOnMediaSelectCallback] = useState<((url: string) => void) | null>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        callback(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
+  const openMediaLibrary = (foldersList: string[], callback: (url: string) => void) => {
+    setMediaModalFolders(foldersList);
+    setOnMediaSelectCallback(() => callback);
+    setIsMediaModalOpen(true);
   };
 
-  const handleMultiFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (urls: string[]) => void) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const currentGallery = Array.isArray(details.gallery) ? [...details.gallery] : [];
-    const newUrls: string[] = [];
-    let count = 0;
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          newUrls.push(event.target.result as string);
-        }
-        count++;
-        if (count === files.length) {
-          callback([...currentGallery, ...newUrls]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  };
+
+
 
   const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)
     ? (details.studioNodes as unknown as StudioNode[])
@@ -275,6 +298,19 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   };
 
   const sortedPreviewNodes = getOrderedAndFilteredNodes(previewNodes, liveEventDetails);
+  const cssVars = getGlobalCssVariables(previewGlobalStyles);
+
+  // Auto-load Google Fonts for active template globalStyles and nodes
+  useEffect(() => {
+    if (previewGlobalStyles) {
+      if (previewGlobalStyles.fontFamily) ensureGoogleFontLoaded(previewGlobalStyles.fontFamily);
+      if (previewGlobalStyles.typography?.fontPrimary) ensureGoogleFontLoaded(previewGlobalStyles.typography.fontPrimary);
+      if (previewGlobalStyles.typography?.fontSecondary) ensureGoogleFontLoaded(previewGlobalStyles.typography.fontSecondary);
+    }
+    if (Array.isArray(sortedPreviewNodes) && sortedPreviewNodes.length > 0) {
+      loadNodeFonts(sortedPreviewNodes);
+    }
+  }, [previewGlobalStyles, sortedPreviewNodes]);
 
   // Helper to Find Selected Node in Preview Tree
   const findNodeInTree = (nodes: StudioNode[], targetId: string): StudioNode | null => {
@@ -322,10 +358,20 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       setPrimaryTab('data');
       setDataSectionTab('love_story');
     } else if (sType === 'gallery' || nid.includes('gallery') || nid.includes('galeri')) {
-      setPrimaryTab('media');
+      setPrimaryTab('data');
+      setDataSectionTab('gallery');
     } else if (sType === 'gift' || nid.includes('gift') || nid.includes('bank') || nid.includes('rekening')) {
       setPrimaryTab('data');
       setDataSectionTab('gift');
+    } else if (sType === 'opening' || nid.includes('opening')) {
+      setPrimaryTab('data');
+      setDataSectionTab('opening');
+    } else if (sType === 'thank_you' || nid.includes('thankyou') || nid.includes('thank')) {
+      setPrimaryTab('data');
+      setDataSectionTab('closing');
+    } else if (sType === 'live_streaming' || nid.includes('livestream')) {
+      setPrimaryTab('data');
+      setDataSectionTab('music');
     }
   };
 
@@ -372,6 +418,50 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       ...prev,
       studioNodes: updatedNodes,
     }));
+  };
+
+  const updateGroomBridePhoto = (photoKey: 'fotoPria' | 'fotoWanita', newUrl: string) => {
+    setDetails((prev: any) => {
+      const storeNodes = useStudioStore.getState().nodes;
+      const currentNodes = Array.isArray(prev.studioNodes) && prev.studioNodes.length > 0
+        ? prev.studioNodes
+        : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
+
+      const updateNodes = (list: any[]): any[] => {
+        return list.map((n) => {
+          let updatedNode = { ...n };
+          const binding = updatedNode.binding || '';
+          const id = (updatedNode.id || '').toLowerCase();
+          const label = (updatedNode.label || '').toLowerCase();
+
+          const isMatch =
+            binding === photoKey ||
+            (photoKey === 'fotoPria' && (id.includes('pria') || id.includes('groom') || label.includes('pria'))) ||
+            (photoKey === 'fotoWanita' && (id.includes('wanita') || id.includes('bride') || label.includes('wanita')));
+
+          if (updatedNode.type === 'image' && isMatch) {
+            updatedNode.content = newUrl;
+            updatedNode.src = newUrl;
+            updatedNode.binding = photoKey;
+          }
+
+          if (updatedNode.children && Array.isArray(updatedNode.children)) {
+            updatedNode.children = updateNodes(updatedNode.children);
+          }
+
+          return updatedNode;
+        });
+      };
+
+      const updatedNodes = updateNodes(currentNodes);
+      useStudioStore.getState().setNodes(updatedNodes);
+
+      return {
+        ...prev,
+        [photoKey]: newUrl,
+        studioNodes: updatedNodes,
+      };
+    });
   };
 
   const loadActiveTemplates = async () => {
@@ -515,7 +605,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           </Link>
         </div>
 
-        {/* PRIMARY SIDEBAR TABS HEADER (3 TABS: DATA, MEDIA, VISUAL) */}
+        {/* PRIMARY SIDEBAR TABS HEADER (2 TABS: DATA & MEDIA, VISUAL) */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)' }}>
           <button
             type="button"
@@ -532,24 +622,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
               cursor: 'pointer',
             }}
           >
-            📝 Data
-          </button>
-          <button
-            type="button"
-            onClick={() => setPrimaryTab('media')}
-            style={{
-              flex: 1,
-              padding: '0.75rem 0.2rem',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              border: 'none',
-              borderBottom: primaryTab === 'media' ? '3px solid var(--primary)' : '3px solid transparent',
-              backgroundColor: primaryTab === 'media' ? 'var(--bg-card)' : 'transparent',
-              color: primaryTab === 'media' ? 'var(--primary)' : 'var(--text-secondary)',
-              cursor: 'pointer',
-            }}
-          >
-            📁 Media
+            📝 Data & Media
           </button>
           <button
             type="button"
@@ -582,8 +655,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   { id: 'bride_groom', label: '👩‍❤️‍👨 Mempelai' },
                   { id: 'event_schedule', label: '📅 Acara' },
                   { id: 'love_story', label: '📖 Kisah Cinta' },
+                  { id: 'gallery', label: '🖼️ Galeri' },
                   { id: 'cover', label: '💌 Cover' },
+                  { id: 'opening', label: '🕌 Pembuka' },
                   { id: 'gift', label: '💳 Hadiah' },
+                  { id: 'music', label: '🎵 Musik' },
+                  { id: 'closing', label: '🙏 Penutup' },
                   { id: 'general', label: '⚙️ Pengaturan' },
                 ].map((sec) => (
                   <button
@@ -635,6 +712,22 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Username Instagram</label>
                       <input type="text" placeholder="@roni_wijaya" value={details.igPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, igPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
                     </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Foto Mempelai Pria</label>
+                      {details.fotoPria && (
+                        <img src={details.fotoPria} alt="Foto Pria" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.4rem' }} />
+                      )}
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => openMediaLibrary(['images', 'gallery'], (url) => updateGroomBridePhoto('fotoPria', url))}
+                          style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', border: 'none' }}
+                        >
+                          📤 Kelola Foto Pria
+                        </button>
+                        <input type="text" placeholder="atau tempel URL..." value={details.fotoPria || ''} onChange={(e) => updateGroomBridePhoto('fotoPria', e.target.value)} style={{ width: '60%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Mempelai Wanita */}
@@ -657,6 +750,22 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <div>
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Username Instagram</label>
                       <input type="text" placeholder="@anti_kartika" value={details.igWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, igWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Foto Mempelai Wanita</label>
+                      {details.fotoWanita && (
+                        <img src={details.fotoWanita} alt="Foto Wanita" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.4rem' }} />
+                      )}
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => openMediaLibrary(['images', 'gallery'], (url) => updateGroomBridePhoto('fotoWanita', url))}
+                          style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', border: 'none' }}
+                        >
+                          📤 Kelola Foto Wanita
+                        </button>
+                        <input type="text" placeholder="atau tempel URL..." value={details.fotoWanita || ''} onChange={(e) => updateGroomBridePhoto('fotoWanita', e.target.value)} style={{ width: '60%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -688,14 +797,62 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                           <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Acara</label>
                           <input type="text" placeholder="misal: Akad Nikah" value={sch.title || sch.name || ''} onChange={(e) => handleUpdateSchedule(idx, 'title', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
                         </div>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tanggal Acara</label>
-                          <input type="text" placeholder="misal: Senin, 21 September 2026" value={sch.date || ''} onChange={(e) => handleUpdateSchedule(idx, 'date', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Waktu / Jam</label>
-                          <input type="text" placeholder="misal: 08:00 - 10:00 WIB" value={sch.time || ''} onChange={(e) => handleUpdateSchedule(idx, 'time', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
-                        </div>
+                        {idx > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem', backgroundColor: 'var(--primary-light, rgba(219, 39, 119, 0.05))', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px dashed var(--border-color)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>🔗 Sama dengan:</span>
+                            <select
+                              onChange={(e) => {
+                                const targetIdx = Number(e.target.value);
+                                if (!isNaN(targetIdx) && schedulesList[targetIdx]) {
+                                  handleUpdateSchedule(idx, 'date', schedulesList[targetIdx].date || '');
+                                }
+                              }}
+                              defaultValue=""
+                              style={{ width: '100%', fontSize: '0.72rem', padding: '0.25rem 0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              <option value="" disabled>-- Samakan tanggal dengan acara di atas --</option>
+                              {schedulesList.slice(0, idx).map((prevSch, prevIdx) => (
+                                <option key={prevIdx} value={prevIdx}>
+                                  Acara #{prevIdx + 1}: {prevSch.title || 'Acara'} ({prevSch.date || 'Belum diisi'})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        <DatePickerInput
+                          label="Tanggal Acara"
+                          placeholder="misal: Senin, 21 September 2026"
+                          value={sch.date || ''}
+                          onChange={(val) => handleUpdateSchedule(idx, 'date', val)}
+                        />
+                        <TimePickerInput
+                          label="Waktu / Jam"
+                          placeholder="misal: 08:00 - 10:00 WIB"
+                          value={sch.time || ''}
+                          onChange={(val) => handleUpdateSchedule(idx, 'time', val)}
+                        />
+                        {idx > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem', backgroundColor: 'var(--primary-light, rgba(219, 39, 119, 0.05))', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px dashed var(--border-color)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>📍 Samakan Lokasi dengan:</span>
+                            <select
+                              onChange={(e) => {
+                                const targetIdx = Number(e.target.value);
+                                if (!isNaN(targetIdx)) {
+                                  handleCopyLocationFrom(idx, targetIdx);
+                                }
+                              }}
+                              defaultValue=""
+                              style={{ width: '100%', fontSize: '0.72rem', padding: '0.25rem 0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              <option value="" disabled>-- Samakan tempat, alamat & maps dengan acara di atas --</option>
+                              {schedulesList.slice(0, idx).map((prevSch, prevIdx) => (
+                                <option key={prevIdx} value={prevIdx}>
+                                  Acara #{prevIdx + 1}: {prevSch.title || 'Acara'} ({prevSch.place || prevSch.location || 'Tempat belum diisi'})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                         <div>
                           <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Tempat / Gedung</label>
                           <input type="text" placeholder="misal: Grand Ballroom Hotel Mulia" value={sch.place || sch.location || ''} onChange={(e) => handleUpdateSchedule(idx, 'place', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
@@ -742,10 +899,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>Momen #{idx + 1}</span>
                           <button type="button" onClick={() => handleRemoveStory(idx)} style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', fontWeight: 700 }}>🗑️ Hapus</button>
                         </div>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Tahun / Tanggal Momen</label>
-                          <input type="text" placeholder="misal: 2021" value={st.year || st.date || ''} onChange={(e) => handleUpdateStory(idx, 'year', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
-                        </div>
+                        <DatePickerInput
+                          label="Tahun / Tanggal Momen"
+                          placeholder="misal: 2021 atau 15 Juli 2021"
+                          value={st.year || st.date || ''}
+                          onChange={(val) => handleUpdateStory(idx, 'year', val)}
+                        />
                         <div>
                           <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Judul Momen</label>
                           <input type="text" placeholder="misal: Pertama Pertemuan" value={st.title || ''} onChange={(e) => handleUpdateStory(idx, 'title', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
@@ -753,6 +912,22 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         <div>
                           <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Cerita Momen</label>
                           <textarea rows={3} placeholder="Tuliskan cerita..." value={st.description || st.story || ''} onChange={(e) => handleUpdateStory(idx, 'description', e.target.value)} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Foto Momen</label>
+                          {st.image && (
+                            <img src={st.image} alt={`Foto Momen ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.4rem' }} />
+                          )}
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => openMediaLibrary(['images', 'gallery'], (url) => handleUpdateStory(idx, 'image', url))}
+                              style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', border: 'none' }}
+                            >
+                              📤 Kelola Foto
+                            </button>
+                            <input type="text" placeholder="atau tempel URL..." value={st.image || ''} onChange={(e) => handleUpdateStory(idx, 'image', e.target.value)} style={{ width: '60%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                          </div>
                         </div>
                       </div>
                     ))
@@ -762,6 +937,73 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                     <button type="button" onClick={handleAddStory} style={{ width: '100%', padding: '0.6rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '8px', border: '1px dashed var(--primary)', backgroundColor: 'var(--primary-light, #fff0f5)', color: 'var(--primary)', cursor: 'pointer' }}>
                       ➕ Tambah Momen Baru
                     </button>
+                  )}
+                </div>
+              )}
+
+              {/* Data Form: Galeri */}
+              {dataSectionTab === 'gallery' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    🖼️ Album Galeri Foto Undangan
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => openMediaLibrary(['images', 'gallery'], (url) => {
+                      setDetails((prev: any) => ({
+                        ...prev,
+                        gallery: [...(Array.isArray(prev.gallery) ? prev.gallery : []), url]
+                      }));
+                    })}
+                    style={{ display: 'inline-block', padding: '0.6rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', border: 'none' }}
+                  >
+                    📤 Kelola Galeri Foto
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <input
+                      type="text"
+                      placeholder="atau tempel URL link gambar..."
+                      value={newGalleryUrl}
+                      onChange={(e) => setNewGalleryUrl(e.target.value)}
+                      style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newGalleryUrl.trim()) {
+                          setDetails((prev: any) => ({
+                            ...prev,
+                            gallery: [...(Array.isArray(prev.gallery) ? prev.gallery : []), newGalleryUrl.trim()],
+                          }));
+                          setNewGalleryUrl('');
+                        }
+                      }}
+                      style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer' }}
+                    >
+                      + Tambah
+                    </button>
+                  </div>
+
+                  {Array.isArray(details.gallery) && details.gallery.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      {details.gallery.map((imgUrl: string, gIdx: number) => (
+                        <div key={`gal-item-${gIdx}`} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', height: '90px', border: '1px solid var(--border-color)' }}>
+                          <img src={imgUrl} alt={`Galeri ${gIdx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedGal = details.gallery.filter((_: any, idx: number) => idx !== gIdx);
+                              setDetails((prev: any) => ({ ...prev, gallery: updatedGal }));
+                            }}
+                            style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '50%', width: '22px', height: '22px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -779,6 +1021,22 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Nama Pasangan di Cover</label>
                     <input type="text" placeholder="Roni & Anti" value={details.coverCoupleName || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, coverCoupleName: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Foto Cover Utama</label>
+                    {details.cover_photo && (
+                      <img src={details.cover_photo} alt="Foto Cover" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.4rem' }} />
+                    )}
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => openMediaLibrary(['images', 'gallery'], (url) => setDetails((prev: any) => ({ ...prev, cover_photo: url })))}
+                        style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', border: 'none' }}
+                      >
+                        📤 Kelola Foto Cover
+                      </button>
+                      <input type="text" placeholder="atau tempel URL..." value={details.cover_photo || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, cover_photo: e.target.value }))} style={{ width: '60%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -826,96 +1084,184 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <option value="Aktif">Aktif 🚀</option>
                     </select>
                   </div>
+
+                  {/* Section Reorder & Visibility */}
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.65rem' }}>
+                      📐 Urutan & Visibilitas Section
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                      Atur urutan tampil section dan sembunyikan section yang tidak dibutuhkan.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {(() => {
+                        const sectionLabels: Record<string, string> = {
+                          cover: '💌 Cover', hero: '👑 Hero', opening: '🕌 Pembuka',
+                          bride_groom: '👩‍❤️‍👨 Mempelai', event_schedule: '📅 Acara',
+                          live_streaming: '📺 Live Streaming', love_story: '📖 Kisah Cinta',
+                          gallery: '🖼️ Galeri', rsvp: '💌 RSVP', wishes: '💬 Ucapan',
+                          gift: '💳 Hadiah', ig_stories: '📸 IG Stories',
+                          thank_you: '🙏 Penutup', footer: '🌸 Footer',
+                        };
+                        const lockedSections = ['cover', 'footer'];
+                        const order: string[] = currentSectionOrder;
+
+                        return order.map((secId, idx) => {
+                          const isLocked = lockedSections.includes(secId);
+                          const isHidden = hiddenSectionsMap[secId] === true;
+
+                          return (
+                            <div
+                              key={secId}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                padding: '0.45rem 0.6rem', borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isHidden ? 'var(--bg-body)' : 'var(--bg-card)',
+                                opacity: isHidden ? 0.5 : 1,
+                              }}
+                            >
+                              {/* Move Buttons */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                <button
+                                  type="button"
+                                  disabled={idx === 0 || isLocked}
+                                  onClick={() => {
+                                    const newOrder = [...order];
+                                    [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+                                    setDetails((prev: any) => ({ ...prev, sectionOrder: newOrder }));
+                                  }}
+                                  style={{ border: 'none', background: 'none', cursor: idx === 0 || isLocked ? 'default' : 'pointer', fontSize: '0.65rem', padding: '0', lineHeight: 1, opacity: idx === 0 || isLocked ? 0.25 : 1 }}
+                                  title="Pindah ke atas"
+                                >▲</button>
+                                <button
+                                  type="button"
+                                  disabled={idx === order.length - 1 || isLocked}
+                                  onClick={() => {
+                                    const newOrder = [...order];
+                                    [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+                                    setDetails((prev: any) => ({ ...prev, sectionOrder: newOrder }));
+                                  }}
+                                  style={{ border: 'none', background: 'none', cursor: idx === order.length - 1 || isLocked ? 'default' : 'pointer', fontSize: '0.65rem', padding: '0', lineHeight: 1, opacity: idx === order.length - 1 || isLocked ? 0.25 : 1 }}
+                                  title="Pindah ke bawah"
+                                >▼</button>
+                              </div>
+
+                              {/* Label */}
+                              <span style={{ flex: 1, fontSize: '0.75rem', fontWeight: 700, color: isHidden ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                                {sectionLabels[secId] || secId}
+                              </span>
+
+                              {/* Visibility Toggle */}
+                              {!isLocked && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDetails((prev: any) => ({
+                                      ...prev,
+                                      hiddenSections: {
+                                        ...(prev.hiddenSections || {}),
+                                        [secId]: !isHidden,
+                                      },
+                                    }));
+                                  }}
+                                  style={{
+                                    border: 'none', background: 'none', cursor: 'pointer',
+                                    fontSize: '0.82rem', padding: '2px',
+                                  }}
+                                  title={isHidden ? 'Tampilkan section' : 'Sembunyikan section'}
+                                >
+                                  {isHidden ? '👁️‍🗨️' : '👁️'}
+                                </button>
+                              )}
+                              {isLocked && (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>🔒</span>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Data Form: Ucapan Pembuka */}
+              {dataSectionTab === 'opening' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    🕌 Ucapan Pembuka & Kutipan Ayat
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Salam Pembuka</label>
+                    <input type="text" placeholder="Assalamu'alaikum Warahmatullahi Wabarakatuh" value={details.salamPembuka || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, salamPembuka: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Kutipan Ayat / Doa</label>
+                    <textarea placeholder="Maha Suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan..." value={details.kutipanAyat || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, kutipanAyat: e.target.value }))} rows={3} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff', resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Nama Surah / Sumber</label>
+                    <input type="text" placeholder="(QS. Ar-Rum: 21)" value={details.namaSurah || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, namaSurah: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Data Form: Musik & Audio */}
+              {dataSectionTab === 'music' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    🎵 Musik Latar & Audio
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>URL Musik Latar (MP3)</label>
+                    <input type="text" placeholder="https://example.com/music.mp3" value={details.musicUrl || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, musicUrl: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>Musik akan otomatis diputar saat tamu membuka undangan</div>
+                  </div>
+                  <div style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>📺 Live Streaming (Opsional)</div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>URL Live Streaming</label>
+                      <input type="text" placeholder="https://youtube.com/live/..." value={details.liveStreamUrl || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, liveStreamUrl: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Platform</label>
+                      <select value={details.liveStreamPlatform || 'YouTube Live'} onChange={(e) => setDetails((prev: any) => ({ ...prev, liveStreamPlatform: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }}>
+                        <option value="YouTube Live">YouTube Live</option>
+                        <option value="Zoom">Zoom</option>
+                        <option value="Google Meet">Google Meet</option>
+                        <option value="Instagram Live">Instagram Live</option>
+                        <option value="Lainnya">Lainnya</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Data Form: Pesan Penutup */}
+              {dataSectionTab === 'closing' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    🙏 Ucapan Penutup & Hashtag
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Pesan Penutup</label>
+                    <textarea placeholder="Merupakan suatu kehormatan dan kebahagiaan bagi kami..." value={details.pesanPenutup || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, pesanPenutup: e.target.value }))} rows={3} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff', resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Nama Keluarga di Penutup</label>
+                    <input type="text" placeholder="Kami yang berbahagia, Roni & Anti Keluarga Besar" value={details.namaKeluargaPenutup || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, namaKeluargaPenutup: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Hashtag Instagram</label>
+                    <input type="text" placeholder="#RoniAntiWedding2026" value={details.hashtag || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, hashtag: e.target.value }))} style={{ width: '100%', padding: '0.5rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 2: MEDIA & FOTO */}
-          {primaryTab === 'media' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                📁 Media & Pustaka Foto
-              </div>
 
-              {/* Foto Mempelai Pria */}
-              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  🤵 Foto Mempelai Pria
-                </div>
-                {details.fotoPria && (
-                  <img src={details.fotoPria} alt="Foto Pria" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px' }} />
-                )}
-                <label style={{ display: 'inline-block', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
-                  📤 Unggah Foto Pria
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => setDetails((prev: any) => ({ ...prev, fotoPria: url })))} />
-                </label>
-                <input type="text" placeholder="atau tempel URL foto..." value={details.fotoPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }} />
-              </div>
-
-              {/* Foto Mempelai Wanita */}
-              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  👰 Foto Mempelai Wanita
-                </div>
-                {details.fotoWanita && (
-                  <img src={details.fotoWanita} alt="Foto Wanita" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px' }} />
-                )}
-                <label style={{ display: 'inline-block', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
-                  📤 Unggah Foto Wanita
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => setDetails((prev: any) => ({ ...prev, fotoWanita: url })))} />
-                </label>
-                <input type="text" placeholder="atau tempel URL foto..." value={details.fotoWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, fotoWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }} />
-              </div>
-
-              {/* Foto Cover Utama */}
-              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  💌 Foto Cover Utama
-                </div>
-                {details.cover_photo && (
-                  <img src={details.cover_photo} alt="Foto Cover" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px' }} />
-                )}
-                <label style={{ display: 'inline-block', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
-                  📤 Unggah Foto Cover
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => setDetails((prev: any) => ({ ...prev, cover_photo: url })))} />
-                </label>
-                <input type="text" placeholder="atau tempel URL foto..." value={details.cover_photo || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, cover_photo: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }} />
-              </div>
-
-              {/* Album Galeri Foto */}
-              <div style={{ padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  🖼️ Album Galeri Foto Undangan
-                </div>
-
-                <label style={{ display: 'inline-block', padding: '0.6rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '8px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer' }}>
-                  📤 Unggah Foto Galeri (Bisa Pilih Banyak Foto)
-                  <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => handleMultiFileUpload(e, (urls) => setDetails((prev: any) => ({ ...prev, gallery: urls })))} />
-                </label>
-
-                {Array.isArray(details.gallery) && details.gallery.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    {details.gallery.map((imgUrl: string, gIdx: number) => (
-                      <div key={`gal-item-${gIdx}`} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', height: '90px' }}>
-                        <img src={imgUrl} alt={`Galeri ${gIdx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updatedGal = details.gallery.filter((_: any, idx: number) => idx !== gIdx);
-                            setDetails((prev: any) => ({ ...prev, gallery: updatedGal }));
-                          }}
-                          style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '50%', width: '22px', height: '22px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* TAB 3: TAMPILAN VISUAL */}
           {primaryTab === 'visual' && (
@@ -939,7 +1285,10 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   <option value="love_story">📖 Section Kisah Cinta</option>
                   <option value="gallery">🖼️ Section Galeri</option>
                   <option value="rsvp">💌 Section RSVP</option>
-                  <option value="footer">🌸 Section Closing & Footer</option>
+                  <option value="wishes">💬 Section Ucapan Tamu</option>
+                  <option value="gift">💳 Section Hadiah</option>
+                  <option value="thank_you">🙏 Section Penutup</option>
+                  <option value="footer">🌸 Section Footer</option>
                 </select>
               </div>
 
@@ -950,9 +1299,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
                 <div>
                   <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Foto Latar Belakang Container</label>
-                  <label style={{ display: 'block', padding: '0.45rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '6px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', marginBottom: '0.35rem' }}>
-                    📤 Unggah Foto Latar
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, (url) => {
+                  <button
+                    type="button"
+                    onClick={() => openMediaLibrary(['images', 'gallery'], (url) => {
                       setDetails((prev: any) => ({
                         ...prev,
                         sectionVisuals: {
@@ -963,8 +1312,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                           },
                         },
                       }));
-                    })} />
-                  </label>
+                    })}
+                    style={{ display: 'block', width: '100%', padding: '0.45rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '6px', backgroundColor: 'var(--primary)', color: '#fff', textAlign: 'center', cursor: 'pointer', marginBottom: '0.35rem', border: 'none' }}
+                  >
+                    📤 Kelola Foto Latar
+                  </button>
                   <input
                     type="text"
                     placeholder="https://images.unsplash.com/..."
@@ -1094,8 +1446,16 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
             ))}
           </div>
 
-          {/* Action Buttons: Preview, Cover Toggle & Save */}
+          {/* Action Buttons: Theme, Preview, Cover Toggle & Save */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={() => { loadActiveTemplates(); setIsThemeModalOpen(true); }}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem', borderRadius: '8px', fontWeight: 700, color: 'var(--primary)', borderColor: 'var(--border-color)' }}
+            >
+              🎨 Ganti Tema
+            </button>
             <button
               type="button"
               onClick={() => setIsCoverOpened(!isCoverOpened)}
@@ -1155,11 +1515,23 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
             return (
               <div
                 style={{
+                  ...cssVars,
                   width: canvasWidth,
                   maxWidth: canvasMaxWidth,
                   minHeight: '750px',
-                  backgroundColor: previewGlobalStyles.bgColor || '#eff2ef',
-                  backgroundImage: previewGlobalStyles.backgroundImage ? `url(${previewGlobalStyles.backgroundImage})` : undefined,
+                  backgroundColor: previewGlobalStyles.bgColor || previewGlobalStyles.colors?.background || '#eff2ef',
+                  fontFamily: previewGlobalStyles.fontFamily || previewGlobalStyles.typography?.fontPrimary || 'inherit',
+                  color: previewGlobalStyles.colors?.textPrimary || previewGlobalStyles.colors?.text || previewGlobalStyles.textColor || 'inherit',
+                  backgroundImage: (() => {
+                    let bgUrl = previewGlobalStyles.backgroundImage || '';
+                    if (previewGlobalStyles.isBgDynamic && previewGlobalStyles.backgroundImageBinding) {
+                      const boundVal = (liveEventDetails as any)[previewGlobalStyles.backgroundImageBinding];
+                      if (boundVal && boundVal.trim() !== '') {
+                        bgUrl = boundVal;
+                      }
+                    }
+                    return bgUrl ? `url(${bgUrl})` : undefined;
+                  })(),
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   borderRadius: viewportMode === 'mobile' ? '24px' : '12px',
@@ -1168,6 +1540,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   overflowY: 'auto',
                   overflowX: 'hidden',
                   position: 'relative',
+                  transform: 'translate(0, 0)',
+                  isolation: 'isolate',
                   transition: 'width 0.3s ease',
                   paddingBottom: '3rem',
                 }}
@@ -1236,6 +1610,15 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           </div>
         </div>
       )}
+      
+      <MediaLibraryModal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
+        onSelectImage={(url) => {
+          if (onMediaSelectCallback) onMediaSelectCallback(url);
+        }}
+        folders={mediaModalFolders}
+      />
     </div>
   );
 }

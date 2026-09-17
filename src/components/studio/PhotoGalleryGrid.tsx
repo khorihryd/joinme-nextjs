@@ -39,10 +39,8 @@ export function PhotoGalleryGrid({ images, isPreviewMode, title, subtitle, showH
   const sectionSub = subtitle || 'Momen-momen indah kebersamaan kami yang terekam dalam kenangan abadi.';
 
   const handleImageClick = (e: React.MouseEvent, idx: number) => {
-    if (isPreviewMode) {
-      e.stopPropagation();
-      setSelectedPhotoIdx(idx);
-    }
+    e.stopPropagation();
+    setSelectedPhotoIdx(idx);
   };
 
   return (
@@ -78,7 +76,7 @@ export function PhotoGalleryGrid({ images, isPreviewMode, title, subtitle, showH
               overflow: 'hidden',
               aspectRatio: '1 / 1',
               backgroundColor: '#f1f5f9',
-              cursor: isPreviewMode ? 'pointer' : 'default',
+              cursor: 'pointer',
               boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
               border: '1px solid #f1f5f9',
             }}
@@ -95,25 +93,23 @@ export function PhotoGalleryGrid({ images, isPreviewMode, title, subtitle, showH
               }}
             />
 
-            {isPreviewMode && (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundColor: 'rgba(0,0,0,0.15)',
-                  opacity: 0,
-                  transition: 'opacity 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  fontSize: '1.2rem',
-                }}
-                className="gallery-hover-overlay"
-              >
-                🔍
-              </div>
-            )}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.15)',
+                opacity: 0,
+                transition: 'opacity 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                fontSize: '1.2rem',
+              }}
+              className="gallery-hover-overlay"
+            >
+              🔍
+            </div>
           </div>
         ))}
       </div>

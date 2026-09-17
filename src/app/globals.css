@@ -1,5 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 @import "tailwindcss";
+
+/* Google Material Symbols Outlined Icon Class */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga' !important;
+}
 
 /* ==========================================================================
    JOINME SAAS LANDING PAGE - STYLE SHEET
@@ -3855,9 +3875,9 @@ body.studio-body {
   flex: 1;
   background-color: var(--bg-body);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem 4rem 1.5rem;
   overflow-y: auto;
   position: relative;
 }
@@ -3870,6 +3890,9 @@ body.studio-body {
   overflow: hidden;
   background-color: #ffffff;
   border: var(--studio-border);
+  position: relative;
+  contain: paint;
+  isolation: isolate;
 }
 
 .canvas-viewport-wrapper.desktop {
@@ -3897,6 +3920,7 @@ body.studio-body {
   padding: 24px;
   box-sizing: border-box;
   position: relative;
+  transform: translate(0, 0);
 }
 
 /* Right Sidebar: Property Inspector */
@@ -4447,4 +4471,28 @@ body.preview-mode .node-action-overlay {
 .anim-zoom-in.animated { animation: animZoomIn var(--anim-duration, 0.8s) cubic-bezier(0.16, 1, 0.3, 1) var(--anim-delay, 0s) both !important; }
 .anim-bounce-in.animated { animation: animBounceIn var(--anim-duration, 0.8s) cubic-bezier(0.215, 0.61, 0.355, 1) var(--anim-delay, 0s) both !important; }
 .anim-pulse.animated { animation: animPulse 2s ease-in-out infinite !important; }
+
+/* Studio Button SVG Icon Vector Sizing & Universal Color Inheritance */
+.studio-btn-svg-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.studio-btn-svg-icon svg {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: block !important;
+}
+
+/* Force SVG fill/stroke to inherit button text color if set to default black/currentColor */
+.studio-btn-svg-icon svg:not([fill="none"]) {
+  fill: currentColor;
+}
+.studio-btn-svg-icon svg[stroke] {
+  stroke: currentColor;
+}
 

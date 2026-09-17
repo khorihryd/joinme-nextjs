@@ -38,6 +38,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<any>(null);
   const [isSaveAsNewOpen, setIsSaveAsNewOpen] = useState(false);
+  const [showRulers, setShowRulers] = useState(true);
 
   useEffect(() => {
     async function loadStudio() {
@@ -124,7 +125,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         padding: '24px',
         backgroundColor: '#ffffff',
         width: '100%',
-        margin: '0px 0px 24px 0px',
+        margin: '0px',
       },
       children: [],
     };
@@ -188,6 +189,8 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         title={template?.name || 'Studio Builder'}
         viewportMode={viewportMode}
         setViewportMode={setViewportMode}
+        showRulers={showRulers}
+        setShowRulers={setShowRulers}
         onSave={handleSave}
         onSaveAsNew={() => setIsSaveAsNewOpen(true)}
         onReset={() => {
@@ -219,7 +222,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         />
 
         {/* Canvas Stage */}
-        <CanvasStage viewportMode={viewportMode}>
+        <CanvasStage viewportMode={viewportMode} showRulers={showRulers}>
           {nodes.map((node) => (
             <NodeRenderer
               key={node.id}

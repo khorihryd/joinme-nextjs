@@ -8,6 +8,8 @@ interface TopBarProps {
   title?: string;
   viewportMode: 'desktop' | 'tablet' | 'mobile';
   setViewportMode: (mode: 'desktop' | 'tablet' | 'mobile') => void;
+  showRulers?: boolean;
+  setShowRulers?: (show: boolean) => void;
   onSave: () => void;
   onSaveAsNew?: () => void;
   onReset: () => void;
@@ -18,6 +20,8 @@ interface TopBarProps {
 export function TopBar({
   viewportMode,
   setViewportMode,
+  showRulers = true,
+  setShowRulers,
   onSave,
   onSaveAsNew,
   onReset,
@@ -66,6 +70,18 @@ export function TopBar({
         >
           📱 <span>Mobile</span>
         </button>
+
+        {setShowRulers && (
+          <button
+            type="button"
+            className={`viewport-btn ${showRulers ? 'active' : ''}`}
+            onClick={() => setShowRulers(!showRulers)}
+            title="Tampilkan / Sembunyikan Penggaris (Photoshop Rulers)"
+            style={{ marginLeft: '0.4rem', borderLeft: '1px solid var(--border-color)' }}
+          >
+            📏 <span>Ruler</span>
+          </button>
+        )}
       </div>
 
       {/* Theme & Save Actions */}

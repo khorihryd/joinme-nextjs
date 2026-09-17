@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useStudioStore } from '@/store/studio-store';
+import { useStudioStore, getGlobalCssVariables } from '@/store/studio-store';
+import { CanvasRuler } from './CanvasRuler';
 
 interface CanvasStageProps {
   viewportMode: 'desktop' | 'tablet' | 'mobile';
+  showRulers?: boolean;
   children: React.ReactNode;
 }
 
-export function CanvasStage({ viewportMode, children }: CanvasStageProps) {
+export function CanvasStage({ viewportMode, showRulers = true, children }: CanvasStageProps) {
   const { globalStyles, selectedNodeId, selectNode, setSidebarTab } = useStudioStore();
 
   useEffect(() => {
@@ -29,17 +31,19 @@ export function CanvasStage({ viewportMode, children }: CanvasStageProps) {
     const target = e.target as HTMLElement;
     if (target.id === 'studio-canvas-stage' || target.id === 'canvas-viewport-wrapper') {
       selectNode('canvas');
-      setSidebarTab('properties');
+      setSidebarTab('global');
     }
   };
 
   const isCanvasSelected = selectedNodeId === 'canvas';
+  const cssVars = getGlobalCssVariables(globalStyles);
 
   const stageStyle: React.CSSProperties = {
-    backgroundColor: globalStyles.bgColor || '#eff2ef',
+    ...cssVars,
+    backgroundColor: globalStyles.bgColor || globalStyles.colors?.background || '#eff2ef',
     padding: globalStyles.padding || '24px',
     margin: globalStyles.margin || '0px',
-    fontFamily: globalStyles.fontFamily || 'Playfair Display',
+    fontFamily: globalStyles.fontFamily || globalStyles.typography?.fontPrimary || 'Playfair Display',
     backgroundImage: globalStyles.backgroundImage ? `url(${globalStyles.backgroundImage})` : 'none',
     backgroundPosition: globalStyles.backgroundPosition || 'center',
     backgroundSize: globalStyles.backgroundSize || 'cover',
@@ -49,23 +53,27 @@ export function CanvasStage({ viewportMode, children }: CanvasStageProps) {
     transition: 'all 0.25s ease',
     minHeight: '100%',
     boxSizing: 'border-box',
+    transform: 'translate(0, 0)',
+    position: 'relative',
   };
 
   return (
-    <main
-      className="studio-stage"
-      style={{ flex: 1 }}
-      onClick={handleStageClick}
-    >
-      <div className={`canvas-viewport-wrapper ${viewportMode}`} id="canvas-viewport-wrapper">
-        <div
-          className="studio-canvas-frame"
-          id="studio-canvas-stage"
-          style={stageStyle}
-        >
-          {children}
+    <CanvasRuler showRulers={showRulers} viewportMode={viewportMode}>
+      <main
+        className="studio-stage"
+        style={{ flex: 1 }}
+        onClick={handleStageClick}
+      >
+        <div className={`canvas-viewport-wrapper ${viewportMode}`} id="canvas-viewport-wrapper">
+          <div
+            className="studio-canvas-frame"
+            id="studio-canvas-stage"
+            style={stageStyle}
+          >
+            {children}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </CanvasRuler>
   );
 }
