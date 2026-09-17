@@ -2740,6 +2740,50 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                   </select>
                 </div>
 
+                {/* Gaya Huruf (Font Style / Italic) */}
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ margin: 0 }}>Gaya Huruf / Italic (Font Style)</label>
+                    <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{deviceIcon}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    {[
+                      { val: 'normal', label: 'Normal (Tegak)', icon: 'Aa', isItalic: false },
+                      { val: 'italic', label: 'Italic (Miring)', icon: 'I', isItalic: true },
+                    ].map((fs) => {
+                      const currentVal = getResponsiveVal('fontStyle', 'normal');
+                      const isSelected = currentVal === fs.val || (!currentVal && fs.val === 'normal');
+                      return (
+                        <button
+                          key={fs.val}
+                          type="button"
+                          onClick={() => updateStyleProp('fontStyle', fs.val)}
+                          style={{
+                            flex: 1,
+                            padding: '0.45rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            fontStyle: fs.isItalic ? 'italic' : 'normal',
+                            borderRadius: '6px',
+                            border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                            backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                            color: isSelected ? '#ffffff' : 'var(--text-primary)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span style={{ fontWeight: 900 }}>{fs.icon}</span>
+                          <span>{fs.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <TokenColorPicker
                   label="Warna Teks (Text Color)"
                   value={style.color || ''}

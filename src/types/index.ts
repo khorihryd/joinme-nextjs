@@ -268,6 +268,8 @@ export interface NodeStyle {
   letterSpacing?: string;
   textTransform?: string;
   fontStyle?: string;
+  fontStyleMobile?: string;
+  fontStyleTablet?: string;
   color?: string;
   // Background
   bgType?: string;

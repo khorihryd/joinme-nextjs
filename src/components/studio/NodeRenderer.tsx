@@ -793,6 +793,7 @@ export function NodeRenderer({
     fontSize: style.fontSize ? resolveStyleValue(getResponsiveStyle(style, 'fontSize', style.fontSize, viewportMode)) : undefined,
     fontFamily: resolveStyleValue(style.fontFamily),
     fontWeight: getResponsiveStyle(style, 'fontWeight', style.fontWeight || undefined, viewportMode),
+    fontStyle: getResponsiveStyle(style, 'fontStyle', style.fontStyle || undefined, viewportMode) as any,
     textAlign: getResponsiveStyle(style, 'textAlign', undefined, viewportMode) as any,
     letterSpacing: style.letterSpacing || undefined,
     textTransform: style.textTransform as any || undefined,
