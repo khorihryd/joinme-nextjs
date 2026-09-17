@@ -18,6 +18,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
     "@supabase/supabase-js": "^2.109.0",
     "bcrypt": "^6.0.0",
     "clsx": "^2.1.1",

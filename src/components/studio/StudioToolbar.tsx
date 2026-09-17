@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StudioNode, GlobalStyles, GlobalColorTokens } from '@/types';
 import { findParentNode, DEFAULT_GLOBAL_STYLES } from '@/store/studio-store';
 import { ImageCropModal } from './ImageCropModal';
+import { ImageBgRemovalModal } from './ImageBgRemovalModal';
 
 interface StudioToolbarProps {
   selectedNode: StudioNode | null;
@@ -50,6 +51,20 @@ export function StudioToolbar({
     setOnCropCallback(() => callback);
     if (title) setCropModalTitle(title);
     setIsCropModalOpen(true);
+  };
+
+  // Image Background Removal Modal State
+  const [isBgRemovalModalOpen, setIsBgRemovalModalOpen] = useState(false);
+  const [bgRemovalImageUrl, setBgRemovalImageUrl] = useState('');
+  const [bgRemovalModalTitle, setBgRemovalModalTitle] = useState('Hapus Background Gambar');
+  const [onBgRemovalCallback, setOnBgRemovalCallback] = useState<((url: string) => void) | null>(null);
+
+  const openBgRemovalModal = (url: string, callback: (newUrl: string) => void, title?: string) => {
+    if (!url) return;
+    setBgRemovalImageUrl(url);
+    setOnBgRemovalCallback(() => callback);
+    if (title) setBgRemovalModalTitle(title);
+    setIsBgRemovalModalOpen(true);
   };
 
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -458,6 +473,37 @@ export function StudioToolbar({
             </button>
           )}
 
+          {/* Canvas Background Image Removal */}
+          {globalStyles.backgroundImage && (
+            <button
+              type="button"
+              onClick={() =>
+                openBgRemovalModal(
+                  globalStyles.backgroundImage || '',
+                  (url) => onUpdateGlobalStyles({ backgroundImage: url }),
+                  'Hapus Background Canvas'
+                )
+              }
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(227, 99, 151, 0.4)',
+                backgroundColor: 'rgba(227, 99, 151, 0.08)',
+                color: 'var(--primary)',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+              title="Hapus background gambar canvas menjadi transparan"
+            >
+              <span>🪄</span>
+              <span>Hapus BG Canvas</span>
+            </button>
+          )}
+
           <div style={{ flex: 1 }} />
 
           {/* Shortcut to full Global Styles in sidebar */}
@@ -564,6 +610,34 @@ export function StudioToolbar({
                 <span>✂️</span>
                 <span>Crop Gambar</span>
               </button>
+              <button
+                type="button"
+                onClick={() =>
+                  openBgRemovalModal(
+                    selectedNode.content || '',
+                    (url) => onUpdateNode({ ...selectedNode, content: url }),
+                    'Hapus Background Gambar'
+                  )
+                }
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(227, 99, 151, 0.4)',
+                  backgroundColor: 'rgba(227, 99, 151, 0.1)',
+                  color: 'var(--primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Hapus background gambar menjadi transparan (AI / Chroma)"
+              >
+                <span>🪄</span>
+                <span>Hapus BG</span>
+              </button>
               <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
             </>
           )}
@@ -597,6 +671,34 @@ export function StudioToolbar({
               >
                 <span>✂️</span>
                 <span>Crop Background</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  openBgRemovalModal(
+                    getResponsiveVal('backgroundImage', ''),
+                    (url) => updateStyleProp('backgroundImage', url),
+                    'Hapus Background Elemen'
+                  )
+                }
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(227, 99, 151, 0.4)',
+                  backgroundColor: 'rgba(227, 99, 151, 0.1)',
+                  color: 'var(--primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Hapus background gambar elemen ini menjadi transparan (AI / Chroma)"
+              >
+                <span>🪄</span>
+                <span>Hapus BG</span>
               </button>
               <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
             </>
@@ -1428,6 +1530,18 @@ export function StudioToolbar({
         onCropComplete={(croppedUrl) => {
           if (onCropCallback) onCropCallback(croppedUrl);
           setIsCropModalOpen(false);
+        }}
+      />
+
+      {/* Image Background Removal Modal */}
+      <ImageBgRemovalModal
+        isOpen={isBgRemovalModalOpen}
+        onClose={() => setIsBgRemovalModalOpen(false)}
+        imageUrl={bgRemovalImageUrl}
+        targetTitle={bgRemovalModalTitle}
+        onComplete={(transparentUrl) => {
+          if (onBgRemovalCallback) onBgRemovalCallback(transparentUrl);
+          setIsBgRemovalModalOpen(false);
         }}
       />
     </div>

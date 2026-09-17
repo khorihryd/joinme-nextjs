@@ -10,6 +10,7 @@ import { MediaLibraryModal } from './MediaLibraryModal';
 import { getRegisteredFunctionsList, FUNCTION_REGISTRY } from '@/utils/customFunctions';
 import { IconPickerModal } from './IconPickerModal';
 import { ImageCropModal } from './ImageCropModal';
+import { ImageBgRemovalModal } from './ImageBgRemovalModal';
 import { normalizeSvgString, isSvgMarkup } from '@/utils/svgNormalizer';
 
 interface TokenColorPickerProps {
@@ -211,6 +212,20 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
     setOnCropCallback(() => callback);
     if (title) setCropModalTitle(title);
     setIsCropModalOpen(true);
+  };
+
+  // Background Removal Modal State
+  const [isBgRemovalModalOpen, setIsBgRemovalModalOpen] = useState<boolean>(false);
+  const [bgRemovalImageUrl, setBgRemovalImageUrl] = useState<string>('');
+  const [bgRemovalModalTitle, setBgRemovalModalTitle] = useState<string>('Hapus Background Gambar');
+  const [onBgRemovalCallback, setOnBgRemovalCallback] = useState<((url: string) => void) | null>(null);
+
+  const openBgRemovalModal = (url: string, callback: (newUrl: string) => void, title?: string) => {
+    if (!url) return;
+    setBgRemovalImageUrl(url);
+    setOnBgRemovalCallback(() => callback);
+    if (title) setBgRemovalModalTitle(title);
+    setIsBgRemovalModalOpen(true);
   };
 
   const getAllContainers = (nodeList: StudioNode[]): StudioNode[] => {
@@ -471,6 +486,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                       title="Crop background canvas ini"
                     >
                       ✂️ Crop
+                    </button>
+                  )}
+                  {globalStyles.backgroundImage && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openBgRemovalModal(
+                          globalStyles.backgroundImage || '',
+                          (url) => updateGlobalStyles({ backgroundImage: url }),
+                          'Hapus Background Canvas'
+                        )
+                      }
+                      style={{
+                        padding: '6px 10px',
+                        background: 'rgba(227, 99, 151, 0.1)',
+                        color: 'var(--primary)',
+                        border: '1px solid rgba(227, 99, 151, 0.4)',
+                        borderRadius: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        whiteSpace: 'nowrap',
+                        margin: 0,
+                      }}
+                      title="Hapus background gambar canvas menjadi transparan (AI / Chroma)"
+                    >
+                      🪄 Hapus BG
                     </button>
                   )}
                   <button
@@ -2510,6 +2555,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                         ✂️ Crop
                       </button>
                     )}
+                    {node.content && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openBgRemovalModal(
+                            node.content || '',
+                            (url) => updateNodeProp('content', url),
+                            'Hapus Background Gambar Elemen'
+                          )
+                        }
+                        style={{
+                          padding: '6px 10px',
+                          background: 'rgba(227, 99, 151, 0.1)',
+                          color: 'var(--primary)',
+                          border: '1px solid rgba(227, 99, 151, 0.4)',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          whiteSpace: 'nowrap',
+                          margin: 0,
+                        }}
+                        title="Hapus background gambar elemen ini menjadi transparan (AI / Chroma)"
+                      >
+                        🪄 Hapus BG
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => openMediaLibrary(['studio'], (url) => updateNodeProp('content', url))}
@@ -3229,6 +3304,36 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                           ✂️ Crop
                         </button>
                       )}
+                      {getResponsiveVal('backgroundImage', '') && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openBgRemovalModal(
+                              getResponsiveVal('backgroundImage', ''),
+                              (url) => updateStyleProp('backgroundImage', url),
+                              'Hapus Background Container'
+                            )
+                          }
+                          style={{
+                            padding: '6px 10px',
+                            background: 'rgba(227, 99, 151, 0.1)',
+                            color: 'var(--primary)',
+                            border: '1px solid rgba(227, 99, 151, 0.4)',
+                            borderRadius: '6px',
+                            fontSize: '0.68rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            whiteSpace: 'nowrap',
+                            margin: 0,
+                          }}
+                          title="Hapus background gambar container ini menjadi transparan (AI / Chroma)"
+                        >
+                          🪄 Hapus BG
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => openMediaLibrary(['studio'], (url) => updateStyleProp('backgroundImage', url))}
@@ -3692,6 +3797,17 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
         onCropComplete={(croppedUrl) => {
           if (onCropCallback) onCropCallback(croppedUrl);
           setIsCropModalOpen(false);
+        }}
+      />
+
+      <ImageBgRemovalModal
+        isOpen={isBgRemovalModalOpen}
+        onClose={() => setIsBgRemovalModalOpen(false)}
+        imageUrl={bgRemovalImageUrl}
+        targetTitle={bgRemovalModalTitle}
+        onComplete={(transparentUrl) => {
+          if (onBgRemovalCallback) onBgRemovalCallback(transparentUrl);
+          setIsBgRemovalModalOpen(false);
         }}
       />
     </div>
