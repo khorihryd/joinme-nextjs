@@ -18,7 +18,7 @@ export function LivePreview({ subdomain, onClose }: LivePreviewProps) {
         </button>
       </div>
       <iframe
-        src={`/invite/${subdomain}`}
+        src={`/v/${subdomain}`}
         className="preview-iframe-el"
         title="Live Mobile Preview"
       />

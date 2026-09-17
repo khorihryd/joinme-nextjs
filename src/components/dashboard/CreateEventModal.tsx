@@ -166,20 +166,20 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialTemplateId
 
           <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-              Alamat Subdomain (.joinme.id)
+              Link Slug Undangan (joinme.id/v/...)
             </label>
             <div style={{ display: 'flex', alignItems: 'center', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-body)', overflow: 'hidden' }}>
+              <span style={{ padding: '0.75rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', background: 'rgba(0,0,0,0.05)', borderRight: '1px solid var(--border-color)' }}>
+                joinme.id/v/
+              </span>
               <input
                 type="text"
                 required
                 value={subdomain}
                 onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="roni-anti"
+                placeholder="hikmah-izzul"
                 style={{ flex: 1, padding: '0.75rem 1rem', border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' }}
               />
-              <span style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', background: 'rgba(0,0,0,0.05)', borderLeft: '1px solid var(--border-color)' }}>
-                .joinme.id
-              </span>
             </div>
           </div>
 

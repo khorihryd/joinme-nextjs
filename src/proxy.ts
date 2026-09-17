@@ -13,6 +13,7 @@ export default auth((req) => {
   const publicRoutes = ['/', '/login', '/register'];
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
+    pathname.startsWith('/v/') ||
     pathname.startsWith('/invite/') ||
     (pathname.includes('/studio/') && pathname.endsWith('/preview'));
 

@@ -1472,7 +1472,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   showToast('Mohon isi alamat subdomain terlebih dahulu', 'warning');
                   return;
                 }
-                window.open(`/invite/${eventSubdomain}`, '_blank');
+                window.open(`/v/${eventSubdomain}`, '_blank');
               }}
               className="btn btn-secondary"
               style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem', borderRadius: '8px', fontWeight: 700 }}

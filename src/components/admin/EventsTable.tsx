@@ -92,11 +92,11 @@ export function EventsTable({ events, onDelete }: EventsTableProps) {
                   </td>
                   <td style={{ padding: '1rem 1.5rem' }}>
                     <Link
-                      href={`/invite/${ev.subdomain}`}
+                      href={`/v/${ev.subdomain}`}
                       target="_blank"
                       style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}
                     >
-                      {ev.subdomain}.joinme.id ↗
+                      joinme.id/v/{ev.subdomain} ↗
                     </Link>
                   </td>
                   <td style={{ padding: '1rem 1.5rem' }}>

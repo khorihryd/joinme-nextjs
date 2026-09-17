@@ -37,12 +37,12 @@ export function EventCard({ event, onDelete }: EventCardProps) {
           </h3>
 
           <a
-            href={`/invite/${event.subdomain}`}
+            href={`/v/${event.subdomain}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '1.5rem', display: 'block', textDecoration: 'none' }}
           >
-            {event.subdomain}.joinme.id ↗
+            joinme.id/v/{event.subdomain} ↗
           </a>
 
           <div className="dash-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', marginBottom: '1.5rem', backgroundColor: 'var(--bg-body)', padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border-color)' }}>

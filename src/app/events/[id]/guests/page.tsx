@@ -113,7 +113,7 @@ export default function EventGuestsPage({ params }: { params: Promise<{ id: stri
 
   const copyGuestLink = (guestName: string) => {
     if (typeof window === 'undefined') return;
-    const url = `${window.location.origin}/invite/${event?.subdomain || 'demo'}?to=${encodeURIComponent(guestName)}`;
+    const url = `${window.location.origin}/v/${event?.subdomain || 'demo'}?to=${encodeURIComponent(guestName)}`;
     navigator.clipboard.writeText(url);
     showToast(`Link khusus untuk "${guestName}" berhasil disalin! 📋`, 'success');
   };
@@ -128,7 +128,7 @@ export default function EventGuestsPage({ params }: { params: Promise<{ id: stri
 
   const shareViaWhatsApp = (guestName: string, phoneStr?: string) => {
     if (typeof window === 'undefined') return;
-    const url = `${window.location.origin}/invite/${event?.subdomain || 'demo'}?to=${encodeURIComponent(guestName)}`;
+    const url = `${window.location.origin}/v/${event?.subdomain || 'demo'}?to=${encodeURIComponent(guestName)}`;
     const text = `Kepada Yth. *${guestName}*,\n\nTanpa mengurangi rasa hormat, kami mengundang Anda untuk menghadiri acara *${event?.title || 'Undangan Digital'}*.\n\nBerikut link undangan khusus Anda:\n${url}\n\nMerupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu. Terima kasih.`;
     
     let targetUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -148,7 +148,7 @@ export default function EventGuestsPage({ params }: { params: Promise<{ id: stri
 
     const headers = ['Nama Tamu', 'Kategori', 'Grup / Kelompok', 'No. WhatsApp', 'Status Kehadiran', 'Jumlah Pax', 'Ucapan & Pesan', 'Tanggal Respon', 'Link Undangan'];
     const rows = guests.map((g) => {
-      const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${event?.subdomain || 'demo'}?to=${encodeURIComponent(g.name)}`;
+      const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/v/${event?.subdomain || 'demo'}?to=${encodeURIComponent(g.name)}`;
       const dateStr = g.createdAt ? new Date(g.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
       return [
         `"${(g.name || '').replace(/"/g, '""')}"`,
@@ -234,7 +234,7 @@ export default function EventGuestsPage({ params }: { params: Promise<{ id: stri
           </Link>
           {event?.subdomain && (
             <a
-              href={`/invite/${event.subdomain}`}
+              href={`/v/${event.subdomain}`}
               target="_blank"
               rel="noopener noreferrer"
               className="db-menu-item"
@@ -340,7 +340,7 @@ export default function EventGuestsPage({ params }: { params: Promise<{ id: stri
                 ✏️ Edit Acara
               </Link>
               {event?.subdomain && (
-                <a href={`/invite/${event.subdomain}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '0.45rem 0.85rem' }}>
+                <a href={`/v/${event.subdomain}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '0.45rem 0.85rem' }}>
                   🌐 Buka Undangan
                 </a>
               )}
