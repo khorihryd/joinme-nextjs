@@ -34,7 +34,20 @@ export function getBasicWidget(nodeType, newWidget, timestamp) {
       break;
 
     case 'divider':
-      newWidget.style = { borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', width: '100%', margin: '12px 0px' };
+      newWidget.style = {
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        width: '100%',
+        margin: '12px 0px',
+        dividerType: 'solid',
+        dividerColor: '#cbd5e1',
+        dividerHeight: 1,
+        dividerWidth: 100,
+        dividerIconSymbol: '✨',
+        dividerIconSize: '20px',
+        dividerIconColor: 'var(--primary, #e36397)',
+      };
       break;
 
     case 'spacer':

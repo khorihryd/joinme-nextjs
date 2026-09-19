@@ -2828,20 +2828,91 @@ export function NodeRenderer({
         {actionOverlay}
         {(() => {
           const divType = String(style.dividerType || 'solid');
-          const color = String(style.dividerColor || '#cbd5e1');
+          const color = resolveStyleValue(style.dividerColor) || '#cbd5e1';
           const thickness = style.dividerHeight !== undefined ? Number(style.dividerHeight) : 1;
           const widthVal = style.dividerWidth !== undefined ? `${style.dividerWidth}%` : '100%';
 
           if (divType === 'icon') {
-            const iconSymbol = String(style.dividerIconSymbol || '✨');
-            const iconSize = String(style.dividerIconSize || '1rem');
+            const rawIcon = String(style.dividerIconSymbol || node.icon || '✨');
+            const iconColor = resolveStyleValue(style.dividerIconColor) || color;
+            const rawSize = style.dividerIconSize || '20px';
+            const iconSizePx = typeof rawSize === 'number' ? `${rawSize}px` : (!isNaN(Number(rawSize)) ? `${rawSize}px` : String(rawSize));
+            const lineStyle = String(style.dividerLineStyle || 'solid');
+
+            const iconShape = String(style.dividerIconShape || 'none');
+            const iconBg = resolveStyleValue(style.dividerIconBg) || (iconShape !== 'none' ? 'rgba(227, 99, 151, 0.08)' : 'transparent');
+            const iconPadding = style.dividerIconPadding !== undefined ? Number(style.dividerIconPadding) : (iconShape !== 'none' ? 6 : 0);
+            const iconBorderColor = resolveStyleValue(style.dividerIconBorderColor) || 'transparent';
+            const iconBorderWidth = iconBorderColor !== 'transparent' ? (Number(style.dividerIconBorderWidth) || 1) : 0;
+            const iconRadius = iconShape === 'circle' ? '50%' : iconShape === 'rounded' ? '8px' : '0px';
+
+            const isSvg = isSvgMarkup(rawIcon);
+            const isUrl = rawIcon.startsWith('http://') || rawIcon.startsWith('https://') || rawIcon.startsWith('data:');
+
+            const iconElement = isSvg ? (
+              <span
+                className="studio-btn-svg-icon"
+                style={{
+                  width: iconSizePx,
+                  height: iconSizePx,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: iconColor,
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+                dangerouslySetInnerHTML={{ __html: normalizeSvgString(rawIcon) }}
+              />
+            ) : isUrl ? (
+              <img
+                src={rawIcon}
+                alt="divider-icon"
+                style={{
+                  width: iconSizePx,
+                  height: iconSizePx,
+                  objectFit: 'contain',
+                  display: 'block',
+                  flexShrink: 0,
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  fontSize: iconSizePx,
+                  lineHeight: 1,
+                  color: iconColor,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {rawIcon}
+              </span>
+            );
+
+            const badgeStyle: React.CSSProperties = {
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: iconShape !== 'none' ? `${iconPadding}px` : '0 0.85rem',
+              margin: iconShape !== 'none' ? '0 0.75rem' : undefined,
+              borderRadius: iconRadius,
+              backgroundColor: iconBg,
+              border: iconBorderWidth > 0 ? `${iconBorderWidth}px solid ${iconBorderColor}` : undefined,
+              boxSizing: 'border-box',
+              lineHeight: 1,
+              flexShrink: 0,
+            };
+
             return (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: widthVal, margin: '12px auto' }}>
-                <div style={{ flex: 1, borderTop: `${thickness}px solid ${color}` }} />
-                <span style={{ padding: '0 0.75rem', color: color, fontSize: iconSize, lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>
-                  {iconSymbol}
-                </span>
-                <div style={{ flex: 1, borderTop: `${thickness}px solid ${color}` }} />
+                <div style={{ flex: 1, borderTop: `${thickness}px ${lineStyle} ${color}` }} />
+                <div style={badgeStyle}>
+                  {iconElement}
+                </div>
+                <div style={{ flex: 1, borderTop: `${thickness}px ${lineStyle} ${color}` }} />
               </div>
             );
           }

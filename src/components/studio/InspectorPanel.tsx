@@ -2053,80 +2053,350 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
             )}
 
             {node.type === 'divider' && (
-              <div className="form-group" style={{ padding: '0.75rem', backgroundColor: 'var(--bg-body)', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.2rem' }}>
-                  ➖ Pengaturan Divider / Garis Pemisah
+              <div
+                className="form-group"
+                style={{
+                  padding: '0.85rem',
+                  backgroundColor: 'var(--bg-body)',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem',
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    color: 'var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    margin: 0,
+                  }}
+                >
+                  ➖ Pengaturan Divider &amp; Ikon Tengah
                 </label>
 
+                {/* Tipe Divider */}
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Tipe Divider:</label>
-                  <select
-                    value={style.dividerType !== undefined && style.dividerType !== true ? String(style.dividerType) : 'solid'}
-                    onChange={(e) => updateStyleProp('dividerType', e.target.value)}
-                  >
-                    <option value="solid">➖ Garis Lurus (Solid)</option>
-                    <option value="dashed">--- Garis Putus-putus (Dashed)</option>
-                    <option value="dotted">... Garis Titik-titik (Dotted)</option>
-                    <option value="double">== Garis Ganda (Double)</option>
-                    <option value="icon">✨ Dengan Simbol/Karakter di Tengah</option>
-                  </select>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                    Tipe Divider:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                    {[
+                      { id: 'solid', label: '➖ Solid' },
+                      { id: 'dashed', label: '--- Dashed' },
+                      { id: 'dotted', label: '... Dotted' },
+                      { id: 'double', label: '== Double' },
+                      { id: 'icon', label: '✨ Dengan Ikon SVG' },
+                    ].map((t) => {
+                      const isSelected = (style.dividerType || 'solid') === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => updateStyleProp('dividerType', t.id)}
+                          style={{
+                            padding: '6px 8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: isSelected ? 'var(--primary)' : '#ffffff',
+                            color: isSelected ? '#ffffff' : 'var(--text-main)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            gridColumn: t.id === 'icon' ? 'span 2' : undefined,
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
+                {/* Center Icon Configuration (When dividerType === 'icon') */}
                 {style.dividerType === 'icon' && (
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Karakter/Simbol Tengah:</label>
-                    <input
-                      type="text"
-                      value={style.dividerIconSymbol !== undefined && style.dividerIconSymbol !== true ? String(style.dividerIconSymbol) : '✨'}
-                      onChange={(e) => updateStyleProp('dividerIconSymbol', e.target.value)}
-                      placeholder="✨, 🌸, ⚜️, ♥, ❦"
-                    />
+                  <div
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    {/* Icon Selection & SVG Picker Modal Trigger */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                          Ikon / Simbol di Tengah:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setIsIconPickerOpen(true)}
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: 'var(--primary-light, rgba(227, 99, 151, 0.15))',
+                            color: 'var(--primary)',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
+                        >
+                          🎨 Pilih Library SVG
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                        {/* Preview Box */}
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-body, #f8fafc)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.25rem',
+                            flexShrink: 0,
+                            color: String(style.dividerIconColor || style.dividerColor || 'var(--primary)'),
+                            padding: '4px',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {isSvgMarkup(String(style.dividerIconSymbol || '')) ? (
+                            <div
+                              className="studio-btn-svg-icon"
+                              style={{ width: '22px', height: '22px' }}
+                              dangerouslySetInnerHTML={{ __html: normalizeSvgString(String(style.dividerIconSymbol)) }}
+                            />
+                          ) : String(style.dividerIconSymbol || '').startsWith('http') || String(style.dividerIconSymbol || '').startsWith('data:') ? (
+                            <img src={String(style.dividerIconSymbol)} alt="icon" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                          ) : (
+                            String(style.dividerIconSymbol || '✨')
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={style.dividerIconSymbol !== undefined && style.dividerIconSymbol !== true ? String(style.dividerIconSymbol) : '✨'}
+                          onChange={(e) => updateStyleProp('dividerIconSymbol', e.target.value)}
+                          placeholder="Kode <svg>, ✨, 🌸, ⚜️, atau URL..."
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontFamily: 'monospace' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Emoji Selection Chips */}
+                    <div>
+                      <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                        Pilih Cepat Simbol / Emoji:
+                      </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                        {['✨', '💍', '🌸', '💐', '💖', '🕊️', '🕌', '🌿', '⚜️', '⭐', '❦', '♥', '👑', '🥂', '🎉'].map((ic) => (
+                          <button
+                            key={ic}
+                            type="button"
+                            onClick={() => updateStyleProp('dividerIconSymbol', ic)}
+                            style={{
+                              padding: '3px 7px',
+                              fontSize: '0.85rem',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              backgroundColor: style.dividerIconSymbol === ic ? 'var(--primary)' : '#ffffff',
+                              color: style.dividerIconSymbol === ic ? '#ffffff' : 'inherit',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {ic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Icon Size */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                          Ukuran Ikon:
+                        </label>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--primary)' }}>
+                          {style.dividerIconSize || '20px'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                        {[16, 20, 24, 32, 40].map((sz) => {
+                          const isCur = String(style.dividerIconSize || '20px') === `${sz}px` || String(style.dividerIconSize) === `${sz}`;
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => updateStyleProp('dividerIconSize', `${sz}px`)}
+                              style={{
+                                flex: 1,
+                                padding: '3px 0',
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                borderRadius: '5px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {sz}px
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input
+                        type="range"
+                        min={12}
+                        max={64}
+                        value={parseInt(String(style.dividerIconSize || '20'), 10) || 20}
+                        onChange={(e) => updateStyleProp('dividerIconSize', `${e.target.value}px`)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    {/* Icon Color */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <TokenColorPicker
+                        label="Warna Ikon Tengah"
+                        value={String(style.dividerIconColor || style.dividerColor || '#e36397')}
+                        onChange={(val) => updateStyleProp('dividerIconColor', val)}
+                        globalStyles={globalStyles}
+                      />
+                    </div>
+
+                    {/* Gaya Garis Samping */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        Gaya Garis Samping:
+                      </label>
+                      <select
+                        value={String(style.dividerLineStyle || 'solid')}
+                        onChange={(e) => updateStyleProp('dividerLineStyle', e.target.value)}
+                        style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                      >
+                        <option value="solid">➖ Garis Lurus (Solid)</option>
+                        <option value="dashed">--- Garis Putus-putus (Dashed)</option>
+                        <option value="dotted">... Garis Titik-titik (Dotted)</option>
+                        <option value="double">== Garis Ganda (Double)</option>
+                      </select>
+                    </div>
+
+                    {/* Frame / Badge Center Icon */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        Bingkai / Frame Ikon:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.3rem' }}>
+                        {[
+                          { id: 'none', label: 'Polos' },
+                          { id: 'circle', label: 'Bulat' },
+                          { id: 'rounded', label: 'Rounded' },
+                          { id: 'square', label: 'Kotak' },
+                        ].map((sh) => (
+                          <button
+                            key={sh.id}
+                            type="button"
+                            onClick={() => updateStyleProp('dividerIconShape', sh.id)}
+                            style={{
+                              padding: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              borderRadius: '5px',
+                              border: '1px solid var(--border-color)',
+                              backgroundColor: (style.dividerIconShape || 'none') === sh.id ? 'var(--primary)' : '#ffffff',
+                              color: (style.dividerIconShape || 'none') === sh.id ? '#ffffff' : 'var(--text-main)',
+                              cursor: 'pointer',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {sh.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {style.dividerIconShape && style.dividerIconShape !== 'none' && (
+                        <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <TokenColorPicker
+                            label="Warna Latar Bingkai"
+                            value={String(style.dividerIconBg || 'rgba(227, 99, 151, 0.1)')}
+                            onChange={(val) => updateStyleProp('dividerIconBg', val)}
+                            globalStyles={globalStyles}
+                          />
+                          <TokenColorPicker
+                            label="Warna Border Bingkai"
+                            value={String(style.dividerIconBorderColor || 'transparent')}
+                            onChange={(val) => updateStyleProp('dividerIconBorderColor', val)}
+                            globalStyles={globalStyles}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: '0.65rem' }}>Warna Garis</label>
-                    <input
-                      type="text"
-                      value={style.dividerColor !== undefined && style.dividerColor !== true ? String(style.dividerColor) : '#cbd5e1'}
-                      onChange={(e) => updateStyleProp('dividerColor', e.target.value)}
-                      placeholder="#cbd5e1"
-                      style={{ padding: '0.35rem' }}
-                    />
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: '0.65rem' }}>Ketebalan (px)</label>
-                    <input
-                      type="number"
-                      value={style.dividerHeight !== undefined && typeof style.dividerHeight === 'number' ? style.dividerHeight : 1}
-                      onChange={(e) => updateStyleProp('dividerHeight', parseInt(e.target.value) || 1)}
-                      placeholder="1"
-                      style={{ padding: '0.35rem' }}
-                    />
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: '0.65rem' }}>Lebar (%)</label>
-                    <input
-                      type="number"
-                      value={style.dividerWidth !== undefined && typeof style.dividerWidth === 'number' ? style.dividerWidth : 100}
-                      onChange={(e) => updateStyleProp('dividerWidth', parseInt(e.target.value) || 100)}
-                      placeholder="100"
-                      style={{ padding: '0.35rem' }}
-                    />
-                  </div>
-                  {style.dividerType === 'icon' && (
+                {/* Divider Line General Properties */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <TokenColorPicker
+                    label="Warna Garis Divider"
+                    value={String(style.dividerColor || '#cbd5e1')}
+                    onChange={(val) => updateStyleProp('dividerColor', val)}
+                    globalStyles={globalStyles}
+                  />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '0.65rem' }}>Ukuran Simbol</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>Ketebalan:</label>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--primary)' }}>
+                          {style.dividerHeight || 1}px
+                        </span>
+                      </div>
                       <input
-                        type="text"
-                        value={style.dividerIconSize !== undefined && style.dividerIconSize !== true ? String(style.dividerIconSize) : '1rem'}
-                        onChange={(e) => updateStyleProp('dividerIconSize', e.target.value)}
-                        placeholder="1rem"
-                        style={{ padding: '0.35rem' }}
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={style.dividerHeight !== undefined && typeof style.dividerHeight === 'number' ? style.dividerHeight : 1}
+                        onChange={(e) => updateStyleProp('dividerHeight', parseInt(e.target.value) || 1)}
+                        style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
                       />
                     </div>
-                  )}
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>Lebar (%):</label>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--primary)' }}>
+                          {style.dividerWidth !== undefined ? style.dividerWidth : 100}%
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        min={10}
+                        max={100}
+                        value={style.dividerWidth !== undefined && typeof style.dividerWidth === 'number' ? style.dividerWidth : 100}
+                        onChange={(e) => updateStyleProp('dividerWidth', parseInt(e.target.value) || 100)}
+                        style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -4099,9 +4369,14 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
         isOpen={isIconPickerOpen}
         onClose={() => setIsIconPickerOpen(false)}
         onSelectIcon={(iconValue) => {
-          updateNodeProp('icon', iconValue);
+          if (node.type === 'divider') {
+            updateStyleProp('dividerIconSymbol', iconValue);
+            updateStyleProp('dividerType', 'icon');
+          } else {
+            updateNodeProp('icon', iconValue);
+          }
         }}
-        currentIcon={node.icon}
+        currentIcon={node.type === 'divider' ? String(style.dividerIconSymbol || '') : node.icon}
       />
 
       <ImageCropModal

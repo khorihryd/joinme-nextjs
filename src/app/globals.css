@@ -4620,15 +4620,17 @@ body.preview-mode .node-action-overlay {
   animation: animFadeIn var(--anim-duration, 0.8s) ease var(--anim-delay, 0s) both, animLoopShimmer var(--loop-duration, 2.5s) ease-in-out var(--anim-duration, 0.8s) infinite !important;
 }
 
-/* Studio Button SVG Icon Vector Sizing & Universal Color Inheritance */
-.studio-btn-svg-icon {
+/* Studio Button & Widget SVG Icon Vector Sizing & Universal Color Inheritance */
+.studio-btn-svg-icon,
+.studio-widget-svg-icon {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   line-height: 1 !important;
 }
 
-.studio-btn-svg-icon svg {
+.studio-btn-svg-icon svg,
+.studio-widget-svg-icon svg {
   width: 100% !important;
   height: 100% !important;
   max-width: 100% !important;
@@ -4636,11 +4638,14 @@ body.preview-mode .node-action-overlay {
   display: block !important;
 }
 
-/* Force SVG fill/stroke to inherit button text color if set to default black/currentColor */
-.studio-btn-svg-icon svg:not([fill="none"]) {
+/* Force SVG fill/stroke to inherit button/widget text color if set to default black/currentColor */
+.studio-btn-svg-icon svg:not([fill="none"]),
+.studio-widget-svg-icon svg:not([fill="none"]) {
   fill: currentColor;
 }
-.studio-btn-svg-icon svg[stroke] {
+.studio-btn-svg-icon svg[stroke],
+.studio-widget-svg-icon svg[stroke] {
   stroke: currentColor;
 }
+
 
