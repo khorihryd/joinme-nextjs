@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useMemo, use } from 'react';
 import { useStudio } from '@/hooks/useStudio';
 import { TopBar } from '@/components/studio/TopBar';
 import { SidebarLeft } from '@/components/studio/SidebarLeft';
@@ -23,12 +23,15 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     selectedNode,
     viewportMode,
     sidebarTab,
+    showSidebar,
     setNodes,
     setGlobalStyles,
     updateGlobalStyles,
     selectNode,
     setViewportMode,
     setSidebarTab,
+    setShowSidebar,
+    toggleSidebar,
     updateNode,
     deleteNode,
     duplicateNode,
@@ -63,6 +66,22 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     }
     loadStudio();
   }, [id, setNodes, setGlobalStyles]);
+
+  // Keyboard shortcut Ctrl+\ / Cmd+\ / Ctrl+B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === '\\' || e.key === 'b' || e.key === 'B')) {
+        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) {
+          return;
+        }
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -176,10 +195,28 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     showToast(type === 'container' ? 'Inner Container ditambahkan' : `Widget ${type} ditambahkan`, 'success');
   };
 
+  const canvasEventDetails = useMemo(() => {
+    const sample = globalStyles?.sampleEventDetails || {};
+    const activeGal = (Array.isArray(globalStyles?.galleryImages) && globalStyles.galleryImages.length > 0)
+      ? globalStyles.galleryImages
+      : (Array.isArray(sample.galleryImages) && sample.galleryImages.length > 0)
+      ? sample.galleryImages
+      : (Array.isArray(sample.gallery) && sample.gallery.length > 0)
+      ? sample.gallery
+      : undefined;
+
+    return {
+      ...sample,
+      ...(activeGal ? { gallery: activeGal, galleryImages: activeGal, photos: activeGal, images: activeGal } : {}),
+    };
+  }, [globalStyles]);
+
   const handlePreview = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(`studio_preview_nodes_${id}`, JSON.stringify(nodes));
       localStorage.setItem(`studio_preview_global_styles_${id}`, JSON.stringify(globalStyles));
+      localStorage.setItem('studio_preview_nodes', JSON.stringify(nodes));
+      localStorage.setItem('studio_preview_global_styles', JSON.stringify(globalStyles));
     }
     window.open(`/studio/${id}/preview?fromEditor=true`, '_blank');
   };
@@ -193,6 +230,8 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         setViewportMode={setViewportMode}
         showRulers={showRulers}
         setShowRulers={setShowRulers}
+        showSidebar={showSidebar}
+        onToggleSidebar={toggleSidebar}
         onSave={handleSave}
         onSaveAsNew={() => setIsSaveAsNewOpen(true)}
         onReset={() => {
@@ -211,6 +250,8 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         <SidebarLeft
           sidebarTab={sidebarTab}
           setSidebarTab={setSidebarTab}
+          showSidebar={showSidebar}
+          onToggleSidebar={toggleSidebar}
           nodes={nodes}
           selectedNodeId={selectedNodeId}
           selectedNode={selectedNode}
@@ -237,14 +278,57 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             }}
             globalStyles={globalStyles}
             onUpdateGlobalStyles={updateGlobalStyles}
-            onOpenProperties={() => setSidebarTab('properties')}
-            onOpenGlobal={() => setSidebarTab('global')}
+            onOpenProperties={() => {
+              setSidebarTab('properties');
+              setShowSidebar(true);
+            }}
+            onOpenGlobal={() => {
+              setSidebarTab('global');
+              setShowSidebar(true);
+            }}
             viewportMode={viewportMode}
             nodes={nodes}
           />
 
           {/* Canvas Stage */}
           <div style={{ flex: 1, position: 'relative', overflow: 'hidden', height: 'calc(100% - 46px)', zIndex: 1 }}>
+            {/* Floating Expand Sidebar Button when collapsed */}
+            {!showSidebar && (
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="btn-floating-show-sidebar"
+                title="Tampilkan Sidebar (Ctrl+\\)"
+                aria-label="Tampilkan Sidebar"
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  left: '12px',
+                  zIndex: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  padding: '0.45rem 0.75rem',
+                  backgroundColor: 'var(--bg-card, #ffffff)',
+                  color: 'var(--text-primary, #1e293b)',
+                  border: '1px solid var(--border-color, #e2e8f0)',
+                  borderRadius: '8px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="9" y1="3" x2="9" y2="21" />
+                  <polyline points="5 10 7 12 5 14" />
+                </svg>
+                <span>Buka Sidebar</span>
+              </button>
+            )}
+
             <CanvasStage viewportMode={viewportMode} showRulers={showRulers}>
               {nodes.map((node) => (
                 <NodeRenderer
@@ -259,6 +343,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   onDeleteNode={deleteNode}
                   onDuplicateNode={duplicateNode}
                   viewportMode={viewportMode}
+                  eventDetails={canvasEventDetails}
                 />
               ))}
             </CanvasStage>

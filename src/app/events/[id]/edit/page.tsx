@@ -143,17 +143,32 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const currentSectionOrder: SectionType[] = details.sectionOrder || SECTION_DEFINITIONS.map((s) => s.id);
   const hiddenSectionsMap: Record<string, boolean> = details.hiddenSections || {};
 
+  const pPria = details.panggilanPria || 'Nama Panggilan Pria';
+  const pWanita = details.panggilanWanita || 'Nama Panggilan Wanita';
+  const iPria = details.inisialPria || details.inisial_pria || (pPria ? pPria.trim().charAt(0).toUpperCase() : 'R');
+  const iWanita = details.inisialWanita || details.inisial_wanita || (pWanita ? pWanita.trim().charAt(0).toUpperCase() : 'A');
+  const iPasangan = details.inisialPasangan || details.inisial_pasangan || `${iPria} & ${iWanita}`;
+
   const liveEventDetails = {
     title: eventTitle,
     subdomain: eventSubdomain,
     type: eventType,
     mempelaiPria: details.mempelaiPria || 'Nama Lengkap Mempelai Pria',
-    panggilanPria: details.panggilanPria || 'Nama Panggilan Pria',
+    panggilanPria: pPria,
+    inisialPria: iPria,
+    inisial_pria: iPria,
+    groom_initial: iPria,
     ortuPria: details.ortuPria || 'Nama Orang Tua Mempelai Pria',
     igPria: details.igPria,
     fotoPria: details.fotoPria,
     mempelaiWanita: details.mempelaiWanita || 'Nama Lengkap Mempelai Wanita',
-    panggilanWanita: details.panggilanWanita || 'Nama Panggilan Wanita',
+    panggilanWanita: pWanita,
+    inisialWanita: iWanita,
+    inisial_wanita: iWanita,
+    bride_initial: iWanita,
+    inisialPasangan: iPasangan,
+    inisial_pasangan: iPasangan,
+    couple_initials: iPasangan,
     ortuWanita: details.ortuWanita || 'Nama Orang Tua Mempelai Wanita',
     igWanita: details.igWanita,
     fotoWanita: details.fotoWanita,
@@ -700,9 +715,15 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Lengkap & Gelar</label>
                       <input type="text" placeholder="misal: Roni Wijaya, S.Kom." value={details.mempelaiPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, mempelaiPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
                     </div>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Panggilan</label>
-                      <input type="text" placeholder="misal: Roni" value={details.panggilanPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, panggilanPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '0.45rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Panggilan</label>
+                        <input type="text" placeholder="misal: Roni" value={details.panggilanPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, panggilanPria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Inisial Pria</label>
+                        <input type="text" placeholder="R" maxLength={4} value={details.inisialPria || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, inisialPria: e.target.value, inisial_pria: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', fontWeight: 800, textAlign: 'center', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                      </div>
                     </div>
                     <div>
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Orang Tua & Putra Ke-</label>
@@ -739,9 +760,15 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Lengkap & Gelar</label>
                       <input type="text" placeholder="misal: Anti Kartika, S.T." value={details.mempelaiWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, mempelaiWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
                     </div>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Panggilan</label>
-                      <input type="text" placeholder="misal: Anti" value={details.panggilanWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, panggilanWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '0.45rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Panggilan</label>
+                        <input type="text" placeholder="misal: Anti" value={details.panggilanWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, panggilanWanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Inisial Wanita</label>
+                        <input type="text" placeholder="A" maxLength={4} value={details.inisialWanita || ''} onChange={(e) => setDetails((prev: any) => ({ ...prev, inisialWanita: e.target.value, inisial_wanita: e.target.value }))} style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', fontWeight: 800, textAlign: 'center', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff' }} />
+                      </div>
                     </div>
                     <div>
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Nama Orang Tua & Putri Ke-</label>

@@ -92,6 +92,12 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
   const currentSectionOrder: SectionType[] = details.sectionOrder || SECTION_DEFINITIONS.map((s) => s.id);
   const hiddenSectionsMap: Record<string, boolean> = details.hiddenSections || {};
 
+  const livePria = details.panggilanPria || 'Roni';
+  const liveWanita = details.panggilanWanita || 'Anti';
+  const liveIPria = details.inisialPria || details.inisial_pria || (livePria ? livePria.trim().charAt(0).toUpperCase() : 'R');
+  const liveIWanita = details.inisialWanita || details.inisial_wanita || (liveWanita ? liveWanita.trim().charAt(0).toUpperCase() : 'A');
+  const liveIPasangan = details.inisialPasangan || details.inisial_pasangan || `${liveIPria} & ${liveIWanita}`;
+
   const liveEventDetails = {
     eventId: event?.id,
     title: event?.title,
@@ -100,12 +106,21 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
     guestName: guestName,
     guest_name: guestName,
     mempelaiPria: details.mempelaiPria || 'Roni Wijaya, S.Kom.',
-    panggilanPria: details.panggilanPria || 'Roni',
+    panggilanPria: livePria,
+    inisialPria: liveIPria,
+    inisial_pria: liveIPria,
+    groom_initial: liveIPria,
     ortuPria: details.ortuPria,
     igPria: details.igPria,
     fotoPria: details.fotoPria,
     mempelaiWanita: details.mempelaiWanita || 'Anti Kartika, S.T.',
-    panggilanWanita: details.panggilanWanita || 'Anti',
+    panggilanWanita: liveWanita,
+    inisialWanita: liveIWanita,
+    inisial_wanita: liveIWanita,
+    bride_initial: liveIWanita,
+    inisialPasangan: liveIPasangan,
+    inisial_pasangan: liveIPasangan,
+    couple_initials: liveIPasangan,
     ortuWanita: details.ortuWanita,
     igWanita: details.igWanita,
     fotoWanita: details.fotoWanita,
@@ -138,6 +153,7 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
     sectionOrder: currentSectionOrder,
     hiddenSections: hiddenSectionsMap,
     wishesList: wishes,
+    isCoverOpened: isCoverOpened,
   };
 
   const previewNodes = (details.studioNodes && Array.isArray(details.studioNodes) && details.studioNodes.length > 0)

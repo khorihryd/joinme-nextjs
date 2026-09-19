@@ -673,12 +673,32 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
     return style[key] !== undefined && style[key] !== '' ? style[key] : defaultVal;
   };
 
+  const nonResponsiveStyleKeys = [
+    'animationType',
+    'animationName',
+    'animationDuration',
+    'animationDelay',
+    'animationIteration',
+    'loopAnimation',
+    'loopAnimationDuration',
+    'shapeDividerBottomType',
+    'shapeDividerTopType',
+    'hideScrollbar',
+    'bgType',
+    'sliderEffect',
+    'sliderAutoplay',
+    'isCurvedText',
+    'textCurveRadius',
+  ];
+
   const updateStyleProp = (key: string, value: any) => {
     let activeKey = key;
-    if (viewportMode === 'mobile') {
-      activeKey = key + 'Mobile';
-    } else if (viewportMode === 'tablet') {
-      activeKey = key + 'Tablet';
+    if (!nonResponsiveStyleKeys.includes(key)) {
+      if (viewportMode === 'mobile') {
+        activeKey = key + 'Mobile';
+      } else if (viewportMode === 'tablet') {
+        activeKey = key + 'Tablet';
+      }
     }
 
     onUpdateNode({
@@ -694,10 +714,12 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
     let styleUpdates: Record<string, any> = {};
     Object.entries(propsObj).forEach(([key, value]) => {
       let activeKey = key;
-      if (viewportMode === 'mobile') {
-        activeKey = key + 'Mobile';
-      } else if (viewportMode === 'tablet') {
-        activeKey = key + 'Tablet';
+      if (!nonResponsiveStyleKeys.includes(key)) {
+        if (viewportMode === 'mobile') {
+          activeKey = key + 'Mobile';
+        } else if (viewportMode === 'tablet') {
+          activeKey = key + 'Tablet';
+        }
       }
       styleUpdates[activeKey] = value;
     });
@@ -2943,35 +2965,125 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                 <div className="form-group" style={{ marginBottom: '1rem', marginTop: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                     <label style={{ margin: 0 }}>🔤 Jarak Antar Huruf (Letter Spacing)</label>
+                    <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{deviceIcon}</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '0.45rem' }}>
-                    {['0px', '1px', '2px', '4px', '6px', '8px', '12px'].map((ls) => (
-                      <button
-                        key={ls}
-                        type="button"
-                        onClick={() => updateStyleProp('letterSpacing', ls)}
-                        style={{
-                          padding: '3px 8px',
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          borderRadius: '4px',
-                          border: style.letterSpacing === ls ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                          background: style.letterSpacing === ls ? 'var(--primary)' : 'var(--bg-body)',
-                          color: style.letterSpacing === ls ? '#fff' : 'var(--text-secondary)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {ls}
-                      </button>
-                    ))}
+                    {['0px', '1px', '2px', '4px', '6px', '8px', '12px'].map((ls) => {
+                      const currentLs = getResponsiveVal('letterSpacing', '');
+                      return (
+                        <button
+                          key={ls}
+                          type="button"
+                          onClick={() => updateStyleProp('letterSpacing', ls)}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: currentLs === ls ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                            background: currentLs === ls ? 'var(--primary)' : 'var(--bg-body)',
+                            color: currentLs === ls ? '#fff' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {ls}
+                        </button>
+                      );
+                    })}
                   </div>
                   <input
                     type="text"
-                    value={style.letterSpacing || ''}
+                    value={getResponsiveVal('letterSpacing', '')}
                     onChange={(e) => updateStyleProp('letterSpacing', e.target.value)}
                     placeholder="contoh: 2px atau 0.1em"
                     style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
                   />
+                </div>
+
+                {/* Tinggi Baris (Line Height) */}
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ margin: 0, fontWeight: 700 }}>↕️ Tinggi Baris (Line Height)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)' }}>
+                        {getResponsiveVal('lineHeight', '') || 'Normal'}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{deviceIcon}</span>
+                    </div>
+                  </div>
+
+                  {/* Preset Buttons */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '0.45rem' }}>
+                    {[
+                      { label: 'Normal', val: 'normal' },
+                      { label: '1.0', val: '1' },
+                      { label: '1.2', val: '1.2' },
+                      { label: '1.4', val: '1.4' },
+                      { label: '1.6', val: '1.6' },
+                      { label: '1.8', val: '1.8' },
+                      { label: '2.0', val: '2' },
+                    ].map((preset) => {
+                      const currentVal = String(getResponsiveVal('lineHeight', ''));
+                      const isSelected = currentVal === preset.val || (!currentVal && preset.val === 'normal');
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => updateStyleProp('lineHeight', preset.val === 'normal' ? undefined : preset.val)}
+                          style={{
+                            flex: '1 0 calc(25% - 4px)',
+                            padding: '3px 5px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                            background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                            color: isSelected ? '#fff' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Slider and Manual Input */}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      type="range"
+                      min="0.8"
+                      max="3.0"
+                      step="0.05"
+                      value={
+                        (() => {
+                          const v = parseFloat(String(getResponsiveVal('lineHeight', '1.5')));
+                          return !isNaN(v) && v <= 5 ? v : 1.5;
+                        })()
+                      }
+                      onChange={(e) => updateStyleProp('lineHeight', e.target.value)}
+                      style={{ flex: 1, cursor: 'pointer' }}
+                    />
+                    <input
+                      type="text"
+                      value={getResponsiveVal('lineHeight', '')}
+                      onChange={(e) => updateStyleProp('lineHeight', e.target.value)}
+                      placeholder="1.5 atau 28px"
+                      style={{
+                        width: '90px',
+                        padding: '0.35rem 0.5rem',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        fontSize: '0.78rem',
+                        textAlign: 'center',
+                        background: '#fff',
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.25rem' }}>
+                    💡 Jarak vertikal antar baris kalimat. Gunakan angka multiplier (1.2 - 2.0) atau satuan pixel (misal: 28px).
+                  </div>
                 </div>
 
                 {/* Kelengkungan Teks (Curved Text) */}
@@ -3726,20 +3838,223 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
         {activeInspectorTab === 'advanced' && (
           <div>
             <div className="form-group">
-              <label>Animasi Muncul (Entrance Animation)</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <label style={{ margin: 0, fontWeight: 700 }}>✨ Animasi Muncul (Entrance Animation)</label>
+                {style.animationType && style.animationType !== 'none' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && node) {
+                        window.dispatchEvent(new CustomEvent('studio:replay-animation', { detail: { nodeId: node.id } }));
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      color: 'var(--primary)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Uji / Putar Ulang Animasi pada Elemen Ini"
+                  >
+                    ▶️ Uji Animasi
+                  </button>
+                )}
+              </div>
               <select
                 value={style.animationType || 'none'}
                 onChange={(e) => updateStyleProp('animationType', e.target.value)}
               >
                 <option value="none">Tanpa Animasi</option>
-                <option value="anim-fade-in">Fade In</option>
-                <option value="anim-fade-in-up">Fade In Up</option>
-                <option value="anim-fade-in-down">Fade In Down</option>
-                <option value="anim-zoom-in">Zoom In</option>
-                <option value="anim-bounce-in">Bounce In</option>
-                <option value="anim-pulse">Pulse</option>
+                <option value="anim-fade-in">Fade In (Pudar Masuk)</option>
+                <option value="anim-fade-in-up">Fade In Up (Naik dari Bawah)</option>
+                <option value="anim-fade-in-down">Fade In Down (Turun dari Atas)</option>
+                <option value="anim-fade-in-left">Fade In Left (Masuk dari Kiri)</option>
+                <option value="anim-fade-in-right">Fade In Right (Masuk dari Kanan)</option>
+                <option value="anim-zoom-in">Zoom In (Membesar)</option>
+                <option value="anim-bounce-in">Bounce In (Membal)</option>
+                <option value="anim-pulse">Pulse (Denyut / Berkedip)</option>
               </select>
             </div>
+
+            {/* Additional Animation Settings when an animation is selected */}
+            {style.animationType && style.animationType !== 'none' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: 'var(--studio-border)', marginBottom: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                      ⏱️ Durasi (detik)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      max="10"
+                      placeholder="0.8"
+                      value={style.animationDuration ? parseFloat(String(style.animationDuration)) : 0.8}
+                      onChange={(e) => updateStyleProp('animationDuration', `${e.target.value}s`)}
+                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                      ⏳ Delay (detik)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="10"
+                      placeholder="0"
+                      value={style.animationDelay ? parseFloat(String(style.animationDelay)) : 0}
+                      onChange={(e) => updateStyleProp('animationDelay', `${e.target.value}s`)}
+                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.4rem', borderTop: '1px dashed var(--border-color)' }}>
+                  <label htmlFor="inp-anim-iteration" style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                    🔁 Ulangi Animasi Terus (Infinite Loop)
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="inp-anim-iteration"
+                    checked={style.animationIteration === 'infinite'}
+                    onChange={(e) => updateStyleProp('animationIteration', e.target.checked ? 'infinite' : '1')}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  💡 Animasi otomatis terputar saat elemen muncul di layar (scroll).
+                </div>
+              </div>
+            )}
+
+            {/* Animasi Loop (Continuous Effect) */}
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <label style={{ margin: 0, fontWeight: 700 }}>🔄 Animasi Loop (Continuous Effect)</label>
+                {style.loopAnimation && style.loopAnimation !== 'none' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && node) {
+                        window.dispatchEvent(new CustomEvent('studio:replay-animation', { detail: { nodeId: node.id } }));
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      color: 'var(--primary)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Uji Animasi Loop pada Elemen Ini"
+                  >
+                    ▶️ Uji Loop
+                  </button>
+                )}
+              </div>
+              <select
+                value={style.loopAnimation || 'none'}
+                onChange={(e) => updateStyleProp('loopAnimation', e.target.value)}
+              >
+                <option value="none">Tanpa Efek Loop</option>
+                <option value="anim-loop-float">🌊 Float / Melayang Halus (Floating)</option>
+                <option value="anim-loop-pulse">💓 Pulse / Berdenyut Lembut</option>
+                <option value="anim-loop-spin">🔄 Spin / Berputar Searah Jarum Jam</option>
+                <option value="anim-loop-spin-reverse">↩️ Spin Reverse / Berputar Terbalik</option>
+                <option value="anim-loop-swing">🔔 Swing / Mengayun Gandulan</option>
+                <option value="anim-loop-bounce">🏀 Bounce / Membal Terus-menerus</option>
+                <option value="anim-loop-wiggle">👋 Wiggle / Goyang Ceria</option>
+                <option value="anim-loop-shimmer">✨ Shimmer / Kilau Cahaya</option>
+              </select>
+            </div>
+
+            {/* Additional Loop Animation Settings */}
+            {style.loopAnimation && style.loopAnimation !== 'none' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: 'var(--studio-border)', marginBottom: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      ⚡ Kecepatan / Durasi Siklus (detik)
+                    </label>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)' }}>
+                      {style.loopAnimationDuration ? `${parseFloat(String(style.loopAnimationDuration))}s` : 'Default'}
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="20"
+                    placeholder={
+                      style.loopAnimation === 'anim-loop-spin' || style.loopAnimation === 'anim-loop-spin-reverse' ? '8.0' :
+                      style.loopAnimation === 'anim-loop-float' ? '3.5' :
+                      style.loopAnimation === 'anim-loop-pulse' ? '2.0' :
+                      style.loopAnimation === 'anim-loop-swing' ? '3.0' :
+                      style.loopAnimation === 'anim-loop-bounce' ? '2.2' : '2.5'
+                    }
+                    value={style.loopAnimationDuration ? parseFloat(String(style.loopAnimationDuration)) : ''}
+                    onChange={(e) => updateStyleProp('loopAnimationDuration', e.target.value ? `${e.target.value}s` : undefined)}
+                    style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }}
+                  />
+                </div>
+
+                {/* Quick Speed Presets */}
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                    Preset Kecepatan:
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    {[
+                      { label: '⚡ Cepat (1.5s)', val: '1.5s' },
+                      { label: '🎯 Sedang (3s)', val: '3s' },
+                      { label: '🍃 Lambat (6s)', val: '6s' },
+                      { label: 'Default', val: undefined },
+                    ].map((p) => {
+                      const isAct = style.loopAnimationDuration === p.val || (!style.loopAnimationDuration && p.val === undefined);
+                      return (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => updateStyleProp('loopAnimationDuration', p.val)}
+                          style={{
+                            flex: 1,
+                            padding: '3px 6px',
+                            fontSize: '0.68rem',
+                            borderRadius: '5px',
+                            border: isAct ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                            background: isAct ? 'rgba(227, 99, 151, 0.1)' : '#fff',
+                            color: isAct ? 'var(--primary)' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: isAct ? 700 : 500,
+                          }}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  🔄 Efek bergerak berulang tanpa henti untuk menarik perhatian visual tamu.
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label>Shape Divider Bawah (Bottom Divider)</label>

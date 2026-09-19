@@ -10,6 +10,8 @@ interface TopBarProps {
   setViewportMode: (mode: 'desktop' | 'tablet' | 'mobile') => void;
   showRulers?: boolean;
   setShowRulers?: (show: boolean) => void;
+  showSidebar?: boolean;
+  onToggleSidebar?: () => void;
   onSave: () => void;
   onSaveAsNew?: () => void;
   onReset: () => void;
@@ -22,6 +24,8 @@ export function TopBar({
   setViewportMode,
   showRulers = true,
   setShowRulers,
+  showSidebar = true,
+  onToggleSidebar,
   onSave,
   onSaveAsNew,
   onReset,
@@ -33,7 +37,41 @@ export function TopBar({
   return (
     <header className="studio-topbar">
       {/* Brand & Badge */}
-      <div className="studio-brand">
+      <div className="studio-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        {onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className={`btn-topbar-sidebar-toggle ${showSidebar ? 'active' : ''}`}
+            title={showSidebar ? 'Sembunyikan Sidebar (Ctrl+\\)' : 'Tampilkan Sidebar (Ctrl+\\)'}
+            aria-label={showSidebar ? 'Sembunyikan Sidebar' : 'Tampilkan Sidebar'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              backgroundColor: showSidebar ? 'var(--bg-body)' : 'transparent',
+              color: showSidebar ? 'var(--primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              {showSidebar ? (
+                <polyline points="7 10 5 12 7 14" strokeWidth="2" />
+              ) : (
+                <polyline points="5 10 7 12 5 14" strokeWidth="2" />
+              )}
+            </svg>
+          </button>
+        )}
+
         <Link href="/dashboard" className="logo" style={{ margin: 0, fontSize: '1.1rem' }}>
           <svg className="logo-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth="2" />

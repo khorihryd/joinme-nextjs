@@ -164,6 +164,8 @@ export interface GlobalStyles {
   colors?: GlobalColorTokens;
   typography?: GlobalTypographyTokens;
   spacing?: GlobalSpacingTokens;
+  sampleEventDetails?: Record<string, any>;
+  galleryImages?: string[];
 }
 
 export interface Template {
@@ -218,7 +220,35 @@ export interface LoveStoryItem {
 
 export type ButtonAction = 'none' | 'submit-rsvp' | 'open-cover' | 'google-maps' | 'save-calendar' | 'open-instagram' | 'open-tiktok' | 'open-facebook' | 'open-whatsapp' | 'open-youtube' | 'open-url';
 
-export type AnimationType = 'none' | 'anim-fade-in' | 'anim-fade-in-up' | 'anim-fade-in-down' | 'anim-fade-in-left' | 'anim-fade-in-right' | 'anim-zoom-in' | 'anim-bounce-in' | 'anim-pulse';
+export type LoopAnimationType =
+  | 'none'
+  | 'anim-loop-float'
+  | 'anim-loop-pulse'
+  | 'anim-loop-spin'
+  | 'anim-loop-spin-reverse'
+  | 'anim-loop-swing'
+  | 'anim-loop-bounce'
+  | 'anim-loop-wiggle'
+  | 'anim-loop-shimmer';
+
+export type AnimationType =
+  | 'none'
+  | 'anim-fade-in'
+  | 'anim-fade-in-up'
+  | 'anim-fade-in-down'
+  | 'anim-fade-in-left'
+  | 'anim-fade-in-right'
+  | 'anim-zoom-in'
+  | 'anim-bounce-in'
+  | 'anim-pulse'
+  | 'anim-loop-float'
+  | 'anim-loop-pulse'
+  | 'anim-loop-spin'
+  | 'anim-loop-spin-reverse'
+  | 'anim-loop-swing'
+  | 'anim-loop-bounce'
+  | 'anim-loop-wiggle'
+  | 'anim-loop-shimmer';
 
 export interface NodeStyle {
   // Layout
@@ -265,7 +295,11 @@ export interface NodeStyle {
   textAlign?: string;
   textAlignMobile?: string;
   lineHeight?: string;
+  lineHeightMobile?: string;
+  lineHeightTablet?: string;
   letterSpacing?: string;
+  letterSpacingMobile?: string;
+  letterSpacingTablet?: string;
   textTransform?: string;
   fontStyle?: string;
   fontStyleMobile?: string;
@@ -337,6 +371,8 @@ export interface NodeStyle {
   animationDuration?: string;
   animationDelay?: string;
   animationIteration?: '1' | 'infinite';
+  loopAnimation?: LoopAnimationType | string;
+  loopAnimationDuration?: string;
   // Shape Dividers
   shapeDividerTop?: string;
   shapeDividerBottom?: string;
@@ -468,12 +504,21 @@ export const SAMPLE_VARIABLES: SampleVariables = {
   // Wedding & Couples
   groom_name: 'Roni Wijaya, S.Kom.',
   nama_pria: 'Roni',
+  inisial_pria: 'R',
+  inisialPria: 'R',
+  groom_initial: 'R',
   groom_full: 'Roni Wijaya, S.Kom.',
   bride_name: 'Anti Kartika, S.T.',
   nama_wanita: 'Anti',
+  inisial_wanita: 'A',
+  inisialWanita: 'A',
+  bride_initial: 'A',
   bride_full: 'Anti Kartika, S.T.',
   couple_name: 'Roni & Anti',
   nama_mempelai: 'Roni & Anti',
+  inisial_pasangan: 'R & A',
+  inisialPasangan: 'R & A',
+  couple_initials: 'R & A',
   ortu_pria: 'Bpk. H. Bambang Wijaya & Ibu Hj. Siti Rahma',
   ortu_wanita: 'Bpk. Ir. H. Ahmad Kartika & Ibu Hj. Nurbaeti',
   keluarga_pria: 'Kel. Bpk. H. Bambang Wijaya & Ibu Hj. Siti Rahma',
@@ -603,8 +648,11 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
     icon: '💍',
     variables: [
       { tag: '{nama_mempelai}', label: 'Mempelai Singkat', desc: 'Nama Pasangan (Pria & Wanita)' },
+      { tag: '{inisial_pasangan}', label: 'Inisial Pasangan', desc: 'Gabungan Inisial Pasangan (misal: R & A)' },
       { tag: '{nama_pria}', label: 'Panggilan Pria', desc: 'Nama Panggilan Mempelai Pria' },
+      { tag: '{inisial_pria}', label: 'Inisial Pria', desc: 'Huruf Inisial Mempelai Pria (misal: R)' },
       { tag: '{nama_wanita}', label: 'Panggilan Wanita', desc: 'Nama Panggilan Mempelai Wanita' },
+      { tag: '{inisial_wanita}', label: 'Inisial Wanita', desc: 'Huruf Inisial Mempelai Wanita (misal: A)' },
       { tag: '{groom_full}', label: 'Lengkap Pria', desc: 'Nama Lengkap & Gelar Pria' },
       { tag: '{bride_full}', label: 'Lengkap Wanita', desc: 'Nama Lengkap & Gelar Wanita' },
       { tag: '{ortu_pria}', label: 'Orang Tua Pria', desc: 'Nama Orang Tua Mempelai Pria' },

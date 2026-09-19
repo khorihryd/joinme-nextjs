@@ -4,6 +4,56 @@ import { create } from 'zustand';
 import { StudioNode, SAMPLE_VARIABLES, GlobalStyles, GlobalColorTokens, GlobalTypographyTokens, GlobalSpacingTokens } from '@/types';
 import { DEFAULT_NODES, createDefaultWidget } from '@/studio/prefabs.js';
 
+export const DEFAULT_SAMPLE_GALLERY: string[] = [
+  'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=800&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
+];
+
+export const DEFAULT_SAMPLE_EVENT_DETAILS: Record<string, any> = {
+  panggilanPria: 'Jonathan',
+  inisialPria: 'J',
+  inisial_pria: 'J',
+  groom_initial: 'J',
+  mempelaiPria: 'Jonathan Wijaya, S.Kom.',
+  ortuPria: 'Putra dari Bp. Hendra & Ibu Maria',
+  igPria: '@jonathanwijaya',
+  panggilanWanita: 'Anti',
+  inisialWanita: 'A',
+  inisial_wanita: 'A',
+  bride_initial: 'A',
+  mempelaiWanita: 'Anti Rahmawati, S.T.',
+  ortuWanita: 'Putri dari Bp. Bambang & Ibu Sri',
+  igWanita: '@antirahmawati',
+  couple_name: 'Jonathan & Anti',
+  nama_mempelai: 'Jonathan & Anti',
+  inisialPasangan: 'J & A',
+  inisial_pasangan: 'J & A',
+  couple_initials: 'J & A',
+  event_title: 'Akad Nikah & Resepsi',
+  nama_acara: 'Akad Nikah & Resepsi',
+  event_date: '21 September 2026',
+  tanggal_acara: '21 September 2026',
+  event_time: '08:00 - 14:00 WIB',
+  waktu_acara: '08:00 - 14:00 WIB',
+  event_location: 'Grand Ballroom Hotel Mulia, Jakarta',
+  lokasi_acara: 'Grand Ballroom Hotel Mulia, Jakarta',
+  event_address: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+  alamat_lengkap: 'Jl. Asia Afrika No. 8, Gelora, Senayan, Jakarta Pusat',
+  city: 'Jakarta Pusat',
+  kota_acara: 'Jakarta Pusat',
+  guest_name: 'Budi Santoso & Partner',
+  nama_tamu: 'Budi Santoso & Partner',
+  coverTitle: 'The Wedding of',
+  cover_title: 'The Wedding of',
+  gallery: [...DEFAULT_SAMPLE_GALLERY],
+  galleryImages: [...DEFAULT_SAMPLE_GALLERY],
+  photos: [...DEFAULT_SAMPLE_GALLERY],
+};
+
 export { SAMPLE_VARIABLES, DEFAULT_NODES, createDefaultWidget };
 export type { GlobalStyles, GlobalColorTokens, GlobalTypographyTokens, GlobalSpacingTokens };
 
@@ -50,6 +100,8 @@ export const DEFAULT_GLOBAL_STYLES: GlobalStyles = {
     paddingXL: '40px',
     padding2XL: '60px',
   },
+  sampleEventDetails: { ...DEFAULT_SAMPLE_EVENT_DETAILS },
+  galleryImages: [...DEFAULT_SAMPLE_GALLERY],
 };
 
 export function getGlobalCssVariables(globalStyles?: GlobalStyles): React.CSSProperties {
@@ -124,154 +176,208 @@ export function resolveTextVariables(text: string, eventDetails?: any): string {
   if (!text) return '';
   let res = text;
 
+  const storeDetails = !eventDetails && typeof useStudioStore !== 'undefined'
+    ? useStudioStore.getState?.().globalStyles?.sampleEventDetails
+    : undefined;
+  const effectiveDetails = eventDetails || storeDetails || DEFAULT_SAMPLE_EVENT_DETAILS;
+
   const vars: Record<string, string> = { ...SAMPLE_VARIABLES };
 
-  if (eventDetails) {
-    if (eventDetails.guestName || eventDetails.guest_name) vars.guest_name = eventDetails.guestName || eventDetails.guest_name;
-    if (eventDetails.guestName || eventDetails.guest_name) vars.nama_tamu = eventDetails.guestName || eventDetails.guest_name;
-    if (eventDetails.mempelaiPria) {
-      vars.groom_name = eventDetails.mempelaiPria;
-      vars.groom_full = eventDetails.mempelaiPria;
+  if (effectiveDetails) {
+    if (effectiveDetails.guestName || effectiveDetails.guest_name) vars.guest_name = effectiveDetails.guestName || effectiveDetails.guest_name;
+    if (effectiveDetails.guestName || effectiveDetails.guest_name) vars.nama_tamu = effectiveDetails.guestName || effectiveDetails.guest_name;
+    if (effectiveDetails.mempelaiPria) {
+      vars.groom_name = effectiveDetails.mempelaiPria;
+      vars.groom_full = effectiveDetails.mempelaiPria;
     }
-    if (eventDetails.panggilanPria) vars.nama_pria = eventDetails.panggilanPria;
-    if (eventDetails.mempelaiWanita) {
-      vars.bride_name = eventDetails.mempelaiWanita;
-      vars.bride_full = eventDetails.mempelaiWanita;
+    if (effectiveDetails.panggilanPria) vars.nama_pria = effectiveDetails.panggilanPria;
+    if (effectiveDetails.mempelaiWanita) {
+      vars.bride_name = effectiveDetails.mempelaiWanita;
+      vars.bride_full = effectiveDetails.mempelaiWanita;
     }
-    if (eventDetails.panggilanWanita) vars.nama_wanita = eventDetails.panggilanWanita;
-    if (eventDetails.panggilanPria && eventDetails.panggilanWanita) {
-      vars.couple_name = `${eventDetails.panggilanPria} & ${eventDetails.panggilanWanita}`;
-      vars.nama_mempelai = `${eventDetails.panggilanPria} & ${eventDetails.panggilanWanita}`;
-    }
-    if (eventDetails.ortuPria) vars.ortu_pria = eventDetails.ortuPria;
-    if (eventDetails.ortuWanita) vars.ortu_wanita = eventDetails.ortuWanita;
+    if (effectiveDetails.panggilanWanita) vars.nama_wanita = effectiveDetails.panggilanWanita;
 
-    if (eventDetails.event_title || eventDetails.eventTitle || eventDetails.nama_acara || eventDetails.title) {
-      const eTitle = eventDetails.event_title || eventDetails.eventTitle || eventDetails.nama_acara || eventDetails.title;
+    // Inisial Pria (Groom Initials)
+    const initialGroom = (
+      effectiveDetails.inisialPria ||
+      effectiveDetails.inisial_pria ||
+      effectiveDetails.groom_initial ||
+      (effectiveDetails.panggilanPria ? String(effectiveDetails.panggilanPria).trim().charAt(0).toUpperCase() : '') ||
+      (effectiveDetails.mempelaiPria ? String(effectiveDetails.mempelaiPria).trim().charAt(0).toUpperCase() : '')
+    );
+    if (initialGroom) {
+      vars.inisial_pria = initialGroom;
+      vars.inisialPria = initialGroom;
+      vars.groom_initial = initialGroom;
+      vars.inisial_groom = initialGroom;
+    }
+
+    // Inisial Wanita (Bride Initials)
+    const initialBride = (
+      effectiveDetails.inisialWanita ||
+      effectiveDetails.inisial_wanita ||
+      effectiveDetails.bride_initial ||
+      (effectiveDetails.panggilanWanita ? String(effectiveDetails.panggilanWanita).trim().charAt(0).toUpperCase() : '') ||
+      (effectiveDetails.mempelaiWanita ? String(effectiveDetails.mempelaiWanita).trim().charAt(0).toUpperCase() : '')
+    );
+    if (initialBride) {
+      vars.inisial_wanita = initialBride;
+      vars.inisialWanita = initialBride;
+      vars.bride_initial = initialBride;
+      vars.inisial_bride = initialBride;
+    }
+
+    // Inisial Pasangan (Couple Initials)
+    const initialCouple = (
+      effectiveDetails.inisialPasangan ||
+      effectiveDetails.inisial_pasangan ||
+      effectiveDetails.couple_initials ||
+      (initialGroom && initialBride ? `${initialGroom} & ${initialBride}` : '')
+    );
+    if (initialCouple) {
+      vars.inisial_pasangan = initialCouple;
+      vars.inisialPasangan = initialCouple;
+      vars.couple_initials = initialCouple;
+      vars.inisial_couple = initialCouple;
+      vars.inisial = initialCouple;
+    }
+
+    if (effectiveDetails.couple_name || effectiveDetails.nama_mempelai) {
+      vars.couple_name = effectiveDetails.couple_name || effectiveDetails.nama_mempelai;
+      vars.nama_mempelai = effectiveDetails.couple_name || effectiveDetails.nama_mempelai;
+    } else if (effectiveDetails.panggilanPria && effectiveDetails.panggilanWanita) {
+      vars.couple_name = `${effectiveDetails.panggilanPria} & ${effectiveDetails.panggilanWanita}`;
+      vars.nama_mempelai = `${effectiveDetails.panggilanPria} & ${effectiveDetails.panggilanWanita}`;
+    }
+    if (effectiveDetails.ortuPria) vars.ortu_pria = effectiveDetails.ortuPria;
+    if (effectiveDetails.ortuWanita) vars.ortu_wanita = effectiveDetails.ortuWanita;
+
+    if (effectiveDetails.event_title || effectiveDetails.eventTitle || effectiveDetails.nama_acara || effectiveDetails.title) {
+      const eTitle = effectiveDetails.event_title || effectiveDetails.eventTitle || effectiveDetails.nama_acara || effectiveDetails.title;
       vars.event_title = eTitle;
       vars.nama_acara = eTitle;
       vars.title = eTitle;
     }
-    if (eventDetails.event_date || eventDetails.tanggal_acara) {
-      const eDate = eventDetails.event_date || eventDetails.tanggal_acara;
+    if (effectiveDetails.event_date || effectiveDetails.tanggal_acara) {
+      const eDate = effectiveDetails.event_date || effectiveDetails.tanggal_acara;
       vars.event_date = eDate;
       vars.tanggal_acara = eDate;
     }
-    if (eventDetails.event_time || eventDetails.waktu_acara) {
-      const eTime = eventDetails.event_time || eventDetails.waktu_acara;
+    if (effectiveDetails.event_time || effectiveDetails.waktu_acara) {
+      const eTime = effectiveDetails.event_time || effectiveDetails.waktu_acara;
       vars.event_time = eTime;
       vars.waktu_acara = eTime;
     }
-    if (eventDetails.event_location || eventDetails.lokasi_acara || eventDetails.place) {
-      const eLoc = eventDetails.event_location || eventDetails.lokasi_acara || eventDetails.place;
+    if (effectiveDetails.event_location || effectiveDetails.lokasi_acara || effectiveDetails.place) {
+      const eLoc = effectiveDetails.event_location || effectiveDetails.lokasi_acara || effectiveDetails.place;
       vars.event_location = eLoc;
       vars.lokasi_acara = eLoc;
       vars.nama_lokasi = eLoc;
     }
-    if (eventDetails.address || eventDetails.event_address || eventDetails.alamat_lengkap) {
-      const eAddr = eventDetails.address || eventDetails.event_address || eventDetails.alamat_lengkap;
+    if (effectiveDetails.address || effectiveDetails.event_address || effectiveDetails.alamat_lengkap) {
+      const eAddr = effectiveDetails.address || effectiveDetails.event_address || effectiveDetails.alamat_lengkap;
       vars.event_address = eAddr;
       vars.alamat_lengkap = eAddr;
     }
-    if (eventDetails.city) vars.kota_acara = eventDetails.city;
+    if (effectiveDetails.city) vars.kota_acara = effectiveDetails.city;
 
-    if (eventDetails.coverTitle) {
-      vars.cover_title = eventDetails.coverTitle;
-      vars.judul_sampul = eventDetails.coverTitle;
+    if (effectiveDetails.coverTitle) {
+      vars.cover_title = effectiveDetails.coverTitle;
+      vars.judul_sampul = effectiveDetails.coverTitle;
     }
-    if (eventDetails.coverCoupleName) {
-      vars.cover_couple_name = eventDetails.coverCoupleName;
-      vars.nama_mempelai_cover = eventDetails.coverCoupleName;
-      vars.nama_mempelai = eventDetails.coverCoupleName;
-      vars.couple_name = eventDetails.coverCoupleName;
+    if (effectiveDetails.coverCoupleName) {
+      vars.cover_couple_name = effectiveDetails.coverCoupleName;
+      vars.nama_mempelai_cover = effectiveDetails.coverCoupleName;
+      vars.nama_mempelai = effectiveDetails.coverCoupleName;
+      vars.couple_name = effectiveDetails.coverCoupleName;
     }
 
-    if (eventDetails.childName) vars.nama_anak = eventDetails.childName;
-    if (eventDetails.birthdayName) vars.nama_yang_ultah = eventDetails.birthdayName;
-    if (eventDetails.age) vars.umur = eventDetails.age;
-    if (eventDetails.eventName) vars.nama_event = eventDetails.eventName;
-    if (eventDetails.speakerName) vars.nama_narasumber = eventDetails.speakerName;
+    if (effectiveDetails.childName) vars.nama_anak = effectiveDetails.childName;
+    if (effectiveDetails.birthdayName) vars.nama_yang_ultah = effectiveDetails.birthdayName;
+    if (effectiveDetails.age) vars.umur = effectiveDetails.age;
+    if (effectiveDetails.eventName) vars.nama_event = effectiveDetails.eventName;
+    if (effectiveDetails.speakerName) vars.nama_narasumber = effectiveDetails.speakerName;
 
     // Instagram usernames
-    if (eventDetails.igPria) {
-      vars.ig_pria = eventDetails.igPria;
-      vars.instagram_pria = eventDetails.igPria;
+    if (effectiveDetails.igPria) {
+      vars.ig_pria = effectiveDetails.igPria;
+      vars.instagram_pria = effectiveDetails.igPria;
     }
-    if (eventDetails.igWanita) {
-      vars.ig_wanita = eventDetails.igWanita;
-      vars.instagram_wanita = eventDetails.igWanita;
+    if (effectiveDetails.igWanita) {
+      vars.ig_wanita = effectiveDetails.igWanita;
+      vars.instagram_wanita = effectiveDetails.igWanita;
     }
 
     // Gift address
-    if (eventDetails.giftAddress || eventDetails.gift_address || eventDetails.alamat_kado) {
-      const gAddr = eventDetails.giftAddress || eventDetails.gift_address || eventDetails.alamat_kado;
+    if (effectiveDetails.giftAddress || effectiveDetails.gift_address || effectiveDetails.alamat_kado) {
+      const gAddr = effectiveDetails.giftAddress || effectiveDetails.gift_address || effectiveDetails.alamat_kado;
       vars.gift_address = gAddr;
       vars.alamat_kado = gAddr;
     }
 
     // Opening prayer / verse
-    if (eventDetails.kutipanAyat || eventDetails.kutipan_ayat) {
-      const ayat = eventDetails.kutipanAyat || eventDetails.kutipan_ayat;
+    if (effectiveDetails.kutipanAyat || effectiveDetails.kutipan_ayat) {
+      const ayat = effectiveDetails.kutipanAyat || effectiveDetails.kutipan_ayat;
       vars.kutipan_ayat = ayat;
       vars.opening_verse = ayat;
     }
-    if (eventDetails.namaSurah || eventDetails.nama_surah) {
-      const surah = eventDetails.namaSurah || eventDetails.nama_surah;
+    if (effectiveDetails.namaSurah || effectiveDetails.nama_surah) {
+      const surah = effectiveDetails.namaSurah || effectiveDetails.nama_surah;
       vars.nama_surah = surah;
       vars.surah_name = surah;
     }
-    if (eventDetails.terjemahanAyat || eventDetails.terjemahan_ayat) {
-      const terj = eventDetails.terjemahanAyat || eventDetails.terjemahan_ayat;
+    if (effectiveDetails.terjemahanAyat || effectiveDetails.terjemahan_ayat) {
+      const terj = effectiveDetails.terjemahanAyat || effectiveDetails.terjemahan_ayat;
       vars.terjemahan_ayat = terj;
       vars.verse_translation = terj;
     }
 
     // Hashtag
-    if (eventDetails.hashtag) {
-      vars.hashtag = eventDetails.hashtag;
+    if (effectiveDetails.hashtag) {
+      vars.hashtag = effectiveDetails.hashtag;
     }
 
     // Opening greeting
-    if (eventDetails.salamPembuka || eventDetails.salam_pembuka) {
-      const salam = eventDetails.salamPembuka || eventDetails.salam_pembuka;
+    if (effectiveDetails.salamPembuka || effectiveDetails.salam_pembuka) {
+      const salam = effectiveDetails.salamPembuka || effectiveDetails.salam_pembuka;
       vars.salam_pembuka = salam;
       vars.opening_greeting = salam;
     }
 
     // Closing message & family name
-    if (eventDetails.pesanPenutup || eventDetails.pesan_penutup) {
-      const pesan = eventDetails.pesanPenutup || eventDetails.pesan_penutup;
+    if (effectiveDetails.pesanPenutup || effectiveDetails.pesan_penutup) {
+      const pesan = effectiveDetails.pesanPenutup || effectiveDetails.pesan_penutup;
       vars.pesan_penutup = pesan;
       vars.closing_message = pesan;
     }
-    if (eventDetails.namaKeluargaPenutup || eventDetails.nama_keluarga_penutup) {
-      const keluarga = eventDetails.namaKeluargaPenutup || eventDetails.nama_keluarga_penutup;
+    if (effectiveDetails.namaKeluargaPenutup || effectiveDetails.nama_keluarga_penutup) {
+      const keluarga = effectiveDetails.namaKeluargaPenutup || effectiveDetails.nama_keluarga_penutup;
       vars.nama_keluarga_penutup = keluarga;
       vars.closing_family = keluarga;
     }
 
     // Music URL
-    if (eventDetails.musicUrl || eventDetails.music_url) {
-      vars.music_url = eventDetails.musicUrl || eventDetails.music_url;
+    if (effectiveDetails.musicUrl || effectiveDetails.music_url) {
+      vars.music_url = effectiveDetails.musicUrl || effectiveDetails.music_url;
     }
 
-    if (eventDetails.story_year || eventDetails.year) {
-      const sYear = eventDetails.story_year || eventDetails.year;
+    if (effectiveDetails.story_year || effectiveDetails.year) {
+      const sYear = effectiveDetails.story_year || effectiveDetails.year;
       vars.story_year = sYear;
       vars.tahun_momen = sYear;
     }
-    if (eventDetails.story_title || eventDetails.storyTitle) {
-      const sTitle = eventDetails.story_title || eventDetails.storyTitle;
+    if (effectiveDetails.story_title || effectiveDetails.storyTitle) {
+      const sTitle = effectiveDetails.story_title || effectiveDetails.storyTitle;
       vars.story_title = sTitle;
       vars.judul_momen = sTitle;
     }
-    if (eventDetails.story_description || eventDetails.storyDescription || eventDetails.description) {
-      const sDesc = eventDetails.story_description || eventDetails.storyDescription || eventDetails.description;
+    if (effectiveDetails.story_description || effectiveDetails.storyDescription || effectiveDetails.description) {
+      const sDesc = effectiveDetails.story_description || effectiveDetails.storyDescription || effectiveDetails.description;
       vars.story_description = sDesc;
       vars.deskripsi_momen = sDesc;
     }
-    if (eventDetails.story_image || eventDetails.photo || eventDetails.image) {
-      vars.story_image = eventDetails.story_image || eventDetails.photo || eventDetails.image;
+    if (effectiveDetails.story_image || effectiveDetails.photo || effectiveDetails.image) {
+      vars.story_image = effectiveDetails.story_image || effectiveDetails.photo || effectiveDetails.image;
     }
   }
 
@@ -376,14 +482,6 @@ export const DEFAULT_SAMPLE_BANKS = [
   },
 ];
 
-export const DEFAULT_SAMPLE_GALLERY = [
-  'https://images.unsplash.com/photo-1519741497674-611481863552?w=600',
-  'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600',
-  'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=600',
-  'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?w=600',
-  'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=600',
-  'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=600',
-];
 
 const DEFAULT_SAMPLE_WISHES: WishItem[] = [
   {
@@ -422,6 +520,7 @@ interface StudioStore {
   selectedNodeId: string | null;
   viewportMode: 'desktop' | 'tablet' | 'mobile';
   sidebarTab: 'widgets' | 'navigator' | 'global' | 'properties';
+  showSidebar: boolean;
   activeInspectorTab: 'layout' | 'style' | 'advanced';
   lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null;
   wishes: WishItem[];
@@ -434,6 +533,8 @@ interface StudioStore {
   selectNode: (id: string | null) => void;
   setViewportMode: (mode: 'desktop' | 'tablet' | 'mobile') => void;
   setSidebarTab: (tab: 'widgets' | 'navigator' | 'global' | 'properties') => void;
+  setShowSidebar: (show: boolean) => void;
+  toggleSidebar: () => void;
   setActiveInspectorTab: (tab: 'layout' | 'style' | 'advanced') => void;
   setLastFocusedInput: (input: HTMLInputElement | HTMLTextAreaElement | null) => void;
   updateNode: (updatedNode: StudioNode) => void;
@@ -450,6 +551,7 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
   selectedNodeId: 'container-1',
   viewportMode: 'desktop',
   sidebarTab: 'widgets',
+  showSidebar: true,
   activeInspectorTab: 'layout',
   lastFocusedInput: null,
   wishes: DEFAULT_SAMPLE_WISHES,
@@ -493,6 +595,11 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
         ...DEFAULT_GLOBAL_STYLES.spacing!,
         ...(globalStyles.spacing || {}),
       },
+      sampleEventDetails: {
+        ...(DEFAULT_GLOBAL_STYLES.sampleEventDetails || {}),
+        ...(globalStyles.sampleEventDetails || {}),
+      },
+      galleryImages: globalStyles.galleryImages || globalStyles.sampleEventDetails?.gallery || globalStyles.sampleEventDetails?.galleryImages || DEFAULT_GLOBAL_STYLES.galleryImages || [...DEFAULT_SAMPLE_GALLERY],
     };
     set({ globalStyles: merged });
   },
@@ -508,12 +615,18 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
       colors: updated.colors ? { ...(prev.colors || DEFAULT_GLOBAL_STYLES.colors!), ...updated.colors } : prev.colors,
       typography: updated.typography ? { ...(prev.typography || DEFAULT_GLOBAL_STYLES.typography!), ...updated.typography } : prev.typography,
       spacing: updated.spacing ? { ...(prev.spacing || DEFAULT_GLOBAL_STYLES.spacing!), ...updated.spacing } : prev.spacing,
+      sampleEventDetails: updated.sampleEventDetails
+        ? { ...(prev.sampleEventDetails || DEFAULT_GLOBAL_STYLES.sampleEventDetails || {}), ...updated.sampleEventDetails }
+        : prev.sampleEventDetails,
+      galleryImages: updated.galleryImages || (updated.sampleEventDetails?.gallery as string[]) || (updated.sampleEventDetails?.galleryImages as string[]) || prev.galleryImages,
     };
     set({ globalStyles: nextStyles });
   },
   selectNode: (selectedNodeId: string | null) => set({ selectedNodeId }),
   setViewportMode: (viewportMode: 'desktop' | 'tablet' | 'mobile') => set({ viewportMode }),
-  setSidebarTab: (sidebarTab: 'widgets' | 'navigator' | 'global' | 'properties') => set({ sidebarTab }),
+  setSidebarTab: (sidebarTab: 'widgets' | 'navigator' | 'global' | 'properties') => set({ sidebarTab, showSidebar: true }),
+  setShowSidebar: (showSidebar: boolean) => set({ showSidebar }),
+  toggleSidebar: () => set((state) => ({ showSidebar: !state.showSidebar })),
   setActiveInspectorTab: (activeInspectorTab: 'layout' | 'style' | 'advanced') => set({ activeInspectorTab }),
   setLastFocusedInput: (lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null) => set({ lastFocusedInput }),
   updateNode: (updatedNode: StudioNode) => {

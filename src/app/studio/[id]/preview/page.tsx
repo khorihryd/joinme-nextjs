@@ -3,7 +3,7 @@
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { NodeRenderer } from '@/components/studio/NodeRenderer';
-import { DEFAULT_NODES, GlobalStyles, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables, DEFAULT_SAMPLE_STORIES, DEFAULT_SAMPLE_SCHEDULES, DEFAULT_SAMPLE_BANKS, DEFAULT_SAMPLE_GALLERY } from '@/store/studio-store';
+import { useStudioStore, DEFAULT_NODES, GlobalStyles, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables, DEFAULT_SAMPLE_STORIES, DEFAULT_SAMPLE_SCHEDULES, DEFAULT_SAMPLE_BANKS, DEFAULT_SAMPLE_GALLERY } from '@/store/studio-store';
 import { StudioNode } from '@/types';
 
 export default function StudioPreviewPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
@@ -22,23 +22,55 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
   const [isCoverOpened, setIsCoverOpened] = useState(false);
   const [viewportMode, setViewportMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
+  const sampleData = globalStyles?.sampleEventDetails || {};
+  const activeGallery =
+    (Array.isArray(globalStyles?.galleryImages) && globalStyles.galleryImages.length > 0)
+      ? globalStyles.galleryImages
+      : (Array.isArray(sampleData?.gallery) && sampleData.gallery.length > 0)
+      ? sampleData.gallery
+      : (Array.isArray(sampleData?.galleryImages) && sampleData.galleryImages.length > 0)
+      ? sampleData.galleryImages
+      : (Array.isArray(sampleData?.photos) && sampleData.photos.length > 0)
+      ? sampleData.photos
+      : DEFAULT_SAMPLE_GALLERY;
+
+  const pPria = sampleData.panggilanPria || 'Jonathan';
+  const pWanita = sampleData.panggilanWanita || 'Anti';
+  const iPria = sampleData.inisialPria || sampleData.inisial_pria || sampleData.groom_initial || (pPria ? pPria.trim().charAt(0).toUpperCase() : 'J');
+  const iWanita = sampleData.inisialWanita || sampleData.inisial_wanita || sampleData.bride_initial || (pWanita ? pWanita.trim().charAt(0).toUpperCase() : 'A');
+  const iPasangan = sampleData.inisialPasangan || sampleData.inisial_pasangan || sampleData.couple_initials || `${iPria} & ${iWanita}`;
+
   const eventDetails = {
-    mempelaiPria: 'Roni Wijaya, S.Kom.',
-    panggilanPria: 'Roni',
-    ortuPria: 'Putra dari Bp. Wawan & Ibu Asih',
-    mempelaiWanita: 'Anti Kartika, S.T.',
-    panggilanWanita: 'Anti',
-    ortuWanita: 'Putri dari Bp. Haryanto & Ibu Dewi',
-    event_date: '21 September 2026',
-    event_time: '08:00 - 14:00 WIB',
-    event_location: 'Grand Ballroom Hotel Mulia, Jakarta',
+    mempelaiPria: sampleData.mempelaiPria || 'Jonathan Wijaya, S.Kom.',
+    panggilanPria: pPria,
+    inisialPria: iPria,
+    inisial_pria: iPria,
+    groom_initial: iPria,
+    ortuPria: sampleData.ortuPria || 'Putra dari Bp. Hendra & Ibu Maria',
+    mempelaiWanita: sampleData.mempelaiWanita || 'Anti Rahmawati, S.T.',
+    panggilanWanita: pWanita,
+    inisialWanita: iWanita,
+    inisial_wanita: iWanita,
+    bride_initial: iWanita,
+    inisialPasangan: iPasangan,
+    inisial_pasangan: iPasangan,
+    couple_initials: iPasangan,
+    ortuWanita: sampleData.ortuWanita || 'Putri dari Bp. Bambang & Ibu Sri',
+    event_date: sampleData.event_date || sampleData.tanggal_acara || '21 September 2026',
+    event_time: sampleData.event_time || sampleData.waktu_acara || '08:00 - 14:00 WIB',
+    event_location: sampleData.event_location || sampleData.lokasi_acara || 'Grand Ballroom Hotel Mulia, Jakarta',
     story: DEFAULT_SAMPLE_STORIES,
     schedules: DEFAULT_SAMPLE_SCHEDULES,
-    gallery: DEFAULT_SAMPLE_GALLERY,
     bankAccounts: DEFAULT_SAMPLE_BANKS,
     showStory: true,
     showGallery: true,
     isCatalogPreview: true,
+    isCoverOpened: isCoverOpened,
+    ...sampleData,
+    gallery: activeGallery,
+    galleryImages: activeGallery,
+    photos: activeGallery,
+    images: activeGallery,
   };
 
   // 1. Reactive Window Resize Listener for Responsive Viewport Mode
@@ -78,6 +110,7 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
             try {
               const parsedGlobal = JSON.parse(savedGlobalStyles);
               setGlobalStyles(parsedGlobal);
+              useStudioStore.setState({ globalStyles: parsedGlobal });
               if (parsedGlobal.fontFamily) ensureGoogleFontLoaded(parsedGlobal.fontFamily);
               if (parsedGlobal.typography?.fontPrimary) ensureGoogleFontLoaded(parsedGlobal.typography.fontPrimary);
               if (parsedGlobal.typography?.fontSecondary) ensureGoogleFontLoaded(parsedGlobal.typography.fontSecondary);
@@ -88,6 +121,7 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
             const parsed = JSON.parse(savedPreviewNodes);
             if (Array.isArray(parsed) && parsed.length > 0) {
               setNodes(parsed);
+              useStudioStore.setState({ nodes: parsed });
               loadNodeFonts(parsed);
               setLoading(false);
               return;
@@ -105,6 +139,7 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
           if (gStyles) {
             const parsedGlobal = typeof gStyles === 'string' ? JSON.parse(gStyles) : gStyles;
             setGlobalStyles(parsedGlobal);
+            useStudioStore.setState({ globalStyles: parsedGlobal });
             if (parsedGlobal.fontFamily) ensureGoogleFontLoaded(parsedGlobal.fontFamily);
             if (parsedGlobal.typography?.fontPrimary) ensureGoogleFontLoaded(parsedGlobal.typography.fontPrimary);
             if (parsedGlobal.typography?.fontSecondary) ensureGoogleFontLoaded(parsedGlobal.typography.fontSecondary);
@@ -115,6 +150,7 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
             const parsedNodes = Array.isArray(rawNodes) ? rawNodes : JSON.parse(rawNodes);
             if (Array.isArray(parsedNodes) && parsedNodes.length > 0) {
               setNodes(parsedNodes);
+              useStudioStore.setState({ nodes: parsedNodes });
               loadNodeFonts(parsedNodes);
               setLoading(false);
               return;

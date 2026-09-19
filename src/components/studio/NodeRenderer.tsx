@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudioNode, SectionType } from '@/types';
 import { resolveTextVariables, useStudioStore, WishItem, SAMPLE_VARIABLES, DEFAULT_SAMPLE_STORIES, DEFAULT_SAMPLE_SCHEDULES, DEFAULT_SAMPLE_BANKS, DEFAULT_SAMPLE_GALLERY } from '@/store/studio-store';
 import { LightboxModal } from '@/components/studio/LightboxModal';
@@ -96,23 +96,58 @@ export function getOrderedAndFilteredNodes(
 export function collectGalleryImageUrls(nodes: StudioNode[], eventDetails?: any): string[] {
   let list: string[] = [];
 
-  const userPhotos = eventDetails?.gallery || eventDetails?.galleryImages || [];
+  const storeGlobal = typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined;
+  const effectiveDetails = eventDetails || storeGlobal?.sampleEventDetails;
+  const userPhotos =
+    (Array.isArray(storeGlobal?.galleryImages) && storeGlobal.galleryImages.length > 0)
+      ? storeGlobal.galleryImages
+      : (Array.isArray(effectiveDetails?.galleryImages) && effectiveDetails.galleryImages.length > 0)
+      ? effectiveDetails.galleryImages
+      : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0 && effectiveDetails.gallery !== DEFAULT_SAMPLE_GALLERY)
+      ? effectiveDetails.gallery
+      : (Array.isArray(effectiveDetails?.photos) && effectiveDetails.photos.length > 0)
+      ? effectiveDetails.photos
+      : (Array.isArray(storeGlobal?.sampleEventDetails?.gallery) && storeGlobal.sampleEventDetails.gallery.length > 0)
+      ? storeGlobal.sampleEventDetails.gallery
+      : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0)
+      ? effectiveDetails.gallery
+      : [];
   const hasUserPhotos = Array.isArray(userPhotos) && userPhotos.length > 0;
 
+  // 1. If userPhotos / custom gallery exists, populate list with all custom photos FIRST in order
+  if (hasUserPhotos) {
+    userPhotos.forEach((url: string) => {
+      if (url && typeof url === 'string' && url.trim() && !list.includes(url.trim())) {
+        list.push(url.trim());
+      }
+    });
+  }
+
+  // 2. Traverse nodes: skip gallery section placeholder items, only append standalone images outside gallery
   const traverse = (nodeList: StudioNode[], inGallerySection = false) => {
     if (!Array.isArray(nodeList)) return;
 
     nodeList.forEach((n) => {
-      const currentInGallery = inGallerySection || n.sectionType === 'gallery';
+      const currentInGallery = inGallerySection || isGallerySectionNode(n) || n.isGalleryFeed || n.sectionType === 'gallery' || String(n.id).includes('gallery') || String(n.id).includes('galeri');
 
       if (n.type === 'image' && n.showInGallery) {
-        // Skip collecting the template's placeholder images if user has uploaded their own gallery images
-        if (currentInGallery && hasUserPhotos) {
-          // Skip placeholder
+        if (hasUserPhotos) {
+          // If custom gallery exists, do NOT collect placeholder images from gallery section/feed
+          if (!currentInGallery) {
+            let imgUrl = n.content;
+            if (n.isDynamic && n.binding && effectiveDetails) {
+              const bound = (effectiveDetails as any)[n.binding];
+              if (bound) imgUrl = bound;
+            }
+            if (imgUrl && !list.includes(imgUrl) && !DEFAULT_SAMPLE_GALLERY.includes(imgUrl)) {
+              list.push(imgUrl);
+            }
+          }
         } else {
+          // If no custom photos at all, collect template image nodes
           let imgUrl = n.content;
-          if (n.isDynamic && n.binding && eventDetails) {
-            const bound = (eventDetails as any)[n.binding];
+          if (n.isDynamic && n.binding && effectiveDetails) {
+            const bound = (effectiveDetails as any)[n.binding];
             if (bound) imgUrl = bound;
           }
           if (imgUrl && !list.includes(imgUrl)) {
@@ -128,14 +163,6 @@ export function collectGalleryImageUrls(nodes: StudioNode[], eventDetails?: any)
   };
 
   traverse(nodes);
-
-  if (hasUserPhotos) {
-    userPhotos.forEach((url: string) => {
-      if (url && typeof url === 'string' && !list.includes(url)) {
-        list.push(url);
-      }
-    });
-  }
 
   return list;
 }
@@ -378,6 +405,8 @@ export function cloneAndBindGalleryData(templateNode: StudioNode, imgUrl: string
   if (cloned.type === 'image') {
     cloned.content = imgUrl;
     cloned.showInGallery = true;
+    delete (cloned as any).binding;
+    cloned.isDynamic = false;
   }
 
   if (cloned.children && cloned.children.length > 0) {
@@ -393,10 +422,10 @@ const DEFAULT_GALLERY_FALLBACKS = [
   'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&auto=format&fit=crop&q=80',
 ];
 
-function ContainerSlideshowBackground({ style, allNodes, slideIndex }: { style: any; allNodes?: StudioNode[]; slideIndex: number }) {
+function ContainerSlideshowBackground({ style, allNodes, slideIndex, eventDetails }: { style: any; allNodes?: StudioNode[]; slideIndex: number; eventDetails?: any }) {
   const storeNodes = useStudioStore.getState().nodes;
   const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : (storeNodes && storeNodes.length > 0 ? storeNodes : []);
-  let galleryImages = collectGalleryImageUrls(nodesToSearch);
+  let galleryImages = collectGalleryImageUrls(nodesToSearch, eventDetails);
 
   if (galleryImages.length === 0) {
     if (style.backgroundImage) {
@@ -716,6 +745,106 @@ export function NodeRenderer({
   const isSlideshowBg = node.type === 'container' && style.bgType === 'gallery-slideshow';
   const isSliderWidget = node.type === 'slider';
 
+  // Animation configuration
+  const animType = getResponsiveStyle(style, 'animationType', style.animationType || style.animationName, viewportMode);
+  const loopAnimType = getResponsiveStyle(style, 'loopAnimation', style.loopAnimation, viewportMode);
+  const hasAnimation = Boolean(animType && animType !== 'none');
+  const hasLoopAnimation = Boolean(loopAnimType && loopAnimType !== 'none');
+
+  const [isAnimated, setIsAnimated] = useState(!isPreviewMode);
+  const isCoverSection = node.sectionType === 'cover';
+  const prevAnimRef = useRef<string | undefined>(undefined);
+  const isFirstMountRef = useRef(true);
+
+  // In Preview / Live Mode: Scroll Intersection Observer for entrance animations
+  useEffect(() => {
+    if (!isPreviewMode || !hasAnimation) {
+      setIsAnimated(true);
+      return;
+    }
+
+    // If not in cover section and cover is not yet opened, wait for cover to open
+    if (!isCoverSection && eventDetails?.isCoverOpened === false) {
+      setIsAnimated(false);
+      return;
+    }
+
+    const domId = `node-dom-${node.id}`;
+    const el = document.getElementById(domId);
+    if (!el) {
+      setIsAnimated(true);
+      return;
+    }
+
+    if (typeof IntersectionObserver !== 'undefined') {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setIsAnimated(true);
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        {
+          threshold: 0.1,
+          rootMargin: '0px 0px -40px 0px',
+        }
+      );
+
+      observer.observe(el);
+      return () => observer.disconnect();
+    } else {
+      setIsAnimated(true);
+    }
+  }, [node.id, hasAnimation, isPreviewMode, isCoverSection, eventDetails?.isCoverOpened]);
+
+  // Replay animation helper in Studio Editor
+  const replayAnimation = () => {
+    const domId = `node-dom-${node.id}`;
+    const el = document.getElementById(domId);
+    if (!el) return;
+    el.classList.remove('animated');
+    el.classList.remove('has-loop-anim');
+    void el.offsetWidth; // Force CSS reflow
+    el.classList.add('animated');
+    if (hasLoopAnimation) {
+      el.classList.add('has-loop-anim');
+    }
+  };
+
+  // Auto-replay in Studio Editor when animation properties change
+  useEffect(() => {
+    if (isPreviewMode) return;
+    const currentAnimKey = `${animType || ''}_${style.animationDuration || ''}_${style.animationDelay || ''}_${style.animationIteration || ''}_${loopAnimType || ''}_${style.loopAnimationDuration || ''}`;
+
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      prevAnimRef.current = currentAnimKey;
+      return;
+    }
+
+    if (prevAnimRef.current !== currentAnimKey) {
+      prevAnimRef.current = currentAnimKey;
+      if (hasAnimation || hasLoopAnimation) {
+        replayAnimation();
+      }
+    }
+  }, [animType, loopAnimType, style.animationDuration, style.animationDelay, style.animationIteration, style.loopAnimationDuration, isPreviewMode, hasAnimation, hasLoopAnimation]);
+
+  // Listen for explicit replay requests (e.g. from InspectorPanel "Putar Animasi" button)
+  useEffect(() => {
+    if (isPreviewMode) return;
+    const handleReplayEvent = (e: any) => {
+      const targetId = e?.detail?.nodeId;
+      if (!targetId || targetId === node.id) {
+        replayAnimation();
+      }
+    };
+    window.addEventListener('studio:replay-animation', handleReplayEvent);
+    return () => window.removeEventListener('studio:replay-animation', handleReplayEvent);
+  }, [node.id, isPreviewMode]);
+
   const rawInterval = isSliderWidget
     ? style.sliderInterval
     : style.bgSlideshowInterval;
@@ -778,6 +907,18 @@ export function NodeRenderer({
   const displayVal = getResponsiveStyle(style, 'display', undefined, viewportMode);
   const isHiddenDisplay = displayVal === 'none' || style.display === 'none';
 
+  const rawLineHeight = getResponsiveStyle(style, 'lineHeight', style.lineHeight || undefined, viewportMode);
+  let resolvedLineHeight: string | number | undefined = undefined;
+  if (rawLineHeight !== undefined && rawLineHeight !== null && String(rawLineHeight).trim() !== '') {
+    const lhStr = String(rawLineHeight).trim();
+    if (!isNaN(Number(lhStr))) {
+      const num = Number(lhStr);
+      resolvedLineHeight = num > 4 ? `${num}px` : num;
+    } else {
+      resolvedLineHeight = lhStr;
+    }
+  }
+
   const computedStyle: React.CSSProperties = {
     display: isHiddenDisplay ? 'none' : undefined,
     width: getResponsiveStyle(style, 'width', '100%', viewportMode),
@@ -795,7 +936,8 @@ export function NodeRenderer({
     fontWeight: getResponsiveStyle(style, 'fontWeight', style.fontWeight || undefined, viewportMode),
     fontStyle: getResponsiveStyle(style, 'fontStyle', style.fontStyle || undefined, viewportMode) as any,
     textAlign: getResponsiveStyle(style, 'textAlign', undefined, viewportMode) as any,
-    letterSpacing: style.letterSpacing || undefined,
+    letterSpacing: getResponsiveStyle(style, 'letterSpacing', style.letterSpacing || undefined, viewportMode),
+    lineHeight: resolvedLineHeight,
     textTransform: style.textTransform as any || undefined,
     borderTopLeftRadius: style.useIndividualRadius && style.borderTopLeftRadius !== undefined ? (typeof style.borderTopLeftRadius === 'number' ? `${style.borderTopLeftRadius}px` : style.borderTopLeftRadius) : (style.borderRadius ? `${style.borderRadius}px` : undefined),
     borderTopRightRadius: style.useIndividualRadius && style.borderTopRightRadius !== undefined ? (typeof style.borderTopRightRadius === 'number' ? `${style.borderTopRightRadius}px` : style.borderTopRightRadius) : (style.borderRadius ? `${style.borderRadius}px` : undefined),
@@ -852,7 +994,35 @@ export function NodeRenderer({
     computedStyle.order = Number(orderVal);
   }
 
-  const nodeClassName = `canvas-node-item ${isSelected ? 'selected' : ''} ${isPreviewMode ? 'is-preview-mode preview-mode' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''}`;
+  // Animation duration, delay, and iteration CSS properties
+  if (style.animationDuration) {
+    const durStr = String(style.animationDuration).trim();
+    const formattedDur = /^\d+(\.\d+)?$/.test(durStr) ? `${durStr}s` : durStr;
+    (computedStyle as any)['--anim-duration'] = formattedDur;
+  }
+  if (style.animationDelay) {
+    const delayStr = String(style.animationDelay).trim();
+    const formattedDelay = /^\d+(\.\d+)?$/.test(delayStr) ? `${delayStr}s` : delayStr;
+    (computedStyle as any)['--anim-delay'] = formattedDelay;
+  }
+  if (style.animationIteration === 'infinite') {
+    computedStyle.animationIterationCount = 'infinite';
+    (computedStyle as any)['--anim-iteration'] = 'infinite';
+  } else {
+    (computedStyle as any)['--anim-iteration'] = '1';
+  }
+
+  // Loop Animation duration CSS property
+  if (style.loopAnimationDuration) {
+    const loopDurStr = String(style.loopAnimationDuration).trim();
+    const formattedLoopDur = /^\d+(\.\d+)?$/.test(loopDurStr) ? `${loopDurStr}s` : loopDurStr;
+    (computedStyle as any)['--loop-duration'] = formattedLoopDur;
+  }
+
+  const entranceAnimationClasses = hasAnimation ? `has-anim ${animType} ${isAnimated ? 'animated' : ''}` : '';
+  const loopAnimationClasses = hasLoopAnimation ? `${loopAnimType} has-loop-anim` : '';
+  const animationClasses = `${entranceAnimationClasses} ${loopAnimationClasses}`.trim();
+  const nodeClassName = `canvas-node-item ${isSelected ? 'selected' : ''} ${isPreviewMode ? 'is-preview-mode preview-mode' : ''} ${style.hideScrollbar ? 'no-scrollbar' : ''} ${animationClasses}`.trim();
 
   if (isMiniStudioMode && selectedNodeId === node.id) {
     computedStyle.outline = '2.5px solid var(--primary, #e36397)';
@@ -988,13 +1158,21 @@ export function NodeRenderer({
       const isMiniStudio = isMiniStudioMode || eventDetails?.isMiniStudioMode === true;
       const isCatalogPreview = eventDetails?.isCatalogPreview === true || (!isPublic && !isMiniStudio && isPreviewMode);
 
+      const storeGlobal = typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined;
+      const effectiveDetails = eventDetails || storeGlobal?.sampleEventDetails;
       const userPhotos =
-        (Array.isArray(eventDetails?.gallery) && eventDetails.gallery.length > 0)
-          ? eventDetails.gallery
-          : (Array.isArray(eventDetails?.galleryImages) && eventDetails.galleryImages.length > 0)
-          ? eventDetails.galleryImages
-          : (Array.isArray(eventDetails?.photos) && eventDetails.photos.length > 0)
-          ? eventDetails.photos
+        (Array.isArray(storeGlobal?.galleryImages) && storeGlobal.galleryImages.length > 0)
+          ? storeGlobal.galleryImages
+          : (Array.isArray(effectiveDetails?.galleryImages) && effectiveDetails.galleryImages.length > 0)
+          ? effectiveDetails.galleryImages
+          : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0 && effectiveDetails.gallery !== DEFAULT_SAMPLE_GALLERY)
+          ? effectiveDetails.gallery
+          : (Array.isArray(effectiveDetails?.photos) && effectiveDetails.photos.length > 0)
+          ? effectiveDetails.photos
+          : (Array.isArray(storeGlobal?.sampleEventDetails?.gallery) && storeGlobal.sampleEventDetails.gallery.length > 0)
+          ? storeGlobal.sampleEventDetails.gallery
+          : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0)
+          ? effectiveDetails.gallery
           : isCatalogPreview
           ? DEFAULT_SAMPLE_GALLERY
           : [];
@@ -1131,6 +1309,17 @@ export function NodeRenderer({
                   return (
                     <div
                       key={`dyn-gal-img-${gIdx}`}
+                      onClick={(e) => {
+                        if (isPreviewMode) {
+                          e.stopPropagation();
+                          const allGallery = collectGalleryImageUrls(allNodes || [node], eventDetails);
+                          const gList = allGallery.length > 0 ? allGallery : userPhotos;
+                          let idx = gList.indexOf(imgUrl);
+                          if (idx === -1) idx = gList.findIndex((u: string) => (u || '').trim() === (imgUrl || '').trim());
+                          setGalleryImages(gList);
+                          setLightboxIndex(idx >= 0 ? idx : gIdx);
+                        }
+                      }}
                       style={{
                         position: 'relative',
                         borderRadius: '14px',
@@ -1138,6 +1327,7 @@ export function NodeRenderer({
                         aspectRatio: '1 / 1',
                         backgroundColor: '#f1f5f9',
                         boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+                        cursor: isPreviewMode ? 'pointer' : 'default',
                       }}
                     >
                       <img
@@ -1151,6 +1341,15 @@ export function NodeRenderer({
               </div>
             )}
           </div>
+
+          {lightboxIndex !== null && (
+            <LightboxModal
+              images={galleryImages.length > 0 ? galleryImages : userPhotos}
+              currentIndex={lightboxIndex}
+              onClose={() => setLightboxIndex(null)}
+              onNavigate={(idx) => setLightboxIndex(idx)}
+            />
+          )}
         </div>
       );
     }
@@ -1599,13 +1798,24 @@ export function NodeRenderer({
       const isMiniStudio = isMiniStudioMode || eventDetails?.isMiniStudioMode === true;
       const isCatalogPreview = eventDetails?.isCatalogPreview === true || (!isPublic && !isMiniStudio);
 
-      const rawGallery = (Array.isArray(eventDetails?.gallery) && eventDetails.gallery.length > 0)
-        ? eventDetails.gallery
-        : (Array.isArray(eventDetails?.galleryImages) && eventDetails.galleryImages.length > 0)
-        ? eventDetails.galleryImages
-        : isCatalogPreview
-        ? DEFAULT_SAMPLE_GALLERY
-        : [];
+      const storeGlobal = typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined;
+      const effectiveDetails = eventDetails || storeGlobal?.sampleEventDetails;
+      const rawGallery =
+        (Array.isArray(storeGlobal?.galleryImages) && storeGlobal.galleryImages.length > 0)
+          ? storeGlobal.galleryImages
+          : (Array.isArray(effectiveDetails?.galleryImages) && effectiveDetails.galleryImages.length > 0)
+          ? effectiveDetails.galleryImages
+          : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0 && effectiveDetails.gallery !== DEFAULT_SAMPLE_GALLERY)
+          ? effectiveDetails.gallery
+          : (Array.isArray(effectiveDetails?.photos) && effectiveDetails.photos.length > 0)
+          ? effectiveDetails.photos
+          : (Array.isArray(storeGlobal?.sampleEventDetails?.gallery) && storeGlobal.sampleEventDetails.gallery.length > 0)
+          ? storeGlobal.sampleEventDetails.gallery
+          : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0)
+          ? effectiveDetails.gallery
+          : isCatalogPreview
+          ? DEFAULT_SAMPLE_GALLERY
+          : [];
 
       const sampleCardTemplate = node.children && node.children.length > 0 ? node.children[0] : null;
 
@@ -1693,6 +1903,17 @@ export function NodeRenderer({
                 return (
                   <div
                     key={`dyn-gal-img-${gIdx}`}
+                    onClick={(e) => {
+                      if (isPreviewMode) {
+                        e.stopPropagation();
+                        const allGallery = collectGalleryImageUrls(allNodes || [node], eventDetails);
+                        const gList = allGallery.length > 0 ? allGallery : rawGallery;
+                        let idx = gList.indexOf(imgUrl);
+                        if (idx === -1) idx = gList.findIndex((u: string) => (u || '').trim() === (imgUrl || '').trim());
+                        setGalleryImages(gList);
+                        setLightboxIndex(idx >= 0 ? idx : gIdx);
+                      }
+                    }}
                     style={{
                       position: 'relative',
                       borderRadius: '14px',
@@ -1700,6 +1921,7 @@ export function NodeRenderer({
                       aspectRatio: '1 / 1',
                       backgroundColor: '#f1f5f9',
                       boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+                      cursor: isPreviewMode ? 'pointer' : 'default',
                     }}
                   >
                     <img
@@ -1712,6 +1934,15 @@ export function NodeRenderer({
               })
             )}
           </div>
+
+          {lightboxIndex !== null && (
+            <LightboxModal
+              images={galleryImages.length > 0 ? galleryImages : rawGallery}
+              currentIndex={lightboxIndex}
+              onClose={() => setLightboxIndex(null)}
+              onNavigate={(idx) => setLightboxIndex(idx)}
+            />
+          )}
         </div>
       );
     }
@@ -1768,7 +1999,7 @@ export function NodeRenderer({
         {actionOverlay}
 
         {isSlideshowBg ? (
-          <ContainerSlideshowBackground style={style} allNodes={allNodes} slideIndex={slideIndex} />
+          <ContainerSlideshowBackground style={style} allNodes={allNodes} slideIndex={slideIndex} eventDetails={eventDetails} />
         ) : (
           style.backgroundOverlayColor && (
             <div
@@ -1826,7 +2057,7 @@ export function NodeRenderer({
             style={style}
           />
         ) : (
-          <span>{contentText}</span>
+          <span style={{ lineHeight: resolvedLineHeight || 'inherit' }}>{contentText}</span>
         )}
       </div>
     );
@@ -1850,7 +2081,7 @@ export function NodeRenderer({
             style={style}
           />
         ) : (
-          <p style={{ margin: 0 }}>{contentText}</p>
+          <p style={{ margin: 0, lineHeight: resolvedLineHeight || 'inherit' }}>{contentText}</p>
         )}
       </div>
     );
@@ -2056,7 +2287,14 @@ export function NodeRenderer({
         const nodesToSearch = allNodes && allNodes.length > 0 ? allNodes : useStudioStore.getState().nodes;
         const allGallery = collectGalleryImageUrls(nodesToSearch.length > 0 ? nodesToSearch : [node], eventDetails);
         if (allGallery.length > 0) {
-          const idx = allGallery.indexOf(imageUrl);
+          const trimmedUrl = (imageUrl || '').trim();
+          let idx = allGallery.indexOf(imageUrl);
+          if (idx === -1) {
+            idx = allGallery.indexOf(trimmedUrl);
+          }
+          if (idx === -1) {
+            idx = allGallery.findIndex((u) => (u || '').trim() === trimmedUrl);
+          }
           setGalleryImages(allGallery);
           setLightboxIndex(idx >= 0 ? idx : 0);
           return;
@@ -2127,12 +2365,22 @@ export function NodeRenderer({
 
   // Standalone Gallery Widget (node.type === 'gallery')
   if (node.type === 'gallery') {
+    const storeGlobal = typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined;
+    const effectiveDetails = eventDetails || storeGlobal?.sampleEventDetails;
     const userPhotos =
-      eventDetails?.galleryImages ||
-      eventDetails?.gallery ||
-      eventDetails?.photos ||
-      eventDetails?.images ||
-      undefined;
+      (Array.isArray(storeGlobal?.galleryImages) && storeGlobal.galleryImages.length > 0)
+        ? storeGlobal.galleryImages
+        : (Array.isArray(effectiveDetails?.galleryImages) && effectiveDetails.galleryImages.length > 0)
+        ? effectiveDetails.galleryImages
+        : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0 && effectiveDetails.gallery !== DEFAULT_SAMPLE_GALLERY)
+        ? effectiveDetails.gallery
+        : (Array.isArray(effectiveDetails?.photos) && effectiveDetails.photos.length > 0)
+        ? effectiveDetails.photos
+        : (Array.isArray(storeGlobal?.sampleEventDetails?.gallery) && storeGlobal.sampleEventDetails.gallery.length > 0)
+        ? storeGlobal.sampleEventDetails.gallery
+        : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0)
+        ? effectiveDetails.gallery
+        : undefined;
 
     const hasUserPhotos = Array.isArray(userPhotos) && userPhotos.length > 0;
 
