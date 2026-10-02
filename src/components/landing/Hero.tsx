@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { WHATSAPP_CONFIG } from '@/config/whatsapp';
+import { Icon } from '@/components/ui/Icon';
 
 export function Hero() {
   const [activeTab, setActiveTab] = useState<'wedding' | 'birthday' | 'business'>('wedding');
@@ -18,7 +19,9 @@ export function Hero() {
       <div className="container hero-container">
         <div className="hero-content">
           <div className="trust-badge">
-            <span className="badge-icon">✨</span>
+            <span className="badge-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <Icon name="auto_awesome" size={16} fill style={{ color: 'var(--primary, #e11d48)' }} />
+            </span>
             <span className="badge-text">Undangan Digital Eksklusif & Bebas Repot</span>
           </div>
 
@@ -38,7 +41,7 @@ export function Hero() {
               className="btn btn-primary"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <span>💬</span>
+              <Icon name="chat" size={18} />
               <span>Pesan via WhatsApp</span>
             </a>
             <a href="#templates" className="btn btn-secondary">

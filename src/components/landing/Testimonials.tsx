@@ -1,4 +1,4 @@
-'use client';
+import { Icon } from '@/components/ui/Icon';
 
 export function Testimonials() {
   const testimonials = [
@@ -26,7 +26,10 @@ export function Testimonials() {
     <section className="testimonials-section" id="testimonials">
       <div className="container">
         <div className="section-header">
-          <span className="section-badge">💬 Testimoni Klien</span>
+          <span className="section-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Icon name="format_quote" size={16} fill style={{ color: 'var(--primary)' }} />
+            <span>Testimoni Klien</span>
+          </span>
           <h2 className="section-title">Kisah Bahagia Bersama JoinMe</h2>
           <p className="section-subtitle">
             Ribuan pasangan telah mempercayakan momen spesial mereka menggunakan platform undangan digital JoinMe.

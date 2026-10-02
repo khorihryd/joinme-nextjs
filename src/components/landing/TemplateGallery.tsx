@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WHATSAPP_CONFIG } from '@/config/whatsapp';
+import { Icon } from '@/components/ui/Icon';
 
 interface TemplateItem {
   id: string;
@@ -49,7 +50,10 @@ export function TemplateGallery() {
     <section className="template-carousel-section" id="templates">
       <div className="container">
         <div className="section-header">
-          <span className="section-badge">✨ Koleksi Desain</span>
+          <span className="section-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Icon name="auto_awesome" size={16} fill style={{ color: 'var(--primary)' }} />
+            <span>Koleksi Desain</span>
+          </span>
           <h2 className="section-title">Template Undangan Premium</h2>
           <p className="section-subtitle">
             Pilih dari koleksi desain eksklusif kami yang dirancang oleh desainer profesional. Hubungi kami via WhatsApp untuk membuat undangan dengan template pilihan Anda.
@@ -87,7 +91,9 @@ export function TemplateGallery() {
               margin: '0 auto',
             }}
           >
-            <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.5rem' }}>🎨</span>
+            <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+              <Icon name="palette" size={44} style={{ color: 'var(--text-muted)' }} />
+            </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
               Belum Ada Template Aktif
             </h3>
@@ -99,7 +105,8 @@ export function TemplateGallery() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.5rem' }}>
             {filtered.map((tpl) => {
               const tierClass = tpl.tier === 'Free' ? 'free' : tpl.tier === 'Enterprise' ? 'enterprise' : 'pro';
-              const tierLabel = tpl.tier === 'Free' ? 'Gratis' : tpl.tier === 'Enterprise' ? 'Enterprise 👑' : 'Pro 🚀';
+              const tierLabel = tpl.tier === 'Free' ? 'Gratis' : tpl.tier === 'Enterprise' ? 'Enterprise' : 'Pro';
+              const tierIcon = tpl.tier === 'Enterprise' ? 'workspace_premium' : tpl.tier === 'Pro' ? 'rocket_launch' : 'verified';
               const thumbUrl = tpl.thumbnail || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
               const priceText = tpl.price ? `Rp ${tpl.price.toLocaleString('id-ID')}` : 'Gratis';
 
@@ -108,7 +115,10 @@ export function TemplateGallery() {
                   <div className="tpl-card__thumb-wrap">
                     <img className="tpl-card__thumb" src={thumbUrl} alt={tpl.name} loading="lazy" />
                     <span className="tpl-card__cat">{tpl.category || 'Pernikahan'}</span>
-                    <span className={`tpl-card__tier tpl-card__tier--${tierClass}`}>{tierLabel}</span>
+                    <span className={`tpl-card__tier tpl-card__tier--${tierClass}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Icon name={tierIcon} size={13} fill />
+                      <span>{tierLabel}</span>
+                    </span>
                   </div>
                   <div className="tpl-card__body">
                     <div className="tpl-card__name">{tpl.name}</div>
@@ -143,7 +153,8 @@ export function TemplateGallery() {
                         rel="noopener noreferrer"
                         className="tpl-card__btn tpl-card__btn--preview"
                       >
-                        👁️ Preview
+                        <Icon name="visibility" size={16} />
+                        <span>Preview</span>
                       </Link>
                       <a
                         href={WHATSAPP_CONFIG.getUrl(WHATSAPP_CONFIG.templateMessage(tpl.name, priceText))}
@@ -151,7 +162,8 @@ export function TemplateGallery() {
                         rel="noopener noreferrer"
                         className="tpl-card__btn tpl-card__btn--use"
                       >
-                        💬 Pesan
+                        <Icon name="chat" size={16} />
+                        <span>Pesan</span>
                       </a>
                     </div>
                   </div>
@@ -169,7 +181,7 @@ export function TemplateGallery() {
             className="btn btn-primary"
             style={{ padding: '0.85rem 2.5rem', fontSize: '1rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            <span>💬</span>
+            <Icon name="support_agent" size={20} />
             <span>Konsultasi & Pesan Desain Khusus &rarr;</span>
           </a>
         </div>

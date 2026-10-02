@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ThemeToggle } from './ThemeToggle';
 import { useState } from 'react';
 import { WHATSAPP_CONFIG } from '@/config/whatsapp';
+import { Icon } from '@/components/ui/Icon';
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,9 +31,10 @@ export function Navbar() {
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', gap: '0.4rem' }}
+              style={{ width: '100%', justifyContent: 'center', gap: '0.4rem', display: 'inline-flex', alignItems: 'center' }}
             >
-              <span>💬 Pesan via WhatsApp</span>
+              <Icon name="chat" size={18} />
+              <span>Pesan via WhatsApp</span>
             </a>
           </div>
         </nav>
@@ -47,7 +49,7 @@ export function Navbar() {
             className="btn btn-primary btn-nav"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <span>💬</span>
+            <Icon name="chat" size={18} />
             <span>Pesan Sekarang</span>
           </a>
 

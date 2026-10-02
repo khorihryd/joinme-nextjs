@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { WHATSAPP_CONFIG } from '@/config/whatsapp';
+import { Icon } from '@/components/ui/Icon';
 
 export function Footer() {
   return (
@@ -17,9 +18,15 @@ export function Footer() {
             Merancang cara baru yang berkesan untuk membagikan undangan pernikahan, hari jadi, ulang tahun, dan seminar korporat.
           </p>
           <div className="social-links">
-            <a href="#" aria-label="Website">🌐</a>
-            <a href="#" aria-label="Instagram">📸</a>
-            <a href={WHATSAPP_CONFIG.getUrl()} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
+            <a href="#" aria-label="Website" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="language" size={18} />
+            </a>
+            <a href="#" aria-label="Instagram" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="photo_camera" size={18} />
+            </a>
+            <a href={WHATSAPP_CONFIG.getUrl()} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="chat" size={18} />
+            </a>
           </div>
         </div>
 
@@ -69,7 +76,11 @@ export function Footer() {
       <div className="footer-bottom">
         <div className="container footer-bottom-container">
           <p>&copy; 2026 JoinMe SaaS. Hak Cipta Dilindungi Undang-Undang.</p>
-          <p>Dibuat dengan ❤️ untuk para pencipta momen di seluruh dunia.</p>
+          <p style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}>
+            <span>Dibuat dengan</span>
+            <Icon name="favorite" size={14} fill style={{ color: '#ef4444' }} />
+            <span>untuk para pencipta momen di seluruh dunia.</span>
+          </p>
         </div>
       </div>
     </footer>
