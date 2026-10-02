@@ -114,7 +114,7 @@ export function EventsTable({ events, onDelete }: EventsTableProps) {
                   <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
                       <Link
-                        href={`/events/${ev.id}/edit`}
+                        href={`/studio/${ev.id}`}
                         style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none' }}
                       >
                         Edit

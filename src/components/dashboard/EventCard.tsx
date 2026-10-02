@@ -67,11 +67,11 @@ export function EventCard({ event, onDelete }: EventCardProps) {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
           <Link
-            href={`/events/${event.id}/edit`}
+            href={`/studio/${event.id}`}
             className="btn btn-primary"
             style={{ flex: 1, padding: '0.5rem 0.75rem', fontSize: '0.75rem', textAlign: 'center' }}
           >
-            Edit Konten ✏️
+            Edit Undangan 🎨
           </Link>
           <Link
             href={`/events/${event.id}/guests`}
@@ -79,13 +79,6 @@ export function EventCard({ event, onDelete }: EventCardProps) {
             style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem' }}
           >
             Tamu 👥
-          </Link>
-          <Link
-            href={`/studio/${event.id}`}
-            className="btn btn-secondary"
-            style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem' }}
-          >
-            Studio 🎨
           </Link>
           <button
             onClick={() => onDelete(event.id)}

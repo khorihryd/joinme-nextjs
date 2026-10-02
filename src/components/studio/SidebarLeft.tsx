@@ -5,11 +5,12 @@ import { WidgetsPanel } from './WidgetsPanel';
 import { NavigatorTree } from './NavigatorTree';
 import { InspectorPanel } from './InspectorPanel';
 import { GlobalPropertiesPanel } from './GlobalPropertiesPanel';
+import { DataPropertiesPanel } from './DataPropertiesPanel';
 import { StudioNode } from '@/types';
 
 interface SidebarLeftProps {
-  sidebarTab: 'widgets' | 'navigator' | 'global' | 'properties';
-  setSidebarTab: (tab: 'widgets' | 'navigator' | 'global' | 'properties') => void;
+  sidebarTab: 'data' | 'widgets' | 'navigator' | 'global' | 'properties';
+  setSidebarTab: (tab: 'data' | 'widgets' | 'navigator' | 'global' | 'properties') => void;
   showSidebar?: boolean;
   onToggleSidebar?: () => void;
   nodes: StudioNode[];
@@ -23,6 +24,15 @@ interface SidebarLeftProps {
   onMoveNode?: (id: string, direction: 'up' | 'down') => void;
   onUpdateNode: (updatedNode: StudioNode) => void;
   onInsertVariable?: (varTag: string) => void;
+  eventDetails?: any;
+  setEventDetails?: React.Dispatch<React.SetStateAction<any>>;
+  eventTitle?: string;
+  setEventTitle?: (title: string) => void;
+  eventSubdomain?: string;
+  setEventSubdomain?: (subdomain: string) => void;
+  eventStatus?: 'Draft' | 'Aktif';
+  setEventStatus?: (status: 'Draft' | 'Aktif') => void;
+  isEvent?: boolean;
 }
 
 export function SidebarLeft({
@@ -41,125 +51,253 @@ export function SidebarLeft({
   onMoveNode,
   onUpdateNode,
   onInsertVariable,
+  eventDetails,
+  setEventDetails,
+  eventTitle,
+  setEventTitle,
+  eventSubdomain,
+  setEventSubdomain,
+  eventStatus,
+  setEventStatus,
+  isEvent = false,
 }: SidebarLeftProps) {
-  return (
-    <aside className={`studio-sidebar-left ${showSidebar === false ? 'collapsed' : ''}`} style={{ overflowY: 'hidden' }}>
-      {/* 4 Sidebar Mode Tabs + Collapse Toggle */}
-      <div className="sidebar-modes-tabs" style={{ display: 'flex', borderBottom: 'var(--studio-border)', backgroundColor: 'var(--bg-body)', flexShrink: 0, alignItems: 'center' }}>
-        <button
-          type="button"
-          className={`sidebar-mode-btn ${sidebarTab === 'widgets' ? 'active' : ''}`}
-          onClick={() => setSidebarTab('widgets')}
-          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
-        >
-          🧱 Widget
-        </button>
-        <button
-          type="button"
-          className={`sidebar-mode-btn ${sidebarTab === 'navigator' ? 'active' : ''}`}
-          onClick={() => setSidebarTab('navigator')}
-          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
-        >
-          🌳 Nav
-        </button>
-        <button
-          type="button"
-          className={`sidebar-mode-btn ${sidebarTab === 'global' ? 'active' : ''}`}
-          onClick={() => setSidebarTab('global')}
-          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
-        >
-          🎨 Global
-        </button>
-        <button
-          type="button"
-          className={`sidebar-mode-btn ${sidebarTab === 'properties' ? 'active' : ''}`}
-          onClick={() => setSidebarTab('properties')}
-          style={{ flex: 1, padding: '0.75rem 0.15rem', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease', letterSpacing: '0.03em', fontFamily: 'inherit' }}
-        >
-          ⚙️ Properti
-        </button>
+  const tabs: {
+    id: 'data' | 'widgets' | 'navigator' | 'global' | 'properties';
+    icon: string;
+    label: string;
+    tooltip: string;
+  }[] = [
+    { id: 'data', icon: '📋', label: 'Data', tooltip: 'Data Undangan & Konten' },
+    { id: 'widgets', icon: '🧱', label: 'Widget', tooltip: 'Tambah Komponen / Widget' },
+    { id: 'navigator', icon: '🌳', label: 'Lapisan', tooltip: 'Navigator Struktur Lapisan Elemen' },
+    { id: 'global', icon: '🎨', label: 'Tema', tooltip: 'Gaya Global & Palet Warna' },
+    { id: 'properties', icon: '⚙️', label: 'Properti', tooltip: 'Pengaturan & Gaya Elemen Terpilih' },
+  ];
 
+  return (
+    <aside
+      className={`studio-sidebar-left ${showSidebar === false ? 'collapsed' : ''}`}
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
+      {/* 1. Vertical Activity Bar (Tab Strip) */}
+      <div
+        className="sidebar-vertical-rail"
+        style={{
+          width: '62px',
+          height: '100%',
+          backgroundColor: 'var(--bg-body, #f8fafc)',
+          borderRight: 'var(--studio-border, 1px solid #e2e8f0)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '0.65rem 0',
+          gap: '0.35rem',
+          flexShrink: 0,
+          boxSizing: 'border-box',
+          userSelect: 'none',
+          zIndex: 2,
+        }}
+      >
+        {/* Navigation Tabs */}
+        {tabs.map((tab) => {
+          const isActive = sidebarTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={`sidebar-vertical-tab-btn ${isActive ? 'active' : ''}`}
+              onClick={() => setSidebarTab(tab.id)}
+              title={tab.tooltip}
+              aria-label={tab.tooltip}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '3px',
+                width: '52px',
+                height: '52px',
+                padding: '5px 2px',
+                borderRadius: '10px',
+                border: 'none',
+                background: isActive ? 'rgba(227, 99, 151, 0.12)' : 'transparent',
+                color: isActive ? 'var(--primary, #db2777)' : 'var(--text-secondary, #64748b)',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'all 0.18s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.04)';
+                  e.currentTarget.style.color = 'var(--text-main, #1e293b)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary, #64748b)';
+                }
+              }}
+            >
+              {/* Active Indicator Bar on the left */}
+              {isActive && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '0px',
+                    top: '8px',
+                    bottom: '8px',
+                    width: '3.5px',
+                    borderTopRightRadius: '3px',
+                    borderBottomRightRadius: '3px',
+                    backgroundColor: 'var(--primary, #db2777)',
+                  }}
+                />
+              )}
+              <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{tab.icon}</span>
+              <span
+                style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.02em',
+                  lineHeight: 1.1,
+                }}
+              >
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Bottom Action: Toggle/Collapse Sidebar */}
         {onToggleSidebar && (
           <button
             type="button"
             onClick={onToggleSidebar}
-            title="Sembunyikan Sidebar (Ctrl+\\)"
-            aria-label="Sembunyikan Sidebar"
+            title="Sembunyikan Panel (Ctrl+\\)"
+            aria-label="Sembunyikan Panel"
             style={{
-              padding: '0.75rem 0.65rem',
-              border: 'none',
-              borderLeft: 'var(--studio-border)',
-              background: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all 0.2s ease',
-              flexShrink: 0,
+              gap: '3px',
+              width: '48px',
+              height: '46px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-secondary, #64748b)',
+              cursor: 'pointer',
+              transition: 'all 0.18s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--primary)';
-              e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.04)';
+              e.currentTarget.style.color = 'var(--primary, #db2777)';
+              e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.04)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.color = 'var(--text-secondary, #64748b)';
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
+            <span style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Tutup</span>
           </button>
         )}
       </div>
 
-      {/* TAB CONTENT 1: WIDGETS */}
-      {sidebarTab === 'widgets' && (
-        <WidgetsPanel
-          onAddWidget={onAddWidget}
-          onAddRootContainer={onAddRootContainer}
-          onInsertVariable={onInsertVariable}
-        />
-      )}
-
-      {/* TAB CONTENT 2: NAVIGATOR */}
-      {sidebarTab === 'navigator' && (
-        <div id="sidebar-content-navigator" className="sidebar-tab-content" style={{ display: 'block', padding: '1rem 1.25rem', height: 'calc(100% - 38px)', overflowY: 'auto', boxSizing: 'border-box' }}>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 0, marginBottom: '0.75rem' }}>🌳 Navigator Struktur Tree</p>
-          <div id="studio-navigator-tree" style={{ backgroundColor: 'var(--bg-body)', borderRadius: '8px', border: 'var(--studio-border)', padding: '0.5rem', minHeight: '250px', overflowY: 'auto' }}>
-            <NavigatorTree
-              nodes={nodes}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={(id) => {
-                onSelectNode(id);
-              }}
-              onDeleteNode={onDeleteNode}
-              onDuplicateNode={onDuplicateNode}
-              onMoveNode={onMoveNode}
-              onUpdateNode={onUpdateNode}
+      {/* 2. Main Content Drawer */}
+      <div
+        className="studio-sidebar-content"
+        style={{
+          flex: 1,
+          height: '100%',
+          overflow: 'hidden',
+          backgroundColor: 'var(--bg-card, #ffffff)',
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* TAB CONTENT 0: DATA UNDANGAN */}
+        {sidebarTab === 'data' && (
+          <div id="sidebar-content-data" className="sidebar-tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <DataPropertiesPanel
+              details={eventDetails || {}}
+              setDetails={setEventDetails || (() => {})}
+              eventTitle={eventTitle}
+              setEventTitle={setEventTitle}
+              eventSubdomain={eventSubdomain}
+              setEventSubdomain={setEventSubdomain}
+              eventStatus={eventStatus}
+              setEventStatus={setEventStatus}
+              isEvent={isEvent}
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* TAB CONTENT 3: GLOBAL PROPERTIES (DESIGN TOKENS) */}
-      {sidebarTab === 'global' && (
-        <div id="sidebar-content-global" className="sidebar-tab-content" style={{ display: 'block', height: 'calc(100% - 38px)', overflowY: 'auto' }}>
-          <GlobalPropertiesPanel />
-        </div>
-      )}
+        {/* TAB CONTENT 1: WIDGETS */}
+        {sidebarTab === 'widgets' && (
+          <div id="sidebar-content-widgets" className="sidebar-tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+            <WidgetsPanel
+              onAddWidget={onAddWidget}
+              onAddRootContainer={onAddRootContainer}
+              onInsertVariable={onInsertVariable}
+            />
+          </div>
+        )}
 
-      {/* TAB CONTENT 4: PROPERTIES (INSPECTOR) */}
-      {sidebarTab === 'properties' && (
-        <div id="sidebar-content-properties" className="sidebar-tab-content" style={{ display: 'block', height: 'calc(100% - 38px)', overflowY: 'auto' }}>
-          <InspectorPanel
-            node={selectedNode}
-            onUpdateNode={onUpdateNode}
-            onInsertVariable={onInsertVariable}
-          />
-        </div>
-      )}
+        {/* TAB CONTENT 2: NAVIGATOR */}
+        {sidebarTab === 'navigator' && (
+          <div id="sidebar-content-navigator" className="sidebar-tab-content" style={{ display: 'flex', flexDirection: 'column', padding: '1rem 1.25rem', height: '100%', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>🌳 Navigator Lapisan Tree</span>
+            </div>
+            <div id="studio-navigator-tree" style={{ backgroundColor: 'var(--bg-body)', borderRadius: '8px', border: 'var(--studio-border)', padding: '0.5rem', flex: 1, minHeight: '250px', overflowY: 'auto' }}>
+              <NavigatorTree
+                nodes={nodes}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={(id) => {
+                  onSelectNode(id);
+                }}
+                onDeleteNode={onDeleteNode}
+                onDuplicateNode={onDuplicateNode}
+                onMoveNode={onMoveNode}
+                onUpdateNode={onUpdateNode}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* TAB CONTENT 3: GLOBAL PROPERTIES (DESIGN TOKENS) */}
+        {sidebarTab === 'global' && (
+          <div id="sidebar-content-global" className="sidebar-tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+            <GlobalPropertiesPanel />
+          </div>
+        )}
+
+        {/* TAB CONTENT 4: PROPERTIES (INSPECTOR) */}
+        {sidebarTab === 'properties' && (
+          <div id="sidebar-content-properties" className="sidebar-tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+            <InspectorPanel
+              node={selectedNode}
+              onUpdateNode={onUpdateNode}
+              onInsertVariable={onInsertVariable}
+            />
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

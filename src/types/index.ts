@@ -178,6 +178,8 @@ export interface Template {
   thumbnail: string | null;
   globalStyles: Record<string, any> | GlobalStyles | null;
   nodes: StudioNode[] | null;
+  price?: number;
+  originalPrice?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -195,8 +197,25 @@ export interface Transaction {
   date: Date;
 }
 
-// ===== Studio Types =====
-export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride' | 'gift-widget' | 'opening-prayer' | 'thank-you';
+export type NodeType = 'container' | 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'input' | 'textarea' | 'select' | 'slider' | 'countdown' | 'map' | 'youtube' | 'music' | 'event' | 'lovestory' | 'gallery' | 'rsvp' | 'wishes' | 'groom-bride' | 'gift-widget' | 'opening-prayer' | 'thank-you' | 'navigation';
+
+export interface NavItem {
+  id: string;
+  label: string;
+  targetSection?: string;
+  targetId?: string;
+  iconType?: string;
+  customIconSvg?: string;
+  enabled?: boolean;
+  dockBg?: string;
+  dockBorderColor?: string;
+  activeBg?: string;
+  activeIconColor?: string;
+  inactiveBg?: string;
+  inactiveIconColor?: string;
+  tooltipBg?: string;
+  tooltipTextColor?: string;
+}
 
 export interface BankAccountItem {
   id?: string;
@@ -460,6 +479,50 @@ export interface StudioNode {
   countdownTargetDate?: string;
   customAction?: string;
   customActionParam?: string;
+  youtubeUrl?: string;
+  youtubeVideoId?: string;
+  videoAutoplay?: boolean;
+  videoMuted?: boolean;
+  videoLoop?: boolean;
+  videoControls?: boolean;
+  videoAspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
+  navItems?: NavItem[];
+  navPosition?: 'fixed-bottom' | 'fixed-top' | 'inline';
+  navAlignment?: 'center' | 'left' | 'right';
+  navDockShape?: 'pill' | 'rounded' | 'square' | 'none';
+  navItemShape?: 'circle' | 'squircle' | 'square' | 'ghost';
+  navSize?: 'sm' | 'md' | 'lg';
+  navLabelMode?: 'tooltip' | 'text' | 'bottom' | 'none';
+  navShowTooltip?: boolean;
+  navDockBg?: string;
+  navDockBorderColor?: string;
+  navDockBorderWidth?: number;
+  navDockShadow?: string;
+  navActiveBg?: string;
+  navActiveIconColor?: string;
+  navInactiveBg?: string;
+  navInactiveIconColor?: string;
+  navTooltipBg?: string;
+  navTooltipTextColor?: string;
+  navFontFamily?: string;
+  navFontSize?: number;
+  navFontWeight?: string;
+  navIconSize?: number;
+  navGap?: number;
+  navPadding?: string;
+  navAdaptiveBgMode?: 'off' | 'auto-section' | 'custom-per-item';
+  navAdaptiveStyle?: 'frosted-tint' | 'smart-contrast' | 'solid';
+  // Music Background Widget
+  musicUrl?: string;
+  musicTitle?: string;
+  musicArtist?: string;
+  musicAutoplay?: boolean;
+  musicLoop?: boolean;
+  musicFloating?: boolean;
+  musicPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'inline';
+  musicButtonBg?: string;
+  musicButtonColor?: string;
+  musicSpinAnimation?: boolean;
 }
 
 export interface StudioState {
@@ -616,6 +679,10 @@ export const SAMPLE_VARIABLES: SampleVariables = {
     'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=800&auto=format&fit=crop&q=80',
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
   ],
+  youtube_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+  youtubeUrl: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+  video_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+  live_stream_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
 };
 
 export interface VariableCategory {
@@ -729,6 +796,16 @@ export const DYNAMIC_VARIABLE_CATEGORIES: VariableCategory[] = [
       { tag: '{tahun_momen}', label: 'Tahun Momen (ID)', desc: 'Tahun Momen' },
       { tag: '{story_description}', label: 'Deskripsi Cerita', desc: 'Cerita Kenangan Momen' },
       { tag: '{deskripsi_momen}', label: 'Deskripsi (ID)', desc: 'Cerita Kenangan Momen' },
+    ],
+  },
+  {
+    id: 'media',
+    label: 'Video & Live Streaming',
+    icon: '🎥',
+    variables: [
+      { tag: '{youtube_url}', label: 'URL Video YouTube', desc: 'Link Video YouTube Undangan' },
+      { tag: '{video_url}', label: 'URL Video', desc: 'Link Video / Teaser' },
+      { tag: '{live_stream_url}', label: 'Live Stream URL', desc: 'Link Siaran Langsung (YouTube Live / Zoom)' },
     ],
   },
 ];

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { WHATSAPP_CONFIG } from '@/config/whatsapp';
 
 interface TemplateItem {
   id: string;
@@ -11,6 +12,8 @@ interface TemplateItem {
   status?: string;
   views: number;
   thumbnail: string;
+  price?: number;
+  originalPrice?: number;
 }
 
 export function TemplateGallery() {
@@ -49,7 +52,7 @@ export function TemplateGallery() {
           <span className="section-badge">✨ Koleksi Desain</span>
           <h2 className="section-title">Template Undangan Premium</h2>
           <p className="section-subtitle">
-            Pilih dari koleksi desain eksklusif kami yang dirancang oleh desainer profesional. Setiap template dapat dikustomisasi sepenuhnya sesuai selera Anda.
+            Pilih dari koleksi desain eksklusif kami yang dirancang oleh desainer profesional. Hubungi kami via WhatsApp untuk membuat undangan dengan template pilihan Anda.
           </p>
         </div>
 
@@ -98,6 +101,7 @@ export function TemplateGallery() {
               const tierClass = tpl.tier === 'Free' ? 'free' : tpl.tier === 'Enterprise' ? 'enterprise' : 'pro';
               const tierLabel = tpl.tier === 'Free' ? 'Gratis' : tpl.tier === 'Enterprise' ? 'Enterprise 👑' : 'Pro 🚀';
               const thumbUrl = tpl.thumbnail || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500';
+              const priceText = tpl.price ? `Rp ${tpl.price.toLocaleString('id-ID')}` : 'Gratis';
 
               return (
                 <div key={tpl.id} className="tpl-card">
@@ -108,18 +112,47 @@ export function TemplateGallery() {
                   </div>
                   <div className="tpl-card__body">
                     <div className="tpl-card__name">{tpl.name}</div>
+
+                    {/* Harga Template & Harga Coret */}
+                    <div className="tpl-card__pricing">
+                      {(!tpl.price || tpl.price === 0) ? (
+                        <span className="tpl-card__price tpl-card__price--free">Gratis</span>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
+                          <span className="tpl-card__price">
+                            Rp {tpl.price.toLocaleString('id-ID')}
+                          </span>
+                          {tpl.originalPrice && tpl.originalPrice > tpl.price && (
+                            <>
+                              <span className="tpl-card__original-price">
+                                Rp {tpl.originalPrice.toLocaleString('id-ID')}
+                              </span>
+                              <span className="tpl-card__discount-tag">
+                                -{Math.round(((tpl.originalPrice - tpl.price) / tpl.originalPrice) * 100)}%
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="tpl-card__actions">
-                      <a
-                        href={`/studio/${tpl.id}/preview`}
+                      <Link
+                        href={`/preview/${encodeURIComponent(tpl.name)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="tpl-card__btn tpl-card__btn--preview"
                       >
                         👁️ Preview
-                      </a>
-                      <Link href={`/register?templateId=${tpl.id}`} className="tpl-card__btn tpl-card__btn--use">
-                        🚀 Gunakan
                       </Link>
+                      <a
+                        href={WHATSAPP_CONFIG.getUrl(WHATSAPP_CONFIG.templateMessage(tpl.name, priceText))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tpl-card__btn tpl-card__btn--use"
+                      >
+                        💬 Pesan
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -129,9 +162,16 @@ export function TemplateGallery() {
         )}
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
-          <Link href="/register" className="btn btn-primary" style={{ padding: '0.85rem 2.5rem', fontSize: '1rem', fontWeight: 800 }}>
-            Mulai Gratis Sekarang &rarr;
-          </Link>
+          <a
+            href={WHATSAPP_CONFIG.getUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary"
+            style={{ padding: '0.85rem 2.5rem', fontSize: '1rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <span>💬</span>
+            <span>Konsultasi & Pesan Desain Khusus &rarr;</span>
+          </a>
         </div>
       </div>
     </section>

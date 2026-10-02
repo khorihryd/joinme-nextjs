@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
 import { ThemeToggle } from './ThemeToggle';
 import { useState } from 'react';
+import { WHATSAPP_CONFIG } from '@/config/whatsapp';
 
 export function Navbar() {
-  const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -21,45 +20,39 @@ export function Navbar() {
           <span>Join<span className="logo-accent">Me</span></span>
         </Link>
 
-        <nav className="nav-menu">
-          <a href="#features" className="nav-link">Fitur</a>
-          <a href="#templates" className="nav-link">Templat</a>
-          <a href="#pricing" className="nav-link">Harga</a>
-          <a href="#faq" className="nav-link">FAQ</a>
+        <nav className={`nav-menu ${mobileMenuOpen ? 'active' : ''}`}>
+          <a href="#features" className="nav-link" onClick={() => setMobileMenuOpen(false)}>Fitur</a>
+          <a href="#templates" className="nav-link" onClick={() => setMobileMenuOpen(false)}>Templat</a>
+          <a href="#faq" className="nav-link" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+          <div className="mobile-only-cta" style={{ marginTop: '0.5rem', display: 'none' }}>
+            <a
+              href={WHATSAPP_CONFIG.getUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+              style={{ width: '100%', justifyContent: 'center', gap: '0.4rem' }}
+            >
+              <span>💬 Pesan via WhatsApp</span>
+            </a>
+          </div>
         </nav>
 
         <div className="nav-actions">
           <ThemeToggle />
 
-          {session ? (
-            <div className="flex items-center gap-3">
-              <Link
-                href={session.user.role === 'admin' ? '/admin' : '/dashboard'}
-                className="btn btn-primary btn-nav"
-              >
-                Dashboard ({session.user.name.split(' ')[0]})
-              </Link>
-              <button
-                onClick={() => signOut({ callbackUrl: '/' })}
-                className="nav-link"
-                style={{ fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                Keluar
-              </button>
-            </div>
-          ) : (
-            <>
-              <Link href="/login" className="nav-link" style={{ marginRight: '0.5rem', fontWeight: 600 }}>
-                Masuk
-              </Link>
-              <Link href="/register" className="btn btn-primary btn-nav">
-                Mulai Gratis
-              </Link>
-            </>
-          )}
+          <a
+            href={WHATSAPP_CONFIG.getUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary btn-nav"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <span>💬</span>
+            <span>Pesan Sekarang</span>
+          </a>
 
           <button
-            className="mobile-nav-toggle"
+            className={`mobile-nav-toggle ${mobileMenuOpen ? 'active' : ''}`}
             id="mobile-toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Ubah menu navigasi"

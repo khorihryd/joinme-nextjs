@@ -52,6 +52,10 @@ export const DEFAULT_SAMPLE_EVENT_DETAILS: Record<string, any> = {
   gallery: [...DEFAULT_SAMPLE_GALLERY],
   galleryImages: [...DEFAULT_SAMPLE_GALLERY],
   photos: [...DEFAULT_SAMPLE_GALLERY],
+  youtube_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+  youtubeUrl: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+  video_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+  live_stream_url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
 };
 
 export { SAMPLE_VARIABLES, DEFAULT_NODES, createDefaultWidget };
@@ -361,6 +365,20 @@ export function resolveTextVariables(text: string, eventDetails?: any): string {
       vars.music_url = effectiveDetails.musicUrl || effectiveDetails.music_url;
     }
 
+    // YouTube / Video / Live Stream URLs
+    const ytUrl = effectiveDetails.youtube_url || effectiveDetails.youtubeUrl || effectiveDetails.video_url || effectiveDetails.videoUrl;
+    if (ytUrl) {
+      vars.youtube_url = ytUrl;
+      vars.youtubeUrl = ytUrl;
+      vars.video_url = ytUrl;
+      vars.link_youtube = ytUrl;
+    }
+    const liveUrl = effectiveDetails.live_stream_url || effectiveDetails.liveStreamUrl;
+    if (liveUrl) {
+      vars.live_stream_url = liveUrl;
+      vars.liveStreamUrl = liveUrl;
+    }
+
     if (effectiveDetails.story_year || effectiveDetails.year) {
       const sYear = effectiveDetails.story_year || effectiveDetails.year;
       vars.story_year = sYear;
@@ -519,7 +537,7 @@ interface StudioStore {
   globalStyles: GlobalStyles;
   selectedNodeId: string | null;
   viewportMode: 'desktop' | 'tablet' | 'mobile';
-  sidebarTab: 'widgets' | 'navigator' | 'global' | 'properties';
+  sidebarTab: 'data' | 'widgets' | 'navigator' | 'global' | 'properties';
   showSidebar: boolean;
   activeInspectorTab: 'layout' | 'style' | 'advanced';
   lastFocusedInput: HTMLInputElement | HTMLTextAreaElement | null;
@@ -532,7 +550,7 @@ interface StudioStore {
   updateGlobalStyles: (updatedStyles: Partial<GlobalStyles>) => void;
   selectNode: (id: string | null) => void;
   setViewportMode: (mode: 'desktop' | 'tablet' | 'mobile') => void;
-  setSidebarTab: (tab: 'widgets' | 'navigator' | 'global' | 'properties') => void;
+  setSidebarTab: (tab: 'data' | 'widgets' | 'navigator' | 'global' | 'properties') => void;
   setShowSidebar: (show: boolean) => void;
   toggleSidebar: () => void;
   setActiveInspectorTab: (tab: 'layout' | 'style' | 'advanced') => void;
@@ -624,7 +642,7 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
   },
   selectNode: (selectedNodeId: string | null) => set({ selectedNodeId }),
   setViewportMode: (viewportMode: 'desktop' | 'tablet' | 'mobile') => set({ viewportMode }),
-  setSidebarTab: (sidebarTab: 'widgets' | 'navigator' | 'global' | 'properties') => set({ sidebarTab, showSidebar: true }),
+  setSidebarTab: (sidebarTab: 'data' | 'widgets' | 'navigator' | 'global' | 'properties') => set({ sidebarTab, showSidebar: true }),
   setShowSidebar: (showSidebar: boolean) => set({ showSidebar }),
   toggleSidebar: () => set((state) => ({ showSidebar: !state.showSidebar })),
   setActiveInspectorTab: (activeInspectorTab: 'layout' | 'style' | 'advanced') => set({ activeInspectorTab }),

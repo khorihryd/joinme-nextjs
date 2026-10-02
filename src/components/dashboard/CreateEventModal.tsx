@@ -22,6 +22,12 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialTemplateId
   const { showToast } = useToast();
 
   useEffect(() => {
+    if (initialTemplateId) {
+      setTemplateId(initialTemplateId);
+    }
+  }, [initialTemplateId]);
+
+  useEffect(() => {
     if (!isOpen) return;
     async function loadTemplates() {
       try {
@@ -30,7 +36,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialTemplateId
           const data = await res.json();
           if (Array.isArray(data)) {
             setTemplates(data);
-            if (!templateId && data.length > 0) {
+            if (!initialTemplateId && !templateId && data.length > 0) {
               setTemplateId(data[0].id);
             }
           }
@@ -40,7 +46,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialTemplateId
       }
     }
     loadTemplates();
-  }, [isOpen]);
+  }, [isOpen, initialTemplateId]);
 
   if (!isOpen) return null;
 
@@ -71,7 +77,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialTemplateId
       showToast('Undangan berhasil dibuat!', 'success');
       onSuccess();
       onClose();
-      router.push(`/events/${data.id}/edit`);
+      router.push(`/studio/${data.id}`);
     } catch (err) {
       showToast('Terjadi kesalahan sistem', 'error');
       setLoading(false);

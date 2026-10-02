@@ -3,8 +3,9 @@
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { NodeRenderer } from '@/components/studio/NodeRenderer';
-import { useStudioStore, DEFAULT_NODES, GlobalStyles, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables, DEFAULT_SAMPLE_STORIES, DEFAULT_SAMPLE_SCHEDULES, DEFAULT_SAMPLE_BANKS, DEFAULT_SAMPLE_GALLERY } from '@/store/studio-store';
+import { useStudioStore, DEFAULT_NODES, GlobalStyles, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables, DEFAULT_SAMPLE_STORIES, DEFAULT_SAMPLE_SCHEDULES, DEFAULT_SAMPLE_BANKS, DEFAULT_SAMPLE_GALLERY, DEFAULT_SAMPLE_EVENT_DETAILS } from '@/store/studio-store';
 import { StudioNode } from '@/types';
+import { getPreviewData } from '@/utils/previewStorage';
 
 export default function StudioPreviewPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const resolvedParams = typeof (params as any)?.then === 'function' ? use(params as Promise<{ id: string }>) : (params as { id: string });
@@ -22,32 +23,39 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
   const [isCoverOpened, setIsCoverOpened] = useState(false);
   const [viewportMode, setViewportMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
-  const sampleData = globalStyles?.sampleEventDetails || {};
+  const [rawEventDetails, setRawEventDetails] = useState<any>(null);
+
+  const sampleData = globalStyles?.sampleEventDetails || DEFAULT_SAMPLE_EVENT_DETAILS;
+  const effectiveData = {
+    ...sampleData,
+    ...(rawEventDetails || {}),
+  };
+
   const activeGallery =
-    (Array.isArray(globalStyles?.galleryImages) && globalStyles.galleryImages.length > 0)
+    (Array.isArray(effectiveData?.gallery) && effectiveData.gallery.length > 0)
+      ? effectiveData.gallery
+      : (Array.isArray(globalStyles?.galleryImages) && globalStyles.galleryImages.length > 0)
       ? globalStyles.galleryImages
-      : (Array.isArray(sampleData?.gallery) && sampleData.gallery.length > 0)
-      ? sampleData.gallery
-      : (Array.isArray(sampleData?.galleryImages) && sampleData.galleryImages.length > 0)
-      ? sampleData.galleryImages
-      : (Array.isArray(sampleData?.photos) && sampleData.photos.length > 0)
-      ? sampleData.photos
+      : (Array.isArray(effectiveData?.galleryImages) && effectiveData.galleryImages.length > 0)
+      ? effectiveData.galleryImages
+      : (Array.isArray(effectiveData?.photos) && effectiveData.photos.length > 0)
+      ? effectiveData.photos
       : DEFAULT_SAMPLE_GALLERY;
 
-  const pPria = sampleData.panggilanPria || 'Jonathan';
-  const pWanita = sampleData.panggilanWanita || 'Anti';
-  const iPria = sampleData.inisialPria || sampleData.inisial_pria || sampleData.groom_initial || (pPria ? pPria.trim().charAt(0).toUpperCase() : 'J');
-  const iWanita = sampleData.inisialWanita || sampleData.inisial_wanita || sampleData.bride_initial || (pWanita ? pWanita.trim().charAt(0).toUpperCase() : 'A');
-  const iPasangan = sampleData.inisialPasangan || sampleData.inisial_pasangan || sampleData.couple_initials || `${iPria} & ${iWanita}`;
+  const pPria = effectiveData.panggilanPria || 'Jonathan';
+  const pWanita = effectiveData.panggilanWanita || 'Anti';
+  const iPria = effectiveData.inisialPria || effectiveData.inisial_pria || effectiveData.groom_initial || (pPria ? pPria.trim().charAt(0).toUpperCase() : 'J');
+  const iWanita = effectiveData.inisialWanita || effectiveData.inisial_wanita || effectiveData.bride_initial || (pWanita ? pWanita.trim().charAt(0).toUpperCase() : 'A');
+  const iPasangan = effectiveData.inisialPasangan || effectiveData.inisial_pasangan || effectiveData.couple_initials || `${iPria} & ${iWanita}`;
 
   const eventDetails = {
-    mempelaiPria: sampleData.mempelaiPria || 'Jonathan Wijaya, S.Kom.',
+    mempelaiPria: effectiveData.mempelaiPria || 'Jonathan Wijaya, S.Kom.',
     panggilanPria: pPria,
     inisialPria: iPria,
     inisial_pria: iPria,
     groom_initial: iPria,
-    ortuPria: sampleData.ortuPria || 'Putra dari Bp. Hendra & Ibu Maria',
-    mempelaiWanita: sampleData.mempelaiWanita || 'Anti Rahmawati, S.T.',
+    ortuPria: effectiveData.ortuPria || 'Putra dari Bp. Hendra & Ibu Maria',
+    mempelaiWanita: effectiveData.mempelaiWanita || 'Anti Rahmawati, S.T.',
     panggilanWanita: pWanita,
     inisialWanita: iWanita,
     inisial_wanita: iWanita,
@@ -55,18 +63,18 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
     inisialPasangan: iPasangan,
     inisial_pasangan: iPasangan,
     couple_initials: iPasangan,
-    ortuWanita: sampleData.ortuWanita || 'Putri dari Bp. Bambang & Ibu Sri',
-    event_date: sampleData.event_date || sampleData.tanggal_acara || '21 September 2026',
-    event_time: sampleData.event_time || sampleData.waktu_acara || '08:00 - 14:00 WIB',
-    event_location: sampleData.event_location || sampleData.lokasi_acara || 'Grand Ballroom Hotel Mulia, Jakarta',
-    story: DEFAULT_SAMPLE_STORIES,
-    schedules: DEFAULT_SAMPLE_SCHEDULES,
-    bankAccounts: DEFAULT_SAMPLE_BANKS,
-    showStory: true,
-    showGallery: true,
+    ortuWanita: effectiveData.ortuWanita || 'Putri dari Bp. Bambang & Ibu Sri',
+    event_date: effectiveData.event_date || effectiveData.tanggal_acara || '21 September 2026',
+    event_time: effectiveData.event_time || effectiveData.waktu_acara || '08:00 - 14:00 WIB',
+    event_location: effectiveData.event_location || effectiveData.lokasi_acara || 'Grand Ballroom Hotel Mulia, Jakarta',
+    story: Array.isArray(effectiveData.story) && effectiveData.story.length > 0 ? effectiveData.story : DEFAULT_SAMPLE_STORIES,
+    schedules: Array.isArray(effectiveData.schedules) && effectiveData.schedules.length > 0 ? effectiveData.schedules : DEFAULT_SAMPLE_SCHEDULES,
+    bankAccounts: Array.isArray(effectiveData.bankAccounts) && effectiveData.bankAccounts.length > 0 ? effectiveData.bankAccounts : DEFAULT_SAMPLE_BANKS,
+    showStory: effectiveData.showStory !== false,
+    showGallery: effectiveData.showGallery !== false,
     isCatalogPreview: true,
     isCoverOpened: isCoverOpened,
-    ...sampleData,
+    ...effectiveData,
     gallery: activeGallery,
     galleryImages: activeGallery,
     photos: activeGallery,
@@ -103,12 +111,15 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
         const isFromEditor = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fromEditor') === 'true';
 
         if (isFromEditor) {
-          const savedPreviewNodes = localStorage.getItem(`studio_preview_nodes_${id}`) || localStorage.getItem('studio_preview_nodes');
-          const savedGlobalStyles = localStorage.getItem(`studio_preview_global_styles_${id}`) || localStorage.getItem('studio_preview_global_styles');
+          const [savedPreviewNodes, savedGlobalStyles, savedPreviewDetails] = await Promise.all([
+            getPreviewData(`studio_preview_nodes_${id}`),
+            getPreviewData(`studio_preview_global_styles_${id}`),
+            getPreviewData(`studio_preview_details_${id}`),
+          ]);
 
           if (savedGlobalStyles) {
             try {
-              const parsedGlobal = JSON.parse(savedGlobalStyles);
+              const parsedGlobal = typeof savedGlobalStyles === 'string' ? JSON.parse(savedGlobalStyles) : savedGlobalStyles;
               setGlobalStyles(parsedGlobal);
               useStudioStore.setState({ globalStyles: parsedGlobal });
               if (parsedGlobal.fontFamily) ensureGoogleFontLoaded(parsedGlobal.fontFamily);
@@ -117,8 +128,15 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
             } catch (e) {}
           }
 
+          if (savedPreviewDetails) {
+            try {
+              const parsedDetails = typeof savedPreviewDetails === 'string' ? JSON.parse(savedPreviewDetails) : savedPreviewDetails;
+              setRawEventDetails(parsedDetails);
+            } catch (e) {}
+          }
+
           if (savedPreviewNodes) {
-            const parsed = JSON.parse(savedPreviewNodes);
+            const parsed = typeof savedPreviewNodes === 'string' ? JSON.parse(savedPreviewNodes) : savedPreviewNodes;
             if (Array.isArray(parsed) && parsed.length > 0) {
               setNodes(parsed);
               useStudioStore.setState({ nodes: parsed });
@@ -133,7 +151,8 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
         const res = await fetch(`/api/studio/${id}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.name) setTemplateName(data.name);
+          if (data.name || data.title) setTemplateName(data.name || data.title);
+          if (data.details) setRawEventDetails(data.details);
 
           const gStyles = data.globalStyles || data.details?.globalStyles;
           if (gStyles) {
@@ -204,6 +223,17 @@ export default function StudioPreviewPage({ params }: { params: Promise<{ id: st
 
   const handleOpenCover = () => {
     setIsCoverOpened(true);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' as any });
+      const scrollEls = document.querySelectorAll<HTMLElement>('[style*="overflow"], [class*="overflow"]');
+      scrollEls.forEach((el) => {
+        if (el.scrollHeight > el.clientHeight + 20) {
+          el.scrollTo({ top: 0, behavior: 'instant' as any });
+          el.dispatchEvent(new Event('scroll'));
+        }
+      });
+      window.dispatchEvent(new Event('scroll'));
+    }, 50);
   };
 
   const hasMultipleContainers = nodes.length > 1;

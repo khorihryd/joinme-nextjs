@@ -23,7 +23,7 @@ export const authConfig: NextAuthConfig = {
     },
   },
   pages: {
-    signIn: '/login',
+    signIn: '/gate/jm-ctrl-2026',
   },
   session: {
     strategy: 'jwt',

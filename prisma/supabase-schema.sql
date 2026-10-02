@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS "Template" (
   "thumbnail" TEXT,
   "globalStyles" JSONB,
   "nodes" JSONB,
+  "price" INTEGER DEFAULT 0,
+  "originalPrice" INTEGER DEFAULT 0,
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

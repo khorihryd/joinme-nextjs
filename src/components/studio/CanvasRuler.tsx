@@ -17,8 +17,12 @@ interface CanvasRulerProps {
 export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLDivElement>(null);
+  const hHairlineRef = useRef<HTMLDivElement>(null);
+  const vHairlineRef = useRef<HTMLDivElement>(null);
+  const coordBadgeXRef = useRef<HTMLSpanElement>(null);
+  const coordBadgeYRef = useRef<HTMLSpanElement>(null);
+  const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [scrollPos, setScrollPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
   const [maxContentSize, setMaxContentSize] = useState<{ width: number; height: number }>({ width: 2400, height: 6000 });
   const [guides, setGuides] = useState<GuideLine[]>([]);
@@ -50,10 +54,22 @@ export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerP
   const updateScrollAndDimensions = () => {
     if (stageAreaRef.current) {
       const el = stageAreaRef.current;
-      setScrollPos({ left: el.scrollLeft, top: el.scrollTop });
+      const sLeft = el.scrollLeft;
+      const sTop = el.scrollTop;
+      setScrollPos((prev) => (prev.left === sLeft && prev.top === sTop ? prev : { left: sLeft, top: sTop }));
+
+      if (hHairlineRef.current) {
+        hHairlineRef.current.style.left = `${mousePosRef.current.x - sLeft}px`;
+      }
+      if (vHairlineRef.current) {
+        vHairlineRef.current.style.top = `${mousePosRef.current.y - sTop}px`;
+      }
+
       const computedHeight = Math.max(el.scrollHeight, 6000);
       const computedWidth = Math.max(el.scrollWidth, 2400);
-      setMaxContentSize({ width: computedWidth, height: computedHeight });
+      setMaxContentSize((prev) =>
+        prev.width === computedWidth && prev.height === computedHeight ? prev : { width: computedWidth, height: computedHeight }
+      );
     }
   };
 
@@ -65,24 +81,38 @@ export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerP
       clearTimeout(timer);
       window.removeEventListener('resize', updateScrollAndDimensions);
     };
-  }, [viewportMode, showRulers, children]);
+  }, [viewportMode, showRulers]);
 
-  // Track mouse position relative to canvas content
+  // Track mouse position relative to canvas content without re-rendering the whole component
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!stageAreaRef.current) return;
     const rect = stageAreaRef.current.getBoundingClientRect();
     const x = Math.round(e.clientX - rect.left + stageAreaRef.current.scrollLeft);
     const y = Math.round(e.clientY - rect.top + stageAreaRef.current.scrollTop);
-    setMousePos({ x, y });
+    mousePosRef.current = { x, y };
+
+    if (hHairlineRef.current) {
+      hHairlineRef.current.style.left = `${x - scrollPos.left}px`;
+    }
+    if (vHairlineRef.current) {
+      vHairlineRef.current.style.top = `${y - scrollPos.top}px`;
+    }
+    if (coordBadgeXRef.current) {
+      coordBadgeXRef.current.textContent = `📏 X: ${x}px`;
+    }
+    if (coordBadgeYRef.current) {
+      coordBadgeYRef.current.textContent = `Y: ${y}px`;
+    }
 
     // Handle guide dragging
     if (draggingGuideId) {
-      const targetGuide = guides.find((g) => g.id === draggingGuideId);
-      if (targetGuide) {
+      setGuides((prevGuides) => {
+        const targetGuide = prevGuides.find((g) => g.id === draggingGuideId);
+        if (!targetGuide) return prevGuides;
         const newPos = targetGuide.type === 'horizontal' ? y : x;
-        const updated = guides.map((g) => (g.id === draggingGuideId ? { ...g, position: newPos } : g));
-        saveGuides(updated);
-      }
+        if (targetGuide.position === newPos) return prevGuides;
+        return prevGuides.map((g) => (g.id === draggingGuideId ? { ...g, position: newPos } : g));
+      });
     }
   };
 
@@ -115,7 +145,14 @@ export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerP
   };
 
   const handleMouseUp = () => {
-    setDraggingGuideId(null);
+    if (draggingGuideId) {
+      setDraggingGuideId(null);
+      try {
+        localStorage.setItem('studio_photoshop_guides', JSON.stringify(guides));
+      } catch (e) {
+        console.error('Failed to save ruler guides:', e);
+      }
+    }
   };
 
   const handleRemoveGuide = (id: string, e?: React.MouseEvent) => {
@@ -294,9 +331,10 @@ export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerP
 
           {/* Mouse Hairline Tracker (Horizontal) */}
           <div
+            ref={hHairlineRef}
             style={{
               position: 'absolute',
-              left: `${mousePos.x - scrollPos.left}px`,
+              left: 0,
               top: 0,
               bottom: 0,
               width: '1px',
@@ -340,9 +378,10 @@ export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerP
 
           {/* Mouse Hairline Tracker (Vertical) */}
           <div
+            ref={vHairlineRef}
             style={{
               position: 'absolute',
-              top: `${mousePos.y - scrollPos.top}px`,
+              top: 0,
               left: 0,
               right: 0,
               height: '1px',
@@ -356,6 +395,8 @@ export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerP
         {/* Scrollable Stage Content Wrapper */}
         <div
           ref={stageAreaRef}
+          id="studio-canvas-scroll-area"
+          className="studio-canvas-scroll-area"
           onScroll={updateScrollAndDimensions}
           style={{
             flex: 1,
@@ -461,9 +502,9 @@ export function CanvasRuler({ showRulers, viewportMode, children }: CanvasRulerP
               gap: '8px',
             }}
           >
-            <span>📏 X: {mousePos.x}px</span>
+            <span ref={coordBadgeXRef}>📏 X: 0px</span>
             <span style={{ color: 'rgba(255,255,255,0.3)' }}>|</span>
-            <span>Y: {mousePos.y}px</span>
+            <span ref={coordBadgeYRef}>Y: 0px</span>
             {guides.length > 0 && (
               <>
                 <span style={{ color: 'rgba(255,255,255,0.3)' }}>|</span>

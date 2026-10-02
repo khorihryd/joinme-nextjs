@@ -209,6 +209,8 @@ export function NavigatorTree({
         return '⏳';
       case 'map':
         return '🗺️';
+      case 'youtube':
+        return '🎥';
       case 'divider':
         return '➖';
       case 'spacer':
@@ -229,6 +231,10 @@ export function NavigatorTree({
         return '📜';
       case 'thank-you':
         return '🙏';
+      case 'music':
+        return '🎵';
+      case 'navigation':
+        return '🧭';
       default:
         return '📄';
     }

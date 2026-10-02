@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { WHATSAPP_CONFIG } from '@/config/whatsapp';
 
 export function Pricing() {
   return (
@@ -7,7 +7,7 @@ export function Pricing() {
         <div className="section-header">
           <h2 className="section-title">Harga Sederhana & Transparan</h2>
           <p className="section-subtitle">
-            Tanpa biaya tersembunyi. Pilih paket yang sempurna untuk hari istimewa Anda. Upgrade atau downgrade kapan saja.
+            Pilih paket yang sesuai untuk hari istimewa Anda. Pemesanan dan konfirmasi pembayaran mudah via transfer manual lewat WhatsApp.
           </p>
         </div>
 
@@ -51,9 +51,15 @@ export function Pricing() {
                 </li>
               </ul>
 
-              <Link href="/register" className="btn btn-secondary btn-block">
-                Buat Undangan Gratis
-              </Link>
+              <a
+                href={WHATSAPP_CONFIG.getUrl(WHATSAPP_CONFIG.pricingMessage('Paket Starter'))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary btn-block"
+                style={{ textAlign: 'center', textDecoration: 'none' }}
+              >
+                💬 Pesan Paket Starter
+              </a>
             </div>
           </div>
 
@@ -102,9 +108,15 @@ export function Pricing() {
                 </li>
               </ul>
 
-              <Link href="/register" className="btn btn-primary btn-block">
-                Pilih Premium Sekarang
-              </Link>
+              <a
+                href={WHATSAPP_CONFIG.getUrl(WHATSAPP_CONFIG.pricingMessage('Paket Pro'))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-block"
+                style={{ textAlign: 'center', textDecoration: 'none' }}
+              >
+                💬 Pesan Paket Pro
+              </a>
             </div>
           </div>
 
@@ -140,9 +152,15 @@ export function Pricing() {
                 </li>
               </ul>
 
-              <Link href="/register" className="btn btn-secondary btn-block">
-                Hubungi Penjualan
-              </Link>
+              <a
+                href={WHATSAPP_CONFIG.getUrl(WHATSAPP_CONFIG.pricingMessage('Paket VIP / Enterprise'))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary btn-block"
+                style={{ textAlign: 'center', textDecoration: 'none' }}
+              >
+                💬 Hubungi via WhatsApp
+              </a>
             </div>
           </div>
         </div>

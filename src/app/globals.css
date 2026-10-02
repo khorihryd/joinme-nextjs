@@ -1578,6 +1578,10 @@ img {
   .btn-nav {
     display: none; /* Hide nav button, show primary hero button instead */
   }
+
+  .mobile-only-cta {
+    display: block !important;
+  }
   
   /* Active hamburger state */
   .mobile-nav-toggle.active .bar:nth-child(1) {
@@ -3064,6 +3068,40 @@ img {
   overflow: hidden;
 }
 
+.tpl-card__pricing {
+  margin-top: -0.2rem;
+  margin-bottom: 0.1rem;
+}
+
+.tpl-card__price {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+.tpl-card__price--free {
+  color: #10b981;
+  font-size: 0.95rem;
+}
+
+.tpl-card__original-price {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.tpl-card__discount-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
 .tpl-card__actions {
   display: flex;
   gap: 0.5rem;
@@ -3714,7 +3752,7 @@ input.sim-form:focus,
    STUDIO PRO SPECIFIC STYLING
    ========================================================================== */
 :root {
-  --sidebar-width: 340px;
+  --sidebar-width: 400px;
   --inspector-width: 0px;
   --topbar-height: 60px;
   --studio-border: 1px solid var(--border-color);
@@ -3820,8 +3858,8 @@ body.studio-body {
   background-color: var(--bg-card);
   border-right: var(--studio-border);
   display: flex;
-  flex-direction: column;
-  overflow-y: auto;
+  flex-direction: row;
+  overflow: hidden;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
   flex-shrink: 0;
   position: relative;
@@ -4201,6 +4239,36 @@ body.preview-mode .canvas-node-item:hover,
 .sidebar-mode-btn.active {
   border-bottom: 2px solid var(--primary) !important;
   color: var(--primary) !important;
+}
+
+/* Vertical Sidebar Activity Bar Tabs */
+.sidebar-vertical-tab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 52px;
+  height: 54px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+.sidebar-vertical-tab-btn:hover {
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  color: var(--text-main, #1e293b);
+}
+
+.sidebar-vertical-tab-btn.active {
+  background-color: rgba(227, 99, 151, 0.12) !important;
+  color: var(--primary, #db2777) !important;
 }
 
 /* Custom Google Font Picker Dropdown Styling */

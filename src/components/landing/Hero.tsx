@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { WHATSAPP_CONFIG } from '@/config/whatsapp';
 
 export function Hero() {
   const [activeTab, setActiveTab] = useState<'wedding' | 'birthday' | 'business'>('wedding');
@@ -18,24 +18,31 @@ export function Hero() {
       <div className="container hero-container">
         <div className="hero-content">
           <div className="trust-badge">
-            <span className="badge-icon">🎉</span>
-            <span className="badge-text">Dipercaya oleh 50.000+ penyelenggara di seluruh dunia</span>
+            <span className="badge-icon">✨</span>
+            <span className="badge-text">Undangan Digital Eksklusif & Bebas Repot</span>
           </div>
 
           <h1 className="hero-title">
-            Buat Undangan <span className="gradient-text">Digital Keren</span> dalam Hitungan Menit
+            Undangan Digital <span className="gradient-text">Eksklusif & Indah</span> Siap Pakai
           </h1>
 
           <p className="hero-subtitle">
-            Rancang undangan web yang indah dan interaktif untuk pernikahan, ulang tahun, dan acara perusahaan. Kelola RSVP, sematkan peta lokasi, kumpulkan doa restu tamu, dan bagikan galeri foto—semuanya dalam satu platform SaaS yang elegan.
+            Pilih template favorit Anda, kirimkan detail acara via WhatsApp, dan tim kami yang akan merancang serta menerbitkan undangan digital profesional untuk hari spesial Anda.
           </p>
 
           <div className="hero-buttons">
-            <Link href="/register" className="btn btn-primary">
-              Mulai Buat Gratis
-            </Link>
+            <a
+              href={WHATSAPP_CONFIG.getUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <span>💬</span>
+              <span>Pesan via WhatsApp</span>
+            </a>
             <a href="#templates" className="btn btn-secondary">
-              Coba Demo Live
+              Lihat Pilihan Template
             </a>
           </div>
 
@@ -44,13 +51,13 @@ export function Hero() {
               <svg className="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
-              <span>Tanpa Perlu Coding</span>
+              <span>Dikerjakan oleh Tim Ahli</span>
             </div>
             <div className="hero-feature-item">
               <svg className="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
-              <span>Pelacakan RSVP Real-time</span>
+              <span>Musik & Galeri Foto</span>
             </div>
             <div className="hero-feature-item">
               <svg className="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

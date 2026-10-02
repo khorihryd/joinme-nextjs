@@ -11,6 +11,7 @@ import { SaveAsNewModal } from '@/components/studio/SaveAsNewModal';
 import { useToast } from '@/components/ui/Toast';
 import { createDefaultWidget } from '@/store/studio-store';
 import { StudioNode } from '@/types';
+import { setPreviewData } from '@/utils/previewStorage';
 
 export default function StudioPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const resolvedParams = typeof (params as any)?.then === 'function' ? use(params as Promise<{ id: string }>) : (params as { id: string });
@@ -42,6 +43,11 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
 
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<any>(null);
+  const [isEvent, setIsEvent] = useState(false);
+  const [eventDetails, setEventDetails] = useState<any>({});
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventSubdomain, setEventSubdomain] = useState('');
+  const [eventStatus, setEventStatus] = useState<'Draft' | 'Aktif'>('Draft');
   const [isSaveAsNewOpen, setIsSaveAsNewOpen] = useState(false);
   const [showRulers, setShowRulers] = useState(true);
 
@@ -51,8 +57,27 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         const res = await fetch(`/api/studio/${id}`);
         if (res.ok) {
           const data = await res.json();
+          const isEvt = data.isEvent === true || !!data.userId || !!data.subdomain;
+          setIsEvent(isEvt);
           setTemplate(data);
-          if (data.nodes) setNodes(Array.isArray(data.nodes) ? data.nodes : JSON.parse(data.nodes));
+
+          if (isEvt) {
+            setEventTitle(data.title || '');
+            setEventSubdomain(data.subdomain || '');
+            setEventStatus(data.status || 'Draft');
+            setEventDetails(data.details || {});
+            setSidebarTab('data');
+          } else {
+            const parsedG = typeof data.globalStyles === 'string' ? JSON.parse(data.globalStyles) : data.globalStyles;
+            if (parsedG?.sampleEventDetails) {
+              setEventDetails(parsedG.sampleEventDetails);
+            }
+          }
+
+          const rawNodes = data.nodes || data.details?.studioNodes;
+          if (rawNodes) {
+            setNodes(Array.isArray(rawNodes) ? rawNodes : JSON.parse(rawNodes));
+          }
 
           const gStyles = data.globalStyles || data.details?.globalStyles;
           if (gStyles) {
@@ -65,7 +90,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
       }
     }
     loadStudio();
-  }, [id, setNodes, setGlobalStyles]);
+  }, [id, setNodes, setGlobalStyles, setSidebarTab]);
 
   // Keyboard shortcut Ctrl+\ / Cmd+\ / Ctrl+B to toggle sidebar
   useEffect(() => {
@@ -86,16 +111,32 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const handleSave = async () => {
     setSaving(true);
     try {
+      const payload: any = { nodes, globalStyles };
+      if (isEvent) {
+        payload.details = eventDetails;
+        payload.title = eventTitle;
+        payload.subdomain = eventSubdomain;
+        payload.status = eventStatus;
+      } else if (eventDetails && Object.keys(eventDetails).length > 0) {
+        payload.globalStyles = {
+          ...globalStyles,
+          sampleEventDetails: eventDetails,
+        };
+      }
+
       const res = await fetch(`/api/studio/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nodes, globalStyles }),
+        body: JSON.stringify(payload),
       });
 
+      const resData = await res.json();
+
       if (res.ok) {
-        showToast('Template Studio berhasil disimpan! 💾', 'success');
+        showToast(isEvent ? 'Undangan berhasil disimpan! 💾' : 'Template Studio berhasil disimpan! 💾', 'success');
+        if (resData.subdomain) setEventSubdomain(resData.subdomain);
       } else {
-        showToast('Gagal menyimpan template', 'error');
+        showToast(resData.error || 'Gagal menyimpan', 'error');
       }
     } catch (err) {
       showToast('Terjadi kesalahan jaringan', 'error');
@@ -197,7 +238,9 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
 
   const canvasEventDetails = useMemo(() => {
     const sample = globalStyles?.sampleEventDetails || {};
-    const activeGal = (Array.isArray(globalStyles?.galleryImages) && globalStyles.galleryImages.length > 0)
+    const activeGal = (Array.isArray(eventDetails?.gallery) && eventDetails.gallery.length > 0)
+      ? eventDetails.gallery
+      : (Array.isArray(globalStyles?.galleryImages) && globalStyles.galleryImages.length > 0)
       ? globalStyles.galleryImages
       : (Array.isArray(sample.galleryImages) && sample.galleryImages.length > 0)
       ? sample.galleryImages
@@ -207,16 +250,24 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
 
     return {
       ...sample,
+      ...(isEvent ? eventDetails : {}),
+      title: isEvent ? (eventTitle || eventDetails?.title || sample.title) : sample.title,
+      subdomain: isEvent ? (eventSubdomain || sample.subdomain) : sample.subdomain,
       ...(activeGal ? { gallery: activeGal, galleryImages: activeGal, photos: activeGal, images: activeGal } : {}),
     };
-  }, [globalStyles]);
+  }, [globalStyles, eventDetails, isEvent, eventTitle, eventSubdomain]);
 
-  const handlePreview = () => {
+  const handlePreview = async () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`studio_preview_nodes_${id}`, JSON.stringify(nodes));
-      localStorage.setItem(`studio_preview_global_styles_${id}`, JSON.stringify(globalStyles));
-      localStorage.setItem('studio_preview_nodes', JSON.stringify(nodes));
-      localStorage.setItem('studio_preview_global_styles', JSON.stringify(globalStyles));
+      try {
+        await Promise.all([
+          setPreviewData(`studio_preview_nodes_${id}`, nodes),
+          setPreviewData(`studio_preview_global_styles_${id}`, globalStyles),
+          isEvent && eventDetails ? setPreviewData(`studio_preview_details_${id}`, eventDetails) : Promise.resolve(),
+        ]);
+      } catch (err) {
+        console.warn('Failed to store preview data:', err);
+      }
     }
     window.open(`/studio/${id}/preview?fromEditor=true`, '_blank');
   };
@@ -225,7 +276,10 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     <div className="studio-container">
       {/* Top Bar Navigation */}
       <TopBar
-        title={template?.name || 'Studio Builder'}
+        title={isEvent ? (eventTitle || template?.title) : (template?.name || 'Studio Builder')}
+        isEvent={isEvent}
+        eventStatus={eventStatus}
+        subdomain={eventSubdomain}
         viewportMode={viewportMode}
         setViewportMode={setViewportMode}
         showRulers={showRulers}
@@ -233,7 +287,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         showSidebar={showSidebar}
         onToggleSidebar={toggleSidebar}
         onSave={handleSave}
-        onSaveAsNew={() => setIsSaveAsNewOpen(true)}
+        onSaveAsNew={!isEvent ? () => setIsSaveAsNewOpen(true) : undefined}
         onReset={() => {
           if (confirm('Apakah Anda yakin ingin mereset layout canvas ke tampilan default awal?')) {
             resetNodes();
@@ -262,6 +316,15 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           onDuplicateNode={duplicateNode}
           onMoveNode={moveNode}
           onUpdateNode={updateNode}
+          eventDetails={eventDetails}
+          setEventDetails={setEventDetails}
+          eventTitle={eventTitle}
+          setEventTitle={setEventTitle}
+          eventSubdomain={eventSubdomain}
+          setEventSubdomain={setEventSubdomain}
+          eventStatus={eventStatus}
+          setEventStatus={setEventStatus}
+          isEvent={isEvent}
         />
 
         {/* Central Workspace: Toolbar + Canvas Stage */}

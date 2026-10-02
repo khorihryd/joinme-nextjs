@@ -19,6 +19,8 @@ export function TemplatesTable({ templates, onDelete, onUpdate }: TemplatesTable
       name: t.name,
       category: t.category,
       tier: t.tier,
+      price: t.price ?? 0,
+      originalPrice: t.originalPrice ?? 0,
       status: t.status,
       thumbnail: t.thumbnail,
       globalStyles: t.globalStyles,
@@ -90,6 +92,7 @@ export function TemplatesTable({ templates, onDelete, onUpdate }: TemplatesTable
               <th style={{ padding: '1rem 1.5rem' }}>Template</th>
               <th style={{ padding: '1rem 1.5rem' }}>Kategori</th>
               <th style={{ padding: '1rem 1.5rem' }}>Lisensi Tier</th>
+              <th style={{ padding: '1rem 1.5rem' }}>Harga</th>
               <th style={{ padding: '1rem 1.5rem' }}>Pengguna (Views)</th>
               <th style={{ padding: '1rem 1.5rem' }}>Status</th>
               <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>Aksi Kontrol</th>
@@ -98,7 +101,7 @@ export function TemplatesTable({ templates, onDelete, onUpdate }: TemplatesTable
           <tbody>
             {templates.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                   Belum ada data template.
                 </td>
               </tr>
@@ -125,6 +128,22 @@ export function TemplatesTable({ templates, onDelete, onUpdate }: TemplatesTable
                       {t.tier}
                     </span>
                   </td>
+                  <td style={{ padding: '1rem 1.5rem' }}>
+                    {(!t.price || t.price === 0) ? (
+                      <span className="admin-badge badge-success">Gratis</span>
+                    ) : (
+                      <div>
+                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'block' }}>
+                          Rp {Number(t.price).toLocaleString('id-ID')}
+                        </span>
+                        {t.originalPrice && t.originalPrice > t.price && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                            Rp {Number(t.originalPrice).toLocaleString('id-ID')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>{t.views || 0}x dipakai</td>
                   <td style={{ padding: '1rem 1.5rem' }}>
                     <span className={`admin-badge ${t.status === 'Aktif' ? 'badge-success' : 'badge-danger'}`}>
@@ -133,6 +152,14 @@ export function TemplatesTable({ templates, onDelete, onUpdate }: TemplatesTable
                   </td>
                   <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                      <Link
+                        href={`/preview/${encodeURIComponent(t.name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none' }}
+                      >
+                        Preview 👁️
+                      </Link>
                       <Link
                         href={`/studio/${t.id}`}
                         style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none' }}

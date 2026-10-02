@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { StudioNode, DYNAMIC_VARIABLE_CATEGORIES, SECTION_DEFINITIONS, SectionType, GlobalStyles, GlobalColorTokens } from '@/types';
+import React, { useState, useRef } from 'react';
+import { StudioNode, DYNAMIC_VARIABLE_CATEGORIES, SECTION_DEFINITIONS, SectionType, GlobalStyles, GlobalColorTokens, NavItem } from '@/types';
 import { useStudioStore, findParentNode, DEFAULT_GLOBAL_STYLES } from '@/store/studio-store';
 import { FontEngineSelect } from './FontEngine';
 import { supabase } from '@/lib/supabase';
@@ -12,6 +12,8 @@ import { IconPickerModal } from './IconPickerModal';
 import { ImageCropModal } from './ImageCropModal';
 import { ImageBgRemovalModal } from './ImageBgRemovalModal';
 import { normalizeSvgString, isSvgMarkup } from '@/utils/svgNormalizer';
+import { extractYouTubeVideoId } from './NodeRenderer';
+import { NAV_BUILTIN_ICONS, DEFAULT_NAV_ITEMS, renderNavIcon } from './FloatingNavWidget';
 
 interface TokenColorPickerProps {
   label: string;
@@ -187,6 +189,29 @@ export const THANK_YOU_PRESETS = [
   },
 ];
 
+export const MUSIC_PRESETS = [
+  {
+    name: 'Romantic Wedding Acoustic',
+    artist: 'Mixkit Audio',
+    url: 'https://assets.mixkit.co/music/preview/mixkit-romantic-wedding-234.mp3',
+  },
+  {
+    name: 'Gentle Wedding Piano',
+    artist: 'Audio Library',
+    url: 'https://assets.mixkit.co/music/preview/mixkit-wedding-piano-648.mp3',
+  },
+  {
+    name: 'Endless Love Acoustic Guitar',
+    artist: 'Acoustic Sound',
+    url: 'https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3',
+  },
+  {
+    name: 'Cinematic Beautiful Strings',
+    artist: 'Orchestral Harmony',
+    url: 'https://assets.mixkit.co/music/preview/mixkit-beautiful-dream-493.mp3',
+  },
+];
+
 export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
   const [selectedVarCat, setSelectedVarCat] = useState<string>('all');
   const [copySourceId, setCopySourceId] = useState<string>('');
@@ -195,10 +220,19 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
   const [mediaModalFolders, setMediaModalFolders] = useState<string[]>(['studio']);
   const [onMediaSelectCallback, setOnMediaSelectCallback] = useState<((url: string) => void) | null>(null);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState<boolean>(false);
+  const [navItemIconPickerIndex, setNavItemIconPickerIndex] = useState<number | null>(null);
+  const [navActiveSettingsTab, setNavActiveSettingsTab] = useState<'items' | 'shape' | 'colors' | 'font'>('items');
   const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
   const [cropImageUrl, setCropImageUrl] = useState<string>('');
   const [cropModalTitle, setCropModalTitle] = useState<string>('Crop & Sesuaikan Gambar');
   const [onCropCallback, setOnCropCallback] = useState<((url: string) => void) | null>(null);
+
+  // Music Widget States
+  const [musicUploadMode, setMusicUploadMode] = useState<'upload' | 'url'>('upload');
+  const [isUploadingMusic, setIsUploadingMusic] = useState<boolean>(false);
+  const [inspectorMusicPlaying, setInspectorMusicPlaying] = useState<boolean>(false);
+  const inspectorAudioRef = useRef<HTMLAudioElement | null>(null);
+  const musicFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const openMediaLibrary = (foldersList: string[], callback: (url: string) => void) => {
     setMediaModalFolders(foldersList);
@@ -740,9 +774,108 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
     });
   };
 
+  const updateMultipleNodeProps = (propsObj: Record<string, any>) => {
+    onUpdateNode({
+      ...node,
+      ...propsObj,
+    });
+  };
+
+  const updateNodeAndStyle = (
+    nodeUpdates: Partial<StudioNode>,
+    styleUpdates?: Record<string, any>
+  ) => {
+    let resolvedStyle = { ...node.style };
+    if (styleUpdates) {
+      Object.entries(styleUpdates).forEach(([key, value]) => {
+        let activeKey = key;
+        if (!nonResponsiveStyleKeys.includes(key)) {
+          if (viewportMode === 'mobile') {
+            activeKey = key + 'Mobile';
+          } else if (viewportMode === 'tablet') {
+            activeKey = key + 'Tablet';
+          }
+        }
+        resolvedStyle[activeKey] = value;
+      });
+    }
+    onUpdateNode({
+      ...node,
+      ...nodeUpdates,
+      style: resolvedStyle,
+    });
+  };
+
   const insertVarTag = (varTag: string) => {
     const current = node.content || '';
     updateNodeProp('content', current + ' ' + varTag);
+  };
+
+  const handleMusicFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !node) return;
+    const file = files[0];
+
+    if (file.size > 25 * 1024 * 1024) {
+      alert('Ukuran file musik terlalu besar! Maksimal 25MB.');
+      return;
+    }
+
+    setIsUploadingMusic(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'music');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Gagal mengunggah file musik');
+      }
+
+      const data = await res.json();
+      const publicUrl = data.url;
+      const deducedTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+
+      updateNodeAndStyle(
+        {
+          musicUrl: publicUrl,
+          content: publicUrl,
+          musicTitle: node.musicTitle || deducedTitle,
+        },
+        {
+          musicUrl: publicUrl,
+        }
+      );
+    } catch (err: any) {
+      alert(`Gagal mengunggah file musik: ${err.message || err}`);
+    } finally {
+      setIsUploadingMusic(false);
+      e.target.value = '';
+    }
+  };
+
+  const toggleInspectorMusic = (url: string) => {
+    if (!inspectorAudioRef.current) return;
+    if (inspectorMusicPlaying) {
+      inspectorAudioRef.current.pause();
+      setInspectorMusicPlaying(false);
+    } else {
+      inspectorAudioRef.current.src = url;
+      inspectorAudioRef.current
+        .play()
+        .then(() => {
+          setInspectorMusicPlaying(true);
+        })
+        .catch((err: any) => {
+          console.warn('Inspector audio playback error:', err);
+          setInspectorMusicPlaying(false);
+        });
+    }
   };
 
   // Multi-Color Gradient Helpers
@@ -1762,8 +1895,10 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     type="text"
                     value={node.buttonUrl || node.content || ''}
                     onChange={(e) => {
-                      updateNodeProp('buttonUrl', e.target.value);
-                      updateNodeProp('content', e.target.value);
+                      updateMultipleNodeProps({
+                        buttonUrl: e.target.value,
+                        content: e.target.value,
+                      });
                     }}
                     placeholder="Contoh: {link_maps} atau https://maps.google.com/..."
                     style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
@@ -1776,8 +1911,10 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                       key={vTag}
                       type="button"
                       onClick={() => {
-                        updateNodeProp('buttonUrl', vTag);
-                        updateNodeProp('content', vTag);
+                        updateMultipleNodeProps({
+                          buttonUrl: vTag,
+                          content: vTag,
+                        });
                       }}
                       style={{ fontSize: '0.66rem', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#ffffff', color: 'var(--primary)', cursor: 'pointer', fontWeight: 700 }}
                     >
@@ -1932,6 +2069,897 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                    </div>
                  )}
                </div>
+            )}
+
+            {node.type === 'youtube' && (
+              <div
+                className="form-group"
+                style={{
+                  padding: '0.85rem',
+                  backgroundColor: 'var(--bg-body)',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      margin: 0,
+                    }}
+                  >
+                    🎥 Pengaturan Video YouTube
+                  </label>
+                  {Boolean(node.youtubeUrl || style.youtubeUrl || node.content) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rawUrl = String(node.youtubeUrl || style.youtubeUrl || node.content || '');
+                        const id = extractYouTubeVideoId(rawUrl);
+                        const targetUrl = id ? `https://www.youtube.com/watch?v=${id}` : (rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`);
+                        if (targetUrl) window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                      style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        padding: '2px 7px',
+                        borderRadius: '5px',
+                        border: 'none',
+                        backgroundColor: 'var(--primary-light, rgba(227, 99, 151, 0.15))',
+                        color: 'var(--primary)',
+                        cursor: 'pointer',
+                      }}
+                      title="Buka video di tab baru"
+                    >
+                      ↗️ Buka Video
+                    </button>
+                  )}
+                </div>
+
+                {/* Video URL Input */}
+                <div style={{ marginBottom: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                      Link / URL Video YouTube:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateNodeAndStyle(
+                          { youtubeUrl: '', content: '' },
+                          { youtubeUrl: '' }
+                        );
+                      }}
+                      style={{
+                        fontSize: '0.64rem',
+                        color: 'var(--text-muted)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0 2px',
+                        textDecoration: 'underline',
+                      }}
+                      title="Kosongkan link agar menggunakan {youtube_url} default dari Global Properties"
+                    >
+                      Gunakan Default
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={node.youtubeUrl !== undefined ? String(node.youtubeUrl) : (node.content !== undefined ? String(node.content) : '')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateNodeAndStyle(
+                        {
+                          youtubeUrl: val,
+                          content: val,
+                        },
+                        {
+                          youtubeUrl: val,
+                        }
+                      );
+                    }}
+                    placeholder="https://www.youtube.com/watch?v=... atau {youtube_url}"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      fontSize: '0.8rem',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      fontFamily: 'monospace',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.35rem', lineHeight: '1.4' }}>
+                    Mendukung link biasa, youtu.be, shorts, live streaming, maupun ID video.
+                  </div>
+                </div>
+
+                {/* Variable Tags */}
+                <div>
+                  <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                    Gunakan Variabel Dinamis:
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                    {['{youtube_url}', '{live_stream_url}', '{video_url}'].map((vTag) => (
+                      <button
+                        key={vTag}
+                        type="button"
+                        onClick={() => {
+                          updateNodeAndStyle(
+                            {
+                              youtubeUrl: vTag,
+                              content: vTag,
+                            },
+                            {
+                              youtubeUrl: vTag,
+                            }
+                          );
+                        }}
+                        style={{
+                          fontSize: '0.66rem',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: '#ffffff',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        + {vTag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* URL Status Feedback Badge */}
+                {(() => {
+                  const currentVal = String(node.youtubeUrl !== undefined ? node.youtubeUrl : (node.content || '')).trim();
+                  const isDynamicTag = currentVal.startsWith('{') && currentVal.endsWith('}');
+                  const videoId = extractYouTubeVideoId(currentVal);
+
+                  if (isDynamicTag) {
+                    return (
+                      <div style={{ padding: '0.35rem 0.55rem', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '0.67rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span>✨</span>
+                        <span>Terikat ke variabel <strong>{currentVal}</strong> (diatur via <em>Global Properties ➔ Video</em>).</span>
+                      </div>
+                    );
+                  }
+                  if (videoId) {
+                    return (
+                      <div style={{ padding: '0.35rem 0.55rem', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0', fontSize: '0.67rem', color: '#065f46', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span>✓</span>
+                        <span>Video ID Terdeteksi: <strong>{videoId}</strong></span>
+                      </div>
+                    );
+                  }
+                  if (!currentVal) {
+                    return (
+                      <div style={{ padding: '0.35rem 0.55rem', background: '#f8fafc', borderRadius: '6px', border: '1px dashed #cbd5e1', fontSize: '0.67rem', color: '#64748b' }}>
+                        ℹ️ Link kosong: otomatis menggunakan nilai global <code>{'{youtube_url}'}</code>.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ padding: '0.35rem 0.55rem', background: '#fff1f2', borderRadius: '6px', border: '1px solid #fecaca', fontSize: '0.67rem', color: '#b91c1c' }}>
+                      ⚠️ Format tautan YouTube tidak dikenali.
+                    </div>
+                  );
+                })()}
+
+                {/* Aspect Ratio */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                    Aspek Rasio Pemutar:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.35rem' }}>
+                    {[
+                      { id: '16:9', label: '16:9' },
+                      { id: '9:16', label: '9:16' },
+                      { id: '4:3', label: '4:3' },
+                      { id: '1:1', label: '1:1' },
+                    ].map((ar) => {
+                      const isSel = (node.videoAspectRatio || style.videoAspectRatio || '16:9') === ar.id;
+                      return (
+                        <button
+                          key={ar.id}
+                          type="button"
+                          onClick={() => {
+                            updateNodeAndStyle(
+                              { videoAspectRatio: ar.id as any },
+                              { videoAspectRatio: ar.id }
+                            );
+                          }}
+                          style={{
+                            padding: '6px 4px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: isSel ? 'var(--primary)' : '#ffffff',
+                            color: isSel ? '#ffffff' : 'var(--text-main)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {ar.id}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Playback Settings */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', padding: '0.65rem', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)', display: 'block' }}>
+                    ⚙️ Opsi Pemutaran (Playback)
+                  </span>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.74rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(node.videoAutoplay ?? style.videoAutoplay ?? false)}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        updateNodeAndStyle(
+                          {
+                            videoAutoplay: isChecked,
+                            ...(isChecked ? { videoMuted: true } : {}),
+                          },
+                          {
+                            videoAutoplay: isChecked,
+                            ...(isChecked ? { videoMuted: true } : {}),
+                          }
+                        );
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>▶️ Putar Otomatis (Autoplay)</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.74rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(node.videoMuted ?? style.videoMuted ?? false)}
+                      onChange={(e) => {
+                        updateNodeAndStyle(
+                          { videoMuted: e.target.checked },
+                          { videoMuted: e.target.checked }
+                        );
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🔇 Bisukan Suara (Mute Audio)</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.74rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(node.videoLoop ?? style.videoLoop ?? false)}
+                      onChange={(e) => {
+                        updateNodeAndStyle(
+                          { videoLoop: e.target.checked },
+                          { videoLoop: e.target.checked }
+                        );
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🔁 Ulangi Otomatis (Loop Video)</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.74rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(node.videoControls ?? style.videoControls ?? true)}
+                      onChange={(e) => {
+                        updateNodeAndStyle(
+                          { videoControls: e.target.checked },
+                          { videoControls: e.target.checked }
+                        );
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🎛️ Tampilkan Kontrol Pemutar (Player Controls)</span>
+                  </label>
+                </div>
+
+                {/* Border Radius */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                      Sudut Membulat (Border Radius):
+                    </label>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--primary)' }}>
+                      {style.borderRadius !== undefined ? style.borderRadius : 14}px
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                    {[0, 8, 14, 20, 28].map((br) => {
+                      const isCur = Number(style.borderRadius !== undefined ? style.borderRadius : 14) === br;
+                      return (
+                        <button
+                          key={br}
+                          type="button"
+                          onClick={() => updateStyleProp('borderRadius', br)}
+                          style={{
+                            flex: 1,
+                            padding: '3px 0',
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            borderRadius: '5px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                            color: isCur ? '#ffffff' : 'var(--text-main)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {br}px
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={40}
+                    value={Number(style.borderRadius !== undefined ? style.borderRadius : 14)}
+                    onChange={(e) => updateStyleProp('borderRadius', parseInt(e.target.value, 10) || 0)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Music Background Widget Inspector */}
+            {node.type === 'music' && (
+              <div
+                className="form-group"
+                style={{
+                  padding: '1rem',
+                  backgroundColor: 'var(--bg-body)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label
+                    style={{
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      margin: 0,
+                    }}
+                  >
+                    <span>🎵</span> Pengaturan Musik Latar
+                  </label>
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      background: 'rgba(139, 94, 60, 0.1)',
+                      color: 'var(--primary)',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Audio Background
+                  </span>
+                </div>
+
+                {/* Subtitle */}
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  Pilih file musik latar yang akan diputar otomatis saat tamu membuka undangan Anda.
+                </div>
+
+                {/* Tabs: Upload MP3 vs URL Link */}
+                <div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '4px',
+                      background: '#e2e8f0',
+                      padding: '3px',
+                      borderRadius: '8px',
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setMusicUploadMode('upload')}
+                      style={{
+                        padding: '6px 8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: musicUploadMode === 'upload' ? '#ffffff' : 'transparent',
+                        color: musicUploadMode === 'upload' ? 'var(--primary)' : 'var(--text-secondary)',
+                        boxShadow: musicUploadMode === 'upload' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <span>📁</span> Unggah File .MP3
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMusicUploadMode('url')}
+                      style={{
+                        padding: '6px 8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: musicUploadMode === 'url' ? '#ffffff' : 'transparent',
+                        color: musicUploadMode === 'url' ? 'var(--primary)' : 'var(--text-secondary)',
+                        boxShadow: musicUploadMode === 'url' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <span>🔗</span> Tautan / URL Musik
+                    </button>
+                  </div>
+
+                  {/* Mode 1: Upload MP3 */}
+                  {musicUploadMode === 'upload' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <input
+                        ref={musicFileInputRef}
+                        type="file"
+                        accept="audio/*,.mp3,.wav,.ogg,.m4a"
+                        onChange={handleMusicFileUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploadingMusic}
+                        onClick={() => musicFileInputRef.current?.click()}
+                        style={{
+                          width: '100%',
+                          padding: '0.85rem',
+                          borderRadius: '8px',
+                          border: '2px dashed var(--primary)',
+                          background: 'rgba(139, 94, 60, 0.04)',
+                          color: 'var(--primary)',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          cursor: isUploadingMusic ? 'wait' : 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'background 0.2s ease',
+                        }}
+                      >
+                        {isUploadingMusic ? (
+                          <>
+                            <span style={{ fontSize: '1.2rem' }}>⏳</span>
+                            <span>Sedang mengunggah file musik ke server...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: '1.4rem' }}>📁</span>
+                            <span>Pilih &amp; Unggah File .MP3 dari Komputer</span>
+                            <span style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                              Format .mp3, .wav, .m4a (Maks. 25MB)
+                            </span>
+                          </>
+                        )}
+                      </button>
+
+                      {Boolean(node.musicUrl) && (
+                        <div
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            background: '#ecfdf5',
+                            border: '1px solid #a7f3d0',
+                            borderRadius: '6px',
+                            fontSize: '0.7rem',
+                            color: '#065f46',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                            <span>✓</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                              {node.musicTitle || 'File Musik Terpilih'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => musicFileInputRef.current?.click()}
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              color: 'var(--primary)',
+                              fontSize: '0.66rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                            }}
+                          >
+                            Ganti
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Mode 2: URL Link */}
+                  {musicUploadMode === 'url' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                          URL File Audio (MP3 Direct Link):
+                        </label>
+                        <input
+                          type="text"
+                          value={node.musicUrl || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateNodeAndStyle(
+                              { musicUrl: val, content: val },
+                              { musicUrl: val }
+                            );
+                          }}
+                          placeholder="https://example.com/audio/wedding-song.mp3"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            fontSize: '0.78rem',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            boxSizing: 'border-box',
+                            fontFamily: 'monospace',
+                          }}
+                        />
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div>
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                          Pilihan Musik Contoh (1-Klik):
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {MUSIC_PRESETS.map((p) => (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => {
+                                updateNodeAndStyle(
+                                  {
+                                    musicUrl: p.url,
+                                    content: p.url,
+                                    musicTitle: p.name,
+                                    musicArtist: p.artist,
+                                  },
+                                  {
+                                    musicUrl: p.url,
+                                  }
+                                );
+                              }}
+                              style={{
+                                padding: '5px 8px',
+                                fontSize: '0.68rem',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-color)',
+                                background: node.musicUrl === p.url ? 'rgba(139, 94, 60, 0.08)' : '#ffffff',
+                                color: node.musicUrl === p.url ? 'var(--primary)' : 'var(--text-main)',
+                                fontWeight: node.musicUrl === p.url ? 700 : 500,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                textAlign: 'left',
+                              }}
+                            >
+                              <span>🎵 {p.name}</span>
+                              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{p.artist}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Audio Test Player */}
+                {Boolean(node.musicUrl) && (
+                  <div
+                    style={{
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                    }}
+                  >
+                    <audio
+                      ref={inspectorAudioRef}
+                      onEnded={() => setInspectorMusicPlaying(false)}
+                      onError={() => setInspectorMusicPlaying(false)}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleInspectorMusic(node.musicUrl || '')}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          background: 'var(--primary)',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                        title={inspectorMusicPlaying ? 'Jeda Tes Musik' : 'Putar Tes Musik'}
+                      >
+                        {inspectorMusicPlaying ? '⏸️' : '▶️'}
+                      </button>
+                      <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {node.musicTitle || 'Tes Musik Latar'}
+                        </div>
+                        <div style={{ fontSize: '0.64rem', color: 'var(--text-secondary)' }}>
+                          {inspectorMusicPlaying ? 'Sedang memutar audio...' : 'Klik untuk menguji suara di editor'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span style={{ fontSize: '0.65rem', background: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, flexShrink: 0 }}>
+                      .MP3
+                    </span>
+                  </div>
+                )}
+
+                {/* Metadata: Title & Artist */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>
+                      Judul Lagu
+                    </label>
+                    <input
+                      type="text"
+                      value={node.musicTitle || ''}
+                      onChange={(e) => updateNodeProp('musicTitle', e.target.value)}
+                      placeholder="Contoh: A Thousand Years"
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>
+                      Artis / Musisi
+                    </label>
+                    <input
+                      type="text"
+                      value={node.musicArtist || ''}
+                      onChange={(e) => updateNodeProp('musicArtist', e.target.value)}
+                      placeholder="Contoh: Christina Perri"
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Playback Settings */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.65rem' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Opsi Pemutaran
+                  </span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.74rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={node.musicAutoplay !== false}
+                      onChange={(e) => updateNodeProp('musicAutoplay', e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>▶️ Putar Otomatis saat Tamu Buka Undangan</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.74rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={node.musicLoop !== false}
+                      onChange={(e) => updateNodeProp('musicLoop', e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🔁 Ulangi Musik Otomatis (Loop)</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.74rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={node.musicSpinAnimation !== false}
+                      onChange={(e) => updateNodeProp('musicSpinAnimation', e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>💿 Animasi Piringan Berputar saat Musik Berjalan</span>
+                  </label>
+                </div>
+
+                {/* Button Style & Floating Position */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.65rem' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Posisi &amp; Tampilan Tombol
+                  </span>
+
+                  {/* Mode: Floating vs Inline */}
+                  <div>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                      Mode Tampilan:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                      {[
+                        { id: 'floating', label: '🔘 Melayang di Sudut (Floating)' },
+                        { id: 'inline', label: '📦 Kartu di Halaman (Inline)' },
+                      ].map((m) => {
+                        const isCurFloating = node.musicFloating !== false && node.musicPosition !== 'inline';
+                        const isSel = m.id === 'floating' ? isCurFloating : !isCurFloating;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              if (m.id === 'floating') {
+                                updateNodeProp('musicFloating', true);
+                                if (node.musicPosition === 'inline') {
+                                  updateNodeProp('musicPosition', 'bottom-right');
+                                }
+                              } else {
+                                updateNodeProp('musicFloating', false);
+                                updateNodeProp('musicPosition', 'inline');
+                              }
+                            }}
+                            style={{
+                              padding: '6px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              borderRadius: '6px',
+                              border: isSel ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+                              background: isSel ? 'rgba(139, 94, 60, 0.08)' : '#ffffff',
+                              color: isSel ? 'var(--primary)' : 'var(--text-main)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Corner Position (if floating) */}
+                  {node.musicPosition !== 'inline' && node.musicFloating !== false && (
+                    <div>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        Sudut Layar:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                        {[
+                          { id: 'bottom-right', label: '↘️ Kanan Bawah (Standar)' },
+                          { id: 'bottom-left', label: '↙️ Kiri Bawah' },
+                          { id: 'top-right', label: '↗️ Kanan Atas' },
+                          { id: 'top-left', label: '↖️ Kiri Atas' },
+                        ].map((pos) => {
+                          const isSel = (node.musicPosition || 'bottom-right') === pos.id;
+                          return (
+                            <button
+                              key={pos.id}
+                              type="button"
+                              onClick={() => updateNodeProp('musicPosition', pos.id as any)}
+                              style={{
+                                padding: '6px',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                border: isSel ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+                                background: isSel ? 'var(--primary)' : '#ffffff',
+                                color: isSel ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {pos.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Button Colors */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>
+                        Warna Tombol
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="color"
+                          value={node.musicButtonBg && node.musicButtonBg.startsWith('#') ? node.musicButtonBg : '#8B5E3C'}
+                          onChange={(e) => updateNodeProp('musicButtonBg', e.target.value)}
+                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer', padding: 0 }}
+                        />
+                        <input
+                          type="text"
+                          value={node.musicButtonBg || '#8B5E3C'}
+                          onChange={(e) => updateNodeProp('musicButtonBg', e.target.value)}
+                          style={{ flex: 1, fontSize: '0.72rem', padding: '0.35rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>
+                        Warna Ikon
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="color"
+                          value={node.musicButtonColor && node.musicButtonColor.startsWith('#') ? node.musicButtonColor : '#ffffff'}
+                          onChange={(e) => updateNodeProp('musicButtonColor', e.target.value)}
+                          style={{ width: '32px', height: '32px', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer', padding: 0 }}
+                        />
+                        <input
+                          type="text"
+                          value={node.musicButtonColor || '#ffffff'}
+                          onChange={(e) => updateNodeProp('musicButtonColor', e.target.value)}
+                          style={{ flex: 1, fontSize: '0.72rem', padding: '0.35rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {node.type === 'countdown' && (
@@ -2913,6 +3941,17 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
                 </div>
+
+                {(String(node.id).includes('image-gallery-master') || String(node.label || '').toLowerCase().includes('foto galeri')) && (
+                  <div style={{ padding: '0.65rem 0.75rem', background: 'linear-gradient(135deg, rgba(227, 99, 151, 0.08), rgba(139, 94, 60, 0.08))', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      🖼️ Master Item Galeri Foto
+                    </div>
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
+                      Foto-foto album galeri dikelola di tab <strong>Pengaturan Global &gt; 🖼️ Galeri</strong>. Gaya tampilan (rasio, sudut lengkung, bayangan, border) yang diubah di sini otomatis diterapkan seragam ke seluruh foto galeri.
+                    </p>
+                  </div>
+                )}
               </>
             )}
 
@@ -3055,8 +4094,1301 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
               </div>
             )}
 
+            {node.type === 'navigation' && (
+              <div style={{ padding: '0.85rem', backgroundColor: 'var(--bg-body)', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.2rem' }}>🧭</span>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--primary)' }}>
+                        Pengaturan Navigasi Melayang
+                      </div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                        Floating pill dock dengan tooltip &amp; scroll otomatis
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4 Mini Tabs: Menu & Icon | Bentuk | Warna | Font */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', background: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
+                  {[
+                    { id: 'items', label: '📋 Menu' },
+                    { id: 'shape', label: '📐 Bentuk' },
+                    { id: 'colors', label: '🎨 Warna' },
+                    { id: 'font', label: '🔤 Font' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setNavActiveSettingsTab(tab.id as any)}
+                      style={{
+                        padding: '6px 2px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: navActiveSettingsTab === tab.id ? '#ffffff' : 'transparent',
+                        color: navActiveSettingsTab === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
+                        boxShadow: navActiveSettingsTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* TAB 1: MENU & ICON */}
+                {navActiveSettingsTab === 'items' && (() => {
+                  const navItems: NavItem[] = Array.isArray(node.navItems) && node.navItems.length > 0
+                    ? node.navItems
+                    : DEFAULT_NAV_ITEMS;
+
+                  const updateItems = (newItems: NavItem[]) => {
+                    updateNodeProp('navItems', newItems);
+                  };
+
+                  const moveItem = (index: number, dir: 'up' | 'down') => {
+                    const targetIdx = dir === 'up' ? index - 1 : index + 1;
+                    if (targetIdx < 0 || targetIdx >= navItems.length) return;
+                    const next = [...navItems];
+                    const [moved] = next.splice(index, 1);
+                    next.splice(targetIdx, 0, moved);
+                    updateItems(next);
+                  };
+
+                  const deleteItem = (index: number) => {
+                    if (navItems.length <= 1) return;
+                    updateItems(navItems.filter((_, i) => i !== index));
+                  };
+
+                  const addItem = () => {
+                    const newItem: NavItem = {
+                      id: `nav-${Date.now()}`,
+                      label: 'Menu ' + (navItems.length + 1),
+                      targetSection: 'custom',
+                      iconType: 'star',
+                      enabled: true,
+                    };
+                    updateItems([...navItems, newItem]);
+                  };
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                          Daftar Menu ({navItems.length})
+                        </span>
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Kembalikan menu navigasi ke 7 item standar?')) {
+                                updateItems(DEFAULT_NAV_ITEMS);
+                              }
+                            }}
+                            style={{
+                              padding: '3px 7px',
+                              fontSize: '0.64rem',
+                              fontWeight: 700,
+                              borderRadius: '5px',
+                              border: '1px solid var(--border-color)',
+                              background: '#ffffff',
+                              color: 'var(--text-secondary)',
+                              cursor: 'pointer',
+                            }}
+                            title="Reset ke 7 item standar (Home, Mempelai, Acara, Galeri, Cerita, Hadiah, Ucapan)"
+                          >
+                            🔄 Reset
+                          </button>
+                          <button
+                            type="button"
+                            onClick={addItem}
+                            style={{
+                              padding: '3px 8px',
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              borderRadius: '5px',
+                              border: 'none',
+                              background: 'var(--primary)',
+                              color: '#ffffff',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                            }}
+                          >
+                            ➕ Tambah Menu
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Items list */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '360px', overflowY: 'auto', paddingRight: '2px' }}>
+                        {navItems.map((item, idx) => (
+                          <div
+                            key={item.id || idx}
+                            style={{
+                              padding: '0.6rem',
+                              background: '#ffffff',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-color)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.45rem',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              {/* Reorder Up/Down */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => moveItem(idx, 'up')}
+                                  style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === 0 ? 0.25 : 0.8,
+                                    fontSize: '0.55rem',
+                                    lineHeight: 1,
+                                    padding: '1px',
+                                  }}
+                                  title="Geser ke Atas"
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === navItems.length - 1}
+                                  onClick={() => moveItem(idx, 'down')}
+                                  style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: idx === navItems.length - 1 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === navItems.length - 1 ? 0.25 : 0.8,
+                                    fontSize: '0.55rem',
+                                    lineHeight: 1,
+                                    padding: '1px',
+                                  }}
+                                  title="Geser ke Bawah"
+                                >
+                                  ▼
+                                </button>
+                              </div>
+
+                              {/* Toggle active */}
+                              <input
+                                type="checkbox"
+                                checked={item.enabled !== false}
+                                onChange={(e) => {
+                                  const next = [...navItems];
+                                  next[idx] = { ...next[idx], enabled: e.target.checked };
+                                  updateItems(next);
+                                }}
+                                title="Tampilkan / Sembunyikan item ini"
+                                style={{ cursor: 'pointer', width: '15px', height: '15px' }}
+                              />
+
+                              {/* Icon preview */}
+                              <div
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  background: '#262a2d',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {renderNavIcon(item.iconType, item.customIconSvg, 14, '#ffffff')}
+                              </div>
+
+                              {/* Label text input */}
+                              <input
+                                type="text"
+                                value={item.label || ''}
+                                onChange={(e) => {
+                                  const next = [...navItems];
+                                  next[idx] = { ...next[idx], label: e.target.value };
+                                  updateItems(next);
+                                }}
+                                placeholder="Label Menu"
+                                style={{
+                                  flex: 1,
+                                  padding: '3px 6px',
+                                  fontSize: '0.72rem',
+                                  borderRadius: '5px',
+                                  border: '1px solid var(--border-color)',
+                                  fontWeight: 600,
+                                }}
+                              />
+
+                              {/* Delete button */}
+                              <button
+                                type="button"
+                                disabled={navItems.length <= 1}
+                                onClick={() => deleteItem(idx)}
+                                style={{
+                                  border: 'none',
+                                  background: 'none',
+                                  cursor: navItems.length <= 1 ? 'not-allowed' : 'pointer',
+                                  opacity: navItems.length <= 1 ? 0.3 : 0.7,
+                                  fontSize: '0.75rem',
+                                  padding: '2px',
+                                }}
+                                title="Hapus menu ini"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+
+                            {/* Section Target & Custom Section */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', alignItems: 'center' }}>
+                              <div>
+                                <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                                  🎯 Target Bagian:
+                                </label>
+                                <select
+                                  value={item.targetSection || 'custom'}
+                                  onChange={(e) => {
+                                    const next = [...navItems];
+                                    next[idx] = { ...next[idx], targetSection: e.target.value };
+                                    updateItems(next);
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '3px 5px',
+                                    fontSize: '0.68rem',
+                                    borderRadius: '5px',
+                                    border: '1px solid var(--border-color)',
+                                    background: '#ffffff',
+                                  }}
+                                >
+                                  <option value="cover">💌 Sampul / Cover</option>
+                                  <option value="bride_groom">👩‍❤️‍👨 Profil Mempelai</option>
+                                  <option value="event_schedule">📅 Jadwal Acara</option>
+                                  <option value="gallery">🖼️ Galeri Foto</option>
+                                  <option value="love_story">📖 Cerita Cinta</option>
+                                  <option value="gift">💳 Hadiah &amp; Angpau</option>
+                                  <option value="wishes">💬 Ucapan &amp; Doa</option>
+                                  <option value="custom">🎯 ID Elemen Lain</option>
+                                </select>
+                              </div>
+
+                              {item.targetSection === 'custom' ? (
+                                <div>
+                                  <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                                    ID Elemen Target:
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={item.targetId || ''}
+                                    onChange={(e) => {
+                                      const next = [...navItems];
+                                      next[idx] = { ...next[idx], targetId: e.target.value };
+                                      updateItems(next);
+                                    }}
+                                    placeholder="contoh: section-rekening"
+                                    style={{
+                                      width: '100%',
+                                      padding: '3px 5px',
+                                      fontSize: '0.68rem',
+                                      borderRadius: '5px',
+                                      border: '1px solid var(--border-color)',
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setNavItemIconPickerIndex(idx);
+                                      setIsIconPickerOpen(true);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '4px 6px',
+                                      fontSize: '0.64rem',
+                                      fontWeight: 700,
+                                      borderRadius: '5px',
+                                      border: '1px dashed var(--primary)',
+                                      background: 'rgba(227,99,151,0.06)',
+                                      color: 'var(--primary)',
+                                      cursor: 'pointer',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    🎨 Buka Icon Library
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Built-in icon fast selector */}
+                            <div>
+                              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '3px' }}>
+                                Pilih Icon Cepat:
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                                {Object.entries(NAV_BUILTIN_ICONS).map(([k, info]) => {
+                                  const isCur = (!item.customIconSvg && item.iconType === k) || (!item.customIconSvg && !item.iconType && k === 'home');
+                                  return (
+                                    <button
+                                      key={k}
+                                      type="button"
+                                      onClick={() => {
+                                        const next = [...navItems];
+                                        next[idx] = { ...next[idx], iconType: k, customIconSvg: undefined };
+                                        updateItems(next);
+                                      }}
+                                      title={info.label}
+                                      style={{
+                                        width: '22px',
+                                        height: '22px',
+                                        borderRadius: '4px',
+                                        border: isCur ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+                                        background: isCur ? 'rgba(227,99,151,0.15)' : '#ffffff',
+                                        color: isCur ? 'var(--primary)' : 'var(--text-main)',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                      }}
+                                    >
+                                      {renderNavIcon(k, undefined, 12, isCur ? 'var(--primary)' : 'currentColor')}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Per-Item Adaptive Color Override */}
+                            <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.4rem', marginTop: '0.2rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                                <label style={{ margin: 0, fontSize: '0.64rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                  🎨 Warna Khusus Saat Seksi Ini Aktif:
+                                </label>
+                                {item.dockBg && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...navItems];
+                                      next[idx] = {
+                                        ...next[idx],
+                                        dockBg: undefined,
+                                        activeBg: undefined,
+                                        inactiveBg: undefined,
+                                      };
+                                      updateItems(next);
+                                    }}
+                                    style={{ fontSize: '0.6rem', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
+                                <div>
+                                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Latar Dock:</span>
+                                  <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                                    <input
+                                      type="color"
+                                      value={item.dockBg && item.dockBg.startsWith('#') ? item.dockBg : '#262a2d'}
+                                      onChange={(e) => {
+                                        const next = [...navItems];
+                                        next[idx] = { ...next[idx], dockBg: e.target.value };
+                                        updateItems(next);
+                                      }}
+                                      style={{ width: '22px', height: '22px', border: 'none', cursor: 'pointer', padding: 0 }}
+                                    />
+                                    <input
+                                      type="text"
+                                      value={item.dockBg || ''}
+                                      onChange={(e) => {
+                                        const next = [...navItems];
+                                        next[idx] = { ...next[idx], dockBg: e.target.value };
+                                        updateItems(next);
+                                      }}
+                                      placeholder="Ikuti Mode"
+                                      style={{ flex: 1, padding: '2px 4px', fontSize: '0.66rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Tombol Aktif:</span>
+                                  <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                                    <input
+                                      type="color"
+                                      value={item.activeBg && item.activeBg.startsWith('#') ? item.activeBg : '#3a3f44'}
+                                      onChange={(e) => {
+                                        const next = [...navItems];
+                                        next[idx] = { ...next[idx], activeBg: e.target.value };
+                                        updateItems(next);
+                                      }}
+                                      style={{ width: '22px', height: '22px', border: 'none', cursor: 'pointer', padding: 0 }}
+                                    />
+                                    <input
+                                      type="text"
+                                      value={item.activeBg || ''}
+                                      onChange={(e) => {
+                                        const next = [...navItems];
+                                        next[idx] = { ...next[idx], activeBg: e.target.value };
+                                        updateItems(next);
+                                      }}
+                                      placeholder="Ikuti Mode"
+                                      style={{ flex: 1, padding: '2px 4px', fontSize: '0.66rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* TAB 2: BENTUK & TATA LETAK */}
+                {navActiveSettingsTab === 'shape' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {/* Posisi Dock */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        ⚓ Posisi Dock Navigasi:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'fixed-bottom', label: '⚓ Melayang Bawah' },
+                          { val: 'fixed-top', label: '⬆️ Melayang Atas' },
+                          { val: 'inline', label: '📍 Di Dalam Blok' },
+                        ].map((pos) => {
+                          const isCur = (node.navPosition || 'fixed-bottom') === pos.val;
+                          return (
+                            <button
+                              key={pos.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navPosition', pos.val)}
+                              style={{
+                                padding: '5px 2px',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {pos.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Penyelarasan */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        ↔️ Penyelarasan Horizontal:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'left', label: '⬅️ Kiri' },
+                          { val: 'center', label: '↔️ Tengah' },
+                          { val: 'right', label: '➡️ Kanan' },
+                        ].map((align) => {
+                          const isCur = (node.navAlignment || 'center') === align.val;
+                          return (
+                            <button
+                              key={align.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navAlignment', align.val)}
+                              style={{
+                                padding: '4px 2px',
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                borderRadius: '5px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {align.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Bentuk Wadah Dock */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        💊 Bentuk Wadah Dock (Dock Shape):
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'pill', label: '💊 Kapsul Penuh (Foto)' },
+                          { val: 'rounded', label: '🔲 Kotak Melengkung (16px)' },
+                          { val: 'square', label: '⏹️ Persegi Minimal (4px)' },
+                          { val: 'none', label: '👻 Transparan / Tanpa Wadah' },
+                        ].map((shape) => {
+                          const isCur = (node.navDockShape || 'pill') === shape.val;
+                          return (
+                            <button
+                              key={shape.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navDockShape', shape.val)}
+                              style={{
+                                padding: '5px 4px',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                borderRadius: '5px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                              }}
+                            >
+                              {shape.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Bentuk Tombol Menu */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        ⚪ Bentuk Tombol Menu (Item Shape):
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'circle', label: '⚪ Lingkaran Bulat (Foto)' },
+                          { val: 'squircle', label: '🔲 Sudut Halus (10px)' },
+                          { val: 'square', label: '⏹️ Kotak (4px)' },
+                          { val: 'ghost', label: '👻 Polos / Tanpa Latar' },
+                        ].map((itemShape) => {
+                          const isCur = (node.navItemShape || 'circle') === itemShape.val;
+                          return (
+                            <button
+                              key={itemShape.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navItemShape', itemShape.val)}
+                              style={{
+                                padding: '5px 4px',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                borderRadius: '5px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                              }}
+                            >
+                              {itemShape.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Ukuran Widget */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        📏 Ukuran Widget:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'sm', label: 'Kecil (32px)' },
+                          { val: 'md', label: 'Sedang (38px)' },
+                          { val: 'lg', label: 'Besar (44px)' },
+                        ].map((sz) => {
+                          const isCur = (node.navSize || 'md') === sz.val;
+                          return (
+                            <button
+                              key={sz.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navSize', sz.val)}
+                              style={{
+                                padding: '4px 2px',
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                borderRadius: '5px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {sz.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Jarak Antar Tombol (Gap) */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                          ↔️ Jarak Antar Tombol (Gap):
+                        </label>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary)' }}>
+                          {node.navGap !== undefined ? node.navGap : 8}px
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '3px', marginBottom: '0.35rem' }}>
+                        {[4, 6, 8, 10, 12, 16].map((gp) => {
+                          const isCur = Number(node.navGap !== undefined ? node.navGap : 8) === gp;
+                          return (
+                            <button
+                              key={gp}
+                              type="button"
+                              onClick={() => updateNodeProp('navGap', gp)}
+                              style={{
+                                flex: 1,
+                                padding: '3px 0',
+                                fontSize: '0.64rem',
+                                fontWeight: 700,
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {gp}px
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input
+                        type="range"
+                        min={2}
+                        max={24}
+                        value={Number(node.navGap !== undefined ? node.navGap : 8)}
+                        onChange={(e) => updateNodeProp('navGap', parseInt(e.target.value, 10) || 0)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    {/* Bayangan Dock */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        ✨ Efek Bayangan Dock:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'none', label: 'Tanpa Bayangan' },
+                          { val: '0 4px 16px rgba(0,0,0,0.12)', label: 'Halus (Soft)' },
+                          { val: '0 8px 30px rgba(0,0,0,0.25)', label: 'Menonjol (Foto)' },
+                          { val: '0 8px 25px rgba(227,99,151,0.3)', label: 'Kilau Mewah (Glow)' },
+                        ].map((sh) => {
+                          const isCur = (node.navDockShadow || '0 8px 30px rgba(0,0,0,0.25)') === sh.val;
+                          return (
+                            <button
+                              key={sh.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navDockShadow', sh.val)}
+                              style={{
+                                padding: '4px',
+                                fontSize: '0.64rem',
+                                fontWeight: 700,
+                                borderRadius: '5px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                              }}
+                            >
+                              {sh.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Border Dock Width */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                          Garis Tepi Dock (Border Width):
+                        </label>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary)' }}>
+                          {node.navDockBorderWidth !== undefined ? node.navDockBorderWidth : 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={4}
+                        value={Number(node.navDockBorderWidth !== undefined ? node.navDockBorderWidth : 0)}
+                        onChange={(e) => updateNodeProp('navDockBorderWidth', parseInt(e.target.value, 10) || 0)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: WARNA & TEMA */}
+                {navActiveSettingsTab === 'colors' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {/* Penyesuaian Background Adaptif */}
+                    <div style={{ padding: '0.75rem', background: '#ffffff', borderRadius: '10px', border: '1.5px solid rgba(227,99,151,0.25)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span style={{ fontSize: '1rem' }}>🔄</span>
+                          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)' }}>
+                            Penyesuaian Latar Otomatis (Adaptive Background)
+                          </span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                        Saat seksi aktif masuk viewport, dock navigasi otomatis menyesuaikan warna latar belakangnya mengikuti seksi tersebut.
+                      </p>
+
+                      {/* Mode Selector */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'auto-section', label: '🪄 Otomatis', desc: 'Auto Match' },
+                          { val: 'custom-per-item', label: '🌈 Per Seksi', desc: 'Custom' },
+                          { val: 'off', label: '🎨 Statis', desc: '1 Warna' },
+                        ].map((m) => {
+                          const isCur = (node.navAdaptiveBgMode || 'auto-section') === m.val;
+                          return (
+                            <button
+                              key={m.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navAdaptiveBgMode', m.val)}
+                              style={{
+                                padding: '5px 2px',
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                border: isCur ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'rgba(227,99,151,0.12)' : '#ffffff',
+                                color: isCur ? 'var(--primary)' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                              }}
+                            >
+                              <div>{m.label}</div>
+                              <div style={{ fontSize: '0.58rem', opacity: 0.75, fontWeight: 500 }}>{m.desc}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Options for auto-section */}
+                      {(node.navAdaptiveBgMode || 'auto-section') === 'auto-section' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.1rem', padding: '0.5rem', background: 'var(--bg-body)', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                            Gaya Tampilan Otomatis (Adaptive Style):
+                          </span>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                            {[
+                              { val: 'frosted-tint', label: '✨ Frosted Tint', desc: 'Kaca Selaras' },
+                              { val: 'smart-contrast', label: '🌓 Kontras Pintar', desc: 'Hitam / Putih' },
+                              { val: 'solid', label: '🎨 Solid', desc: 'Warna Penuh' },
+                            ].map((st) => {
+                              const isCur = (node.navAdaptiveStyle || 'frosted-tint') === st.val;
+                              return (
+                                <button
+                                  key={st.val}
+                                  type="button"
+                                  onClick={() => updateNodeProp('navAdaptiveStyle', st.val)}
+                                  style={{
+                                    padding: '4px 2px',
+                                    fontSize: '0.63rem',
+                                    fontWeight: 700,
+                                    borderRadius: '5px',
+                                    border: isCur ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                                    backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                    color: isCur ? '#ffffff' : 'var(--text-main)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {st.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Interactive Section Preview Tester */}
+                      <div style={{ marginTop: '0.2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '0.64rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                            👁️ Uji Preview Latar Seksi di Kanvas:
+                          </span>
+                          <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>Klik tombol</span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                          {(node.navItems || DEFAULT_NAV_ITEMS).map((item: NavItem, i: number) => (
+                            <button
+                              key={item.id || i}
+                              type="button"
+                              onClick={() => {
+                                if (typeof window !== 'undefined') {
+                                  window.dispatchEvent(new CustomEvent('studio:test-nav-section', { detail: { index: i } }));
+                                }
+                              }}
+                              style={{
+                                padding: '3px 6px',
+                                fontSize: '0.64rem',
+                                fontWeight: 700,
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                background: '#ffffff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                              }}
+                            >
+                              <span>{renderNavIcon(item.iconType, item.customIconSvg, 11)}</span>
+                              <span>{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preset Tema Cepat */}
+                    <div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary)', display: 'block', marginBottom: '0.35rem' }}>
+                        ⚡ Preset Tema Warna Cepat (1-Click):
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' }}>
+                        {[
+                          {
+                            name: '🌑 Dark Charcoal (Foto)',
+                            theme: {
+                              navDockBg: '#262a2d',
+                              navDockBorderColor: 'rgba(255,255,255,0.08)',
+                              navActiveBg: '#3a3f44',
+                              navActiveIconColor: '#ffffff',
+                              navInactiveBg: '#ffffff',
+                              navInactiveIconColor: '#262a2d',
+                              navTooltipBg: '#ffffff',
+                              navTooltipTextColor: '#1e293b',
+                              navDockShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                            },
+                          },
+                          {
+                            name: '🌸 Romantic Rose',
+                            theme: {
+                              navDockBg: '#ffffff',
+                              navDockBorderColor: 'rgba(227,99,151,0.2)',
+                              navActiveBg: '#e36397',
+                              navActiveIconColor: '#ffffff',
+                              navInactiveBg: '#fff0f5',
+                              navInactiveIconColor: '#8b5e3c',
+                              navTooltipBg: '#e36397',
+                              navTooltipTextColor: '#ffffff',
+                              navDockShadow: '0 8px 25px rgba(227,99,151,0.18)',
+                            },
+                          },
+                          {
+                            name: '👑 Royal Gold',
+                            theme: {
+                              navDockBg: '#18181b',
+                              navDockBorderColor: 'rgba(212,175,55,0.3)',
+                              navActiveBg: '#d4af37',
+                              navActiveIconColor: '#000000',
+                              navInactiveBg: '#27272a',
+                              navInactiveIconColor: '#fbbf24',
+                              navTooltipBg: '#d4af37',
+                              navTooltipTextColor: '#000000',
+                              navDockShadow: '0 8px 30px rgba(0,0,0,0.35)',
+                            },
+                          },
+                          {
+                            name: '🌿 Botanical Sage',
+                            theme: {
+                              navDockBg: '#2d3e33',
+                              navDockBorderColor: 'rgba(255,255,255,0.1)',
+                              navActiveBg: '#52796f',
+                              navActiveIconColor: '#ffffff',
+                              navInactiveBg: '#f0f4f1',
+                              navInactiveIconColor: '#2d3e33',
+                              navTooltipBg: '#ffffff',
+                              navTooltipTextColor: '#2d3e33',
+                              navDockShadow: '0 8px 30px rgba(0,0,0,0.22)',
+                            },
+                          },
+                        ].map((preset) => (
+                          <button
+                            key={preset.name}
+                            type="button"
+                            onClick={() => {
+                              onUpdateNode({
+                                ...node,
+                                ...preset.theme,
+                              });
+                            }}
+                            style={{
+                              padding: '5px 6px',
+                              fontSize: '0.64rem',
+                              fontWeight: 700,
+                              borderRadius: '6px',
+                              border: '1px solid var(--border-color)',
+                              background: '#ffffff',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                            }}
+                          >
+                            {preset.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Wadah Dock Colors */}
+                    <div style={{ padding: '0.6rem', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        🏠 Warna Wadah Dock:
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Background Dock:
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navDockBg || '#262a2d').startsWith('#') ? node.navDockBg : '#262a2d'}
+                              onChange={(e) => updateNodeProp('navDockBg', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navDockBg || '#262a2d'}
+                              onChange={(e) => updateNodeProp('navDockBg', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Garis Tepi (Border):
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navDockBorderColor || '#ffffff').startsWith('#') ? node.navDockBorderColor : '#ffffff'}
+                              onChange={(e) => updateNodeProp('navDockBorderColor', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navDockBorderColor || 'rgba(255,255,255,0.08)'}
+                              onChange={(e) => updateNodeProp('navDockBorderColor', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tombol Aktif & Inaktif Colors */}
+                    <div style={{ padding: '0.6rem', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        🔘 Tombol Aktif (Active Item):
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Latar Tombol Aktif:
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navActiveBg || '#3a3f44').startsWith('#') ? node.navActiveBg : '#3a3f44'}
+                              onChange={(e) => updateNodeProp('navActiveBg', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navActiveBg || '#3a3f44'}
+                              onChange={(e) => updateNodeProp('navActiveBg', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Warna Icon Aktif:
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navActiveIconColor || '#ffffff').startsWith('#') ? node.navActiveIconColor : '#ffffff'}
+                              onChange={(e) => updateNodeProp('navActiveIconColor', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navActiveIconColor || '#ffffff'}
+                              onChange={(e) => updateNodeProp('navActiveIconColor', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '0.6rem', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        ⚪ Tombol Inaktif (Inactive Items):
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Latar Tombol Inaktif:
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navInactiveBg || '#ffffff').startsWith('#') ? node.navInactiveBg : '#ffffff'}
+                              onChange={(e) => updateNodeProp('navInactiveBg', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navInactiveBg || '#ffffff'}
+                              onChange={(e) => updateNodeProp('navInactiveBg', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Warna Icon Inaktif:
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navInactiveIconColor || '#262a2d').startsWith('#') ? node.navInactiveIconColor : '#262a2d'}
+                              onChange={(e) => updateNodeProp('navInactiveIconColor', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navInactiveIconColor || '#262a2d'}
+                              onChange={(e) => updateNodeProp('navInactiveIconColor', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tooltip Colors */}
+                    <div style={{ padding: '0.6rem', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        💬 Balon Tooltip (Speech Bubble):
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Latar Balon Tooltip:
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navTooltipBg || '#ffffff').startsWith('#') ? node.navTooltipBg : '#ffffff'}
+                              onChange={(e) => updateNodeProp('navTooltipBg', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navTooltipBg || '#ffffff'}
+                              onChange={(e) => updateNodeProp('navTooltipBg', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
+                            Warna Teks Tooltip:
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="color"
+                              value={(node.navTooltipTextColor || '#1e293b').startsWith('#') ? node.navTooltipTextColor : '#1e293b'}
+                              onChange={(e) => updateNodeProp('navTooltipTextColor', e.target.value)}
+                              style={{ width: '28px', height: '28px', border: 'none', cursor: 'pointer', padding: 0 }}
+                            />
+                            <input
+                              type="text"
+                              value={node.navTooltipTextColor || '#1e293b'}
+                              onChange={(e) => updateNodeProp('navTooltipTextColor', e.target.value)}
+                              style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', borderRadius: '5px', border: '1px solid var(--border-color)' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 4: FONT & TEKS */}
+                {navActiveSettingsTab === 'font' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {/* Mode Tampilan Label */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        💬 Mode Tampilan Label Menu:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                        {[
+                          { val: 'tooltip', label: '💬 Balon Melayang (Hover)' },
+                          { val: 'bottom', label: '📝 Teks Di Bawah' },
+                          { val: 'none', label: '🚫 Tanpa Teks (Icon Saja)' },
+                        ].map((lm) => {
+                          const isCur = (node.navLabelMode || 'tooltip') === lm.val;
+                          return (
+                            <button
+                              key={lm.val}
+                              type="button"
+                              onClick={() => updateNodeProp('navLabelMode', lm.val)}
+                              style={{
+                                padding: '5px 2px',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                borderRadius: '5px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: isCur ? 'var(--primary)' : '#ffffff',
+                                color: isCur ? '#ffffff' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {lm.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Font Family */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                          Jenis Huruf (Font Family):
+                        </label>
+                      </div>
+
+                      {/* Presets */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => updateNodeProp('navFontFamily', 'var(--global-font-primary)')}
+                          style={{
+                            padding: '4px 6px',
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            borderRadius: '5px',
+                            border: '1px solid var(--border-color)',
+                            background: (node.navFontFamily || '').includes('font-primary') ? 'var(--primary)' : '#ffffff',
+                            color: (node.navFontFamily || '').includes('font-primary') ? '#ffffff' : 'var(--text-main)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          👑 Font Primary
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateNodeProp('navFontFamily', 'var(--global-font-secondary)')}
+                          style={{
+                            padding: '4px 6px',
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            borderRadius: '5px',
+                            border: '1px solid var(--border-color)',
+                            background: (node.navFontFamily || '').includes('font-secondary') ? 'var(--primary)' : '#ffffff',
+                            color: (node.navFontFamily || '').includes('font-secondary') ? '#ffffff' : 'var(--text-main)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          📖 Font Secondary
+                        </button>
+                      </div>
+
+                      <FontEngineSelect
+                        value={node.navFontFamily || 'Plus Jakarta Sans'}
+                        onChange={(font) => updateNodeProp('navFontFamily', font)}
+                      />
+                    </div>
+
+                    {/* Ukuran Font Label */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                          Ukuran Font (Font Size):
+                        </label>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary)' }}>
+                          {node.navFontSize !== undefined ? node.navFontSize : 12}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={9}
+                        max={16}
+                        value={Number(node.navFontSize !== undefined ? node.navFontSize : 12)}
+                        onChange={(e) => updateNodeProp('navFontSize', parseInt(e.target.value, 10) || 12)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    {/* Ketebalan Font */}
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                        Ketebalan Font (Font Weight):
+                      </label>
+                      <select
+                        value={node.navFontWeight || '600'}
+                        onChange={(e) => updateNodeProp('navFontWeight', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '4px 6px',
+                          fontSize: '0.72rem',
+                          borderRadius: '5px',
+                          border: '1px solid var(--border-color)',
+                          background: '#ffffff',
+                        }}
+                      >
+                        <option value="400">400 (Normal)</option>
+                        <option value="600">600 (Semi-Bold - Standar)</option>
+                        <option value="700">700 (Bold)</option>
+                        <option value="800">800 (Extra Bold)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Typography */}
-            {!isContainer && (
+            {!isContainer && node.type !== 'navigation' && node.type !== 'music' && (
               <>
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
@@ -3397,77 +5729,81 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
             )}
 
             {/* Rotasi Elemen / Teks (Rotation Angle) */}
-            <div className="form-group" style={{ marginBottom: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ margin: 0, fontWeight: 700, fontSize: '0.78rem' }}>
-                  🔄 Rotasi Elemen / Teks (Rotation Angle)
-                </label>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)' }}>
-                  {style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0)}°
-                </span>
-              </div>
+            {node.type !== 'navigation' && node.type !== 'music' && (
+              <div className="form-group" style={{ marginBottom: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ margin: 0, fontWeight: 700, fontSize: '0.78rem' }}>
+                    🔄 Rotasi Elemen / Teks (Rotation Angle)
+                  </label>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary)' }}>
+                    {style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0)}°
+                  </span>
+                </div>
 
-              {/* Preset Buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '0.45rem' }}>
-                {[
-                  { label: '0°', val: 0 },
-                  { label: '15°', val: 15 },
-                  { label: '45°', val: 45 },
-                  { label: '90°', val: 90 },
-                  { label: '-15°', val: -15 },
-                  { label: '-45°', val: -45 },
-                  { label: '-90°', val: -90 },
-                ].map((preset) => {
-                  const currentRot = Number(style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0));
-                  const isSelected = currentRot === preset.val;
-                  return (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => {
-                        updateStyleProp('transformRotate', preset.val);
-                        updateStyleProp('rotate', preset.val);
-                      }}
-                      style={{
-                        padding: '3px 8px',
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        borderRadius: '4px',
-                        border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                        background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
-                        color: isSelected ? '#fff' : 'var(--text-secondary)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {preset.label}
-                    </button>
-                  );
-                })}
-              </div>
+                {/* Preset Buttons */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '0.45rem' }}>
+                  {[
+                    { label: '0°', val: 0 },
+                    { label: '15°', val: 15 },
+                    { label: '45°', val: 45 },
+                    { label: '90°', val: 90 },
+                    { label: '-15°', val: -15 },
+                    { label: '-45°', val: -45 },
+                    { label: '-90°', val: -90 },
+                  ].map((preset) => {
+                    const currentRot = Number(style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0));
+                    const isSelected = currentRot === preset.val;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          updateStyleProp('transformRotate', preset.val);
+                          updateStyleProp('rotate', preset.val);
+                        }}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          borderRadius: '4px',
+                          border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                          background: isSelected ? 'var(--primary)' : 'var(--bg-body)',
+                          color: isSelected ? '#fff' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
 
-              {/* Angle Slider */}
-              <input
-                type="range"
-                min="-180"
-                max="180"
-                step="1"
-                value={Number(style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0))}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  updateStyleProp('transformRotate', val);
-                  updateStyleProp('rotate', val);
-                }}
-                style={{ width: '100%', cursor: 'pointer' }}
-              />
-            </div>
+                {/* Angle Slider */}
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  step="1"
+                  value={Number(style.transformRotate !== undefined ? style.transformRotate : (style.rotate || 0))}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    updateStyleProp('transformRotate', val);
+                    updateStyleProp('rotate', val);
+                  }}
+                  style={{ width: '100%', cursor: 'pointer' }}
+                />
+              </div>
+            )}
 
             {/* Background Color & Image */}
-            <TokenColorPicker
-              label="Warna Latar (Background Color)"
-              value={style.backgroundColor || ''}
-              onChange={(val) => updateStyleProp('backgroundColor', val)}
-              globalStyles={globalStyles}
-            />
+            {node.type !== 'navigation' && node.type !== 'music' && (
+              <TokenColorPicker
+                label="Warna Latar (Background Color)"
+                value={style.backgroundColor || ''}
+                onChange={(val) => updateStyleProp('backgroundColor', val)}
+                globalStyles={globalStyles}
+              />
+            )}
 
             {isContainer && (
               <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
@@ -3865,7 +6201,9 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
             )}
 
             {/* Border & Corner Radius Controls */}
-            <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+            {node.type !== 'navigation' && node.type !== 'music' && (
+              <>
+              <div style={{ padding: '0.75rem', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.65rem' }}>
                 🔲 Pengaturan Border &amp; Sudut
               </div>
@@ -4101,6 +6439,8 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
                 </div>
               </div>
             </div>
+              </>
+            )}
           </div>
         )}
 
@@ -4367,16 +6707,38 @@ export function InspectorPanel({ node, onUpdateNode }: InspectorPanelProps) {
 
       <IconPickerModal
         isOpen={isIconPickerOpen}
-        onClose={() => setIsIconPickerOpen(false)}
+        onClose={() => {
+          setIsIconPickerOpen(false);
+          setNavItemIconPickerIndex(null);
+        }}
         onSelectIcon={(iconValue) => {
-          if (node.type === 'divider') {
+          if (node.type === 'navigation' && navItemIconPickerIndex !== null) {
+            const currentItems: NavItem[] = Array.isArray(node.navItems) && node.navItems.length > 0
+              ? [...node.navItems]
+              : [...DEFAULT_NAV_ITEMS];
+            if (currentItems[navItemIconPickerIndex]) {
+              currentItems[navItemIconPickerIndex] = {
+                ...currentItems[navItemIconPickerIndex],
+                customIconSvg: isSvgMarkup(iconValue) ? iconValue : undefined,
+                iconType: !isSvgMarkup(iconValue) ? iconValue : 'custom',
+              };
+              updateNodeProp('navItems', currentItems);
+            }
+            setNavItemIconPickerIndex(null);
+          } else if (node.type === 'divider') {
             updateStyleProp('dividerIconSymbol', iconValue);
             updateStyleProp('dividerType', 'icon');
           } else {
             updateNodeProp('icon', iconValue);
           }
         }}
-        currentIcon={node.type === 'divider' ? String(style.dividerIconSymbol || '') : node.icon}
+        currentIcon={
+          node.type === 'navigation' && navItemIconPickerIndex !== null
+            ? (node.navItems?.[navItemIconPickerIndex]?.customIconSvg || node.navItems?.[navItemIconPickerIndex]?.iconType || '')
+            : node.type === 'divider'
+            ? String(style.dividerIconSymbol || '')
+            : node.icon
+        }
       />
 
       <ImageCropModal

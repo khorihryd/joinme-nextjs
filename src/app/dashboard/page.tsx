@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { EventCard } from '@/components/dashboard/EventCard';
 import { StatsOverview } from '@/components/dashboard/StatsOverview';
@@ -9,12 +10,24 @@ import { CreateEventModal } from '@/components/dashboard/CreateEventModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useToast } from '@/components/ui/Toast';
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const templateIdParam = searchParams.get('templateId') || '';
+  const createParam = searchParams.get('create');
+
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (templateIdParam || createParam === 'true') {
+      if (templateIdParam) setSelectedTemplateId(templateIdParam);
+      setIsModalOpen(true);
+    }
+  }, [templateIdParam, createParam]);
 
   const fetchEvents = async () => {
     try {
@@ -191,7 +204,16 @@ export default function DashboardPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchEvents}
+        initialTemplateId={selectedTemplateId}
       />
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-body)', color: 'var(--text-secondary)' }}>Memuat Dashboard...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

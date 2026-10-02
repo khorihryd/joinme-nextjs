@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { WHATSAPP_CONFIG } from '@/config/whatsapp';
 
 export function Footer() {
   return (
@@ -16,9 +17,9 @@ export function Footer() {
             Merancang cara baru yang berkesan untuk membagikan undangan pernikahan, hari jadi, ulang tahun, dan seminar korporat.
           </p>
           <div className="social-links">
-            <a href="#" aria-label="Twitter">🌐</a>
+            <a href="#" aria-label="Website">🌐</a>
             <a href="#" aria-label="Instagram">📸</a>
-            <a href="#" aria-label="LinkedIn">💼</a>
+            <a href={WHATSAPP_CONFIG.getUrl()} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
           </div>
         </div>
 
@@ -27,16 +28,15 @@ export function Footer() {
           <ul className="footer-links">
             <li><a href="#features">Fitur Utama</a></li>
             <li><a href="#templates">Pilihan Templat</a></li>
-            <li><a href="#pricing">Paket Harga</a></li>
           </ul>
         </div>
 
         <div className="footer-links-group">
           <h4 className="footer-title">Templat</h4>
           <ul className="footer-links">
-            <li><Link href="/register">Undangan Pernikahan</Link></li>
-            <li><Link href="/register">Pesta Ulang Tahun</Link></li>
-            <li><Link href="/register">Seminar Perusahaan</Link></li>
+            <li><a href="#templates">Undangan Pernikahan</a></li>
+            <li><a href="#templates">Pesta Ulang Tahun</a></li>
+            <li><a href="#templates">Seminar Perusahaan</a></li>
           </ul>
         </div>
 
@@ -44,8 +44,24 @@ export function Footer() {
           <h4 className="footer-title">Bantuan</h4>
           <ul className="footer-links">
             <li><a href="#faq">Tanya Jawab</a></li>
-            <li><a href="#">Pusat Panduan</a></li>
-            <li><a href="#">Hubungi Kami</a></li>
+            <li>
+              <a
+                href={WHATSAPP_CONFIG.getUrl('Halo admin JoinMe! Saya butuh panduan dan konsultasi pembuatan undangan.')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Konsultasi Gratis
+              </a>
+            </li>
+            <li>
+              <a
+                href={WHATSAPP_CONFIG.getUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Hubungi via WhatsApp
+              </a>
+            </li>
           </ul>
         </div>
       </div>

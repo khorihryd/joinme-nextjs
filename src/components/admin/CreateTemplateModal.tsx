@@ -16,6 +16,8 @@ export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTempla
   const [category, setCategory] = useState('Pernikahan');
   const [tier, setTier] = useState('Free');
   const [status, setStatus] = useState('Aktif');
+  const [price, setPrice] = useState<number>(75000);
+  const [originalPrice, setOriginalPrice] = useState<number>(150000);
   const [thumbnail, setThumbnail] = useState('https://images.unsplash.com/photo-1519741497674-611481863552?w=500');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -41,6 +43,8 @@ export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTempla
           category,
           tier,
           status,
+          price: Number(price) || 0,
+          originalPrice: Number(originalPrice) || 0,
           thumbnail: thumbnail.trim() || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500',
           nodes: DEFAULT_NODES,
           globalStyles: {
@@ -225,6 +229,59 @@ export function CreateTemplateModal({ isOpen, onClose, onSuccess }: CreateTempla
                 <option value="Gold">Gold</option>
                 <option value="Platinum">Platinum</option>
               </select>
+            </div>
+          </div>
+
+          {/* Harga & Harga Coret (2 Columns) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                Harga Undangan (Rp) <span style={{ color: '#059669', fontSize: '0.75rem' }}>(0 = Gratis)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={price}
+                onChange={(e) => setPrice(Number(e.target.value))}
+                placeholder="75000"
+                style={{
+                  width: '100%',
+                  padding: '0.65rem 0.85rem',
+                  fontSize: '0.85rem',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                Harga Asli / Coret (Rp) <span style={{ color: '#64748b', fontSize: '0.75rem' }}>(Opsional)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={originalPrice}
+                onChange={(e) => setOriginalPrice(Number(e.target.value))}
+                placeholder="150000"
+                style={{
+                  width: '100%',
+                  padding: '0.65rem 0.85rem',
+                  fontSize: '0.85rem',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
           </div>
 

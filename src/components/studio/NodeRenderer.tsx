@@ -7,6 +7,8 @@ import { GiftRegistryCards } from '@/components/studio/GiftRegistryCards';
 import { LoveStoryTimeline } from '@/components/studio/LoveStoryTimeline';
 import { PhotoGalleryGrid } from '@/components/studio/PhotoGalleryGrid';
 import { ThankYouClosing } from '@/components/studio/ThankYouClosing';
+import { FloatingNavWidget } from '@/components/studio/FloatingNavWidget';
+import { MusicWidget } from '@/components/studio/MusicWidget';
 import { executeRegisteredFunction } from '@/utils/customFunctions';
 import { normalizeSvgString, isSvgMarkup } from '@/utils/svgNormalizer';
 
@@ -111,7 +113,7 @@ export function collectGalleryImageUrls(nodes: StudioNode[], eventDetails?: any)
       ? storeGlobal.sampleEventDetails.gallery
       : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0)
       ? effectiveDetails.gallery
-      : [];
+      : DEFAULT_SAMPLE_GALLERY;
   const hasUserPhotos = Array.isArray(userPhotos) && userPhotos.length > 0;
 
   // 1. If userPhotos / custom gallery exists, populate list with all custom photos FIRST in order
@@ -180,10 +182,14 @@ export function isGallerySectionNode(node: StudioNode): boolean {
   const nId = String(node.id || '').toLowerCase();
 
   if (sType === 'gallery' || sType.includes('gallery') || sType.includes('galeri')) return true;
-  if (wType === 'gallery' || wType === 'gallery-feed') return true;
+  if (wType === 'gallery' || wType === 'gallery-feed' || wType.includes('gallery') || wType.includes('galeri')) return true;
   if (nType === 'gallery' || nType === 'gallery-feed') return true;
-  if (nLabel.includes('section galeri') || nLabel === 'gallery') return true;
-  if (nId.includes('container-gallery') || nId.includes('section-gallery')) return true;
+  if (nLabel.includes('section galeri') || nLabel === 'gallery' || nLabel.includes('galeri')) return true;
+  if (nId.includes('container-gallery') || nId.includes('section-gallery') || nId.startsWith('gallery-') || nId.includes('gallery') || nId.includes('galeri')) return true;
+
+  if (Array.isArray(node.children) && node.children.some((c) => String(c.id).startsWith('img-gal-') || String(c.id).startsWith('image-gallery-'))) {
+    return true;
+  }
 
   return false;
 }
@@ -222,6 +228,49 @@ export function resolveSocialButtonUrl(action: string, rawUrlOrTag: string, even
   }
 }
 
+export function extractYouTubeVideoId(url?: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const match = trimmed.match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  );
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  return null;
+}
+
+export function buildYouTubeEmbedUrl(
+  videoId: string,
+  options: {
+    autoplay?: boolean;
+    muted?: boolean;
+    loop?: boolean;
+    controls?: boolean;
+  } = {}
+): string {
+  const params = new URLSearchParams();
+  if (options.autoplay) params.set('autoplay', '1');
+  if (options.muted || options.autoplay) params.set('mute', '1');
+  if (options.loop) {
+    params.set('loop', '1');
+    params.set('playlist', videoId);
+  }
+  if (options.controls === false) params.set('controls', '0');
+  params.set('rel', '0');
+  params.set('modestbranding', '1');
+
+  const query = params.toString();
+  return `https://www.youtube-nocookie.com/embed/${videoId}${query ? `?${query}` : ''}`;
+}
+
 export function cloneAndBindEventData(templateNode: StudioNode, evtData: any, idx: number): StudioNode {
   const cloned: StudioNode = JSON.parse(JSON.stringify(templateNode));
   cloned.id = `${cloned.id}-evt-${idx}`;
@@ -235,8 +284,20 @@ export function cloneAndBindEventData(templateNode: StudioNode, evtData: any, id
   const replaceEvtText = (text?: string): string => {
     if (!text) return '';
     let res = text;
-    if (idx > 0 && res.includes('Akad Nikah')) {
+    if (res.includes('Akad Nikah') && evtTitle && (idx > 0 || evtTitle !== 'Akad Nikah')) {
       res = res.replace(/Akad Nikah/gi, evtTitle);
+    }
+    if (res.includes('Pemberkatan') && evtTitle && (idx > 0 || evtTitle !== 'Pemberkatan')) {
+      res = res.replace(/Pemberkatan/gi, evtTitle);
+    }
+    if (res.includes('Resepsi Pernikahan') && evtTitle && evtTitle !== 'Resepsi Pernikahan') {
+      res = res.replace(/Resepsi Pernikahan/gi, evtTitle);
+    }
+    if (res.includes('Resepsi') && evtTitle && !evtTitle.includes('Resepsi') && !res.includes('{')) {
+      res = res.replace(/Resepsi/gi, evtTitle);
+    }
+    if (res.includes('Jl. Asia Afrika No. 8, Bandung') && evtAddress && evtAddress !== 'Jl. Asia Afrika No. 8, Bandung') {
+      res = res.replace(/Jl\. Asia Afrika No\. 8, Bandung/gi, evtAddress);
     }
 
     const vars: Record<string, string> = {
@@ -740,6 +801,7 @@ export function NodeRenderer({
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
   const submittedRsvp = useStudioStore((s) => s.submittedRsvp);
+  const storeGlobalStyles = useStudioStore((s) => s.globalStyles);
 
   const style = node.style || {};
   const isSlideshowBg = node.type === 'container' && style.bgType === 'gallery-slideshow';
@@ -1158,7 +1220,7 @@ export function NodeRenderer({
       const isMiniStudio = isMiniStudioMode || eventDetails?.isMiniStudioMode === true;
       const isCatalogPreview = eventDetails?.isCatalogPreview === true || (!isPublic && !isMiniStudio && isPreviewMode);
 
-      const storeGlobal = typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined;
+      const storeGlobal = storeGlobalStyles || (typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined);
       const effectiveDetails = eventDetails || storeGlobal?.sampleEventDetails;
       const userPhotos =
         (Array.isArray(storeGlobal?.galleryImages) && storeGlobal.galleryImages.length > 0)
@@ -1192,8 +1254,8 @@ export function NodeRenderer({
       // Check if node has an inner feed container (isGalleryFeed)
       const hasInnerFeed = Array.isArray(node.children) && node.children.some((c) => c.isGalleryFeed || String(c.widgetType).includes('gallery'));
 
-      // If it already has an inner feed container, or in Studio Admin Editor mode (!isPreviewMode && !isMiniStudio), render children directly!
-      if (hasInnerFeed || (!isPreviewMode && !isMiniStudio)) {
+      // If it already has an inner feed container, render children directly so that feed container handles the photos!
+      if (hasInnerFeed) {
         return (
           <div
             id={`node-dom-${node.id}`}
@@ -1234,7 +1296,7 @@ export function NodeRenderer({
         );
       }
 
-      // If legacy node structure (no inner isGalleryFeed child) in Preview / MiniStudio / Live mode:
+      // If legacy node structure (no inner isGalleryFeed child):
       // Separate non-image children (headings, descriptions) and image templates
       const nonImageChildren = (node.children || []).filter((c) => c.type !== 'image');
       const sampleImageTemplate = (node.children || []).find((c) => c.type === 'image');
@@ -1274,7 +1336,11 @@ export function NodeRenderer({
                 <div style={{ padding: '1.25rem 1rem', textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.8rem', width: '100%' }}>
                   🖼️ Belum ada foto galeri. Unggah foto di panel Media sebelah kiri.
                 </div>
-              ) : null
+              ) : (
+                <div style={{ padding: '1.25rem 1rem', textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.8rem', width: '100%' }}>
+                  🖼️ Belum ada foto galeri. Kelola foto di tab Galeri pada Pengaturan Global.
+                </div>
+              )
             ) : (
               <div
                 style={{
@@ -1286,7 +1352,63 @@ export function NodeRenderer({
               >
                 {userPhotos.map((imgUrl: string, gIdx: number) => {
                   if (sampleImageTemplate) {
+                    if (gIdx === 0 && !isPreviewMode && !isMiniStudio) {
+                      const masterBound: StudioNode = { ...sampleImageTemplate, content: imgUrl, showInGallery: true };
+                      return (
+                        <NodeRenderer
+                          key={sampleImageTemplate.id}
+                          node={masterBound}
+                          allNodes={allNodes}
+                          selectedNodeId={selectedNodeId}
+                          onSelectNode={onSelectNode}
+                          onDeleteNode={onDeleteNode}
+                          onDuplicateNode={onDuplicateNode}
+                          eventDetails={eventDetails}
+                          viewportMode={viewportMode}
+                          isPreviewMode={isPreviewMode}
+                          onOpenCover={onOpenCover}
+                          isMiniStudioMode={isMiniStudioMode}
+                          onSelectMiniNode={onSelectMiniNode}
+                        />
+                      );
+                    }
+
                     const boundCard = cloneAndBindGalleryData(sampleImageTemplate, imgUrl, gIdx);
+                    if (!isPreviewMode && !isMiniStudio) {
+                      return (
+                        <div
+                          key={`gal-img-canvas-${gIdx}-${boundCard.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSelectNode && sampleImageTemplate) {
+                              onSelectNode(sampleImageTemplate.id);
+                            }
+                          }}
+                          style={{ cursor: 'pointer' }}
+                          title="Klik untuk memilih & mengatur gaya foto galeri"
+                        >
+                          <NodeRenderer
+                            node={boundCard}
+                            allNodes={allNodes}
+                            selectedNodeId={selectedNodeId}
+                            onSelectNode={() => {
+                              if (onSelectNode && sampleImageTemplate) {
+                                onSelectNode(sampleImageTemplate.id);
+                              }
+                            }}
+                            onDeleteNode={onDeleteNode}
+                            onDuplicateNode={onDuplicateNode}
+                            eventDetails={eventDetails}
+                            viewportMode={viewportMode}
+                            isPreviewMode={isPreviewMode}
+                            onOpenCover={onOpenCover}
+                            isMiniStudioMode={isMiniStudioMode}
+                            onSelectMiniNode={onSelectMiniNode}
+                          />
+                        </div>
+                      );
+                    }
+
                     return (
                       <NodeRenderer
                         key={`gal-img-${gIdx}-${boundCard.id}`}
@@ -1544,8 +1666,12 @@ export function NodeRenderer({
               ) : null
             ) : (
               rawEvents.map((evt: any, evtIdx: number) => {
-                if (sampleCardTemplate) {
-                  const boundCard = cloneAndBindEventData(sampleCardTemplate, evt, evtIdx);
+                const cardTemplate = (node.children && node.children.length > 1)
+                  ? (node.children[evtIdx] || (evtIdx % 2 === 0 ? node.children[0] : node.children[1]))
+                  : (node.children && node.children.length > 0 ? node.children[0] : null);
+
+                if (cardTemplate) {
+                  const boundCard = cloneAndBindEventData(cardTemplate, evt, evtIdx);
                   return (
                     <NodeRenderer
                       key={`evt-card-${evtIdx}-${boundCard.id}`}
@@ -1798,7 +1924,7 @@ export function NodeRenderer({
       const isMiniStudio = isMiniStudioMode || eventDetails?.isMiniStudioMode === true;
       const isCatalogPreview = eventDetails?.isCatalogPreview === true || (!isPublic && !isMiniStudio);
 
-      const storeGlobal = typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined;
+      const storeGlobal = storeGlobalStyles || (typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined);
       const effectiveDetails = eventDetails || storeGlobal?.sampleEventDetails;
       const rawGallery =
         (Array.isArray(storeGlobal?.galleryImages) && storeGlobal.galleryImages.length > 0)
@@ -1819,7 +1945,10 @@ export function NodeRenderer({
 
       const sampleCardTemplate = node.children && node.children.length > 0 ? node.children[0] : null;
 
-      // In Studio Editor Canvas (non-preview mode), render node.children directly so Admin can click, select, and style every part of the Master Gallery Item
+      // In Studio Editor Canvas (non-preview mode):
+      // Render ALL photos in rawGallery so user sees their actual Global Properties gallery photos in the grid!
+      // Photo 0 is rendered as the Master Item template (with content bound to rawGallery[0]), allowing full selection and styling.
+      // Photos 1..N are cloned from the Master Item template with styling preserved.
       if (!isPreviewMode && !isMiniStudio) {
         return (
           <div
@@ -1831,28 +1960,93 @@ export function NodeRenderer({
             {actionOverlay}
 
             <div style={containerInnerStyle} className="container-inner-wrapper">
-              {node.children && node.children.length > 0 ? (
-                node.children.map((child) => (
-                  <NodeRenderer
-                    key={child.id}
-                    node={child}
-                    allNodes={allNodes}
-                    selectedNodeId={selectedNodeId}
-                    onSelectNode={onSelectNode}
-                    onDeleteNode={onDeleteNode}
-                    onDuplicateNode={onDuplicateNode}
-                    eventDetails={eventDetails}
-                    viewportMode={viewportMode}
-                    isPreviewMode={isPreviewMode}
-                    onOpenCover={onOpenCover}
-                    isMiniStudioMode={isMiniStudioMode}
-                    onSelectMiniNode={onSelectMiniNode}
-                  />
-                ))
-              ) : (
+              {rawGallery.length === 0 ? (
                 <div style={{ padding: '1.25rem 1rem', textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.8rem', width: '100%' }}>
-                  🖼️ Grid Galeri Foto (Belum ada Master Item)
+                  🖼️ Belum ada foto galeri. Kelola foto di tab Galeri pada Pengaturan Global.
                 </div>
+              ) : (
+                rawGallery.map((imgUrl: string, gIdx: number) => {
+                  if (gIdx === 0 && sampleCardTemplate) {
+                    const masterBoundNode: StudioNode = {
+                      ...sampleCardTemplate,
+                      content: imgUrl,
+                      showInGallery: true,
+                    };
+                    return (
+                      <NodeRenderer
+                        key={sampleCardTemplate.id}
+                        node={masterBoundNode}
+                        allNodes={allNodes}
+                        selectedNodeId={selectedNodeId}
+                        onSelectNode={onSelectNode}
+                        onDeleteNode={onDeleteNode}
+                        onDuplicateNode={onDuplicateNode}
+                        eventDetails={eventDetails}
+                        viewportMode={viewportMode}
+                        isPreviewMode={isPreviewMode}
+                        onOpenCover={onOpenCover}
+                        isMiniStudioMode={isMiniStudioMode}
+                        onSelectMiniNode={onSelectMiniNode}
+                      />
+                    );
+                  }
+
+                  if (sampleCardTemplate) {
+                    const boundCard = cloneAndBindGalleryData(sampleCardTemplate, imgUrl, gIdx);
+                    return (
+                      <div
+                        key={`gal-img-canvas-${gIdx}-${boundCard.id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSelectNode && sampleCardTemplate) {
+                            onSelectNode(sampleCardTemplate.id);
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                        title="Klik untuk memilih & mengatur gaya foto galeri"
+                      >
+                        <NodeRenderer
+                          node={boundCard}
+                          allNodes={allNodes}
+                          selectedNodeId={selectedNodeId}
+                          onSelectNode={() => {
+                            if (onSelectNode && sampleCardTemplate) {
+                              onSelectNode(sampleCardTemplate.id);
+                            }
+                          }}
+                          onDeleteNode={onDeleteNode}
+                          onDuplicateNode={onDuplicateNode}
+                          eventDetails={eventDetails}
+                          viewportMode={viewportMode}
+                          isPreviewMode={isPreviewMode}
+                          onOpenCover={onOpenCover}
+                          isMiniStudioMode={isMiniStudioMode}
+                          onSelectMiniNode={onSelectMiniNode}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={`dyn-gal-img-fallback-${gIdx}`}
+                      style={{
+                        position: 'relative',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        aspectRatio: '1 / 1',
+                        backgroundColor: '#f1f5f9',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+                      }}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Foto Galeri #${gIdx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -1992,6 +2186,7 @@ export function NodeRenderer({
     return (
       <div
         id={`node-dom-${node.id}`}
+        data-section-type={node.sectionType || undefined}
         onClick={handleClick}
         style={containerStyle}
         className={nodeClassName}
@@ -2363,9 +2558,9 @@ export function NodeRenderer({
     );
   }
 
-  // Standalone Gallery Widget (node.type === 'gallery')
-  if (node.type === 'gallery') {
-    const storeGlobal = typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined;
+  // Standalone Gallery Widget (node.type === 'gallery' || node.widgetType === 'gallery')
+  if (node.type === 'gallery' || (node as any).widgetType === 'gallery') {
+    const storeGlobal = storeGlobalStyles || (typeof window !== 'undefined' ? useStudioStore.getState?.()?.globalStyles : undefined);
     const effectiveDetails = eventDetails || storeGlobal?.sampleEventDetails;
     const userPhotos =
       (Array.isArray(storeGlobal?.galleryImages) && storeGlobal.galleryImages.length > 0)
@@ -2380,7 +2575,7 @@ export function NodeRenderer({
         ? storeGlobal.sampleEventDetails.gallery
         : (Array.isArray(effectiveDetails?.gallery) && effectiveDetails.gallery.length > 0)
         ? effectiveDetails.gallery
-        : undefined;
+        : DEFAULT_SAMPLE_GALLERY;
 
     const hasUserPhotos = Array.isArray(userPhotos) && userPhotos.length > 0;
 
@@ -2429,6 +2624,32 @@ export function NodeRenderer({
           isPreviewMode={isPreviewMode}
         />
       </div>
+    );
+  }
+
+  // Floating Navigation Widget (node.type === 'navigation')
+  if (node.type === 'navigation') {
+    return (
+      <FloatingNavWidget
+        node={node}
+        isPreviewMode={isPreviewMode}
+        onSelectNode={onSelectNode}
+        selectedNodeId={selectedNodeId}
+        onOpenCover={onOpenCover}
+      />
+    );
+  }
+
+  // Background Music Widget (node.type === 'music')
+  if (node.type === 'music') {
+    return (
+      <MusicWidget
+        node={node}
+        isPreviewMode={isPreviewMode}
+        onSelectNode={onSelectNode}
+        selectedNodeId={selectedNodeId}
+        eventDetails={eventDetails}
+      />
     );
   }
 
@@ -2690,12 +2911,145 @@ export function NodeRenderer({
     );
   }
 
+  // YouTube Video Widget
+  if (node.type === 'youtube') {
+    let rawUrl = (
+      node.youtubeUrl ||
+      (node.style as any)?.youtubeUrl ||
+      node.content ||
+      eventDetails?.youtube_url ||
+      eventDetails?.youtubeUrl ||
+      eventDetails?.live_stream_url ||
+      eventDetails?.liveStreamUrl ||
+      eventDetails?.video_url ||
+      ''
+    ).trim();
+
+    if (rawUrl.startsWith('{') && rawUrl.endsWith('}')) {
+      const tagName = rawUrl.slice(1, -1);
+      rawUrl = (eventDetails?.[tagName] || eventDetails?.youtube_url || eventDetails?.live_stream_url || '').trim();
+    } else if (rawUrl) {
+      rawUrl = resolveTextVariables(rawUrl, eventDetails);
+    }
+
+    const defaultVideoId = '2Vv-BfVoq4g'; // Ed Sheeran - Perfect
+    const videoId = extractYouTubeVideoId(rawUrl) || (rawUrl ? null : defaultVideoId);
+
+    const aspectRatioVal = String(getResponsiveStyle(style, 'videoAspectRatio', node.videoAspectRatio || '16:9', viewportMode));
+    const cssAspectRatio =
+      aspectRatioVal === '4:3' ? '4 / 3' :
+      aspectRatioVal === '1:1' ? '1 / 1' :
+      aspectRatioVal === '9:16' ? '9 / 16' : '16 / 9';
+
+    const borderRadiusRaw = getResponsiveStyle(style, 'borderRadius', style.borderRadius !== undefined ? style.borderRadius : 14, viewportMode);
+    const resolvedBorderRadius = typeof borderRadiusRaw === 'number' ? `${borderRadiusRaw}px` : (borderRadiusRaw || '14px');
+
+    const autoplay = node.videoAutoplay ?? style.videoAutoplay ?? false;
+    const muted = node.videoMuted ?? style.videoMuted ?? false;
+    const loop = node.videoLoop ?? style.videoLoop ?? false;
+    const controls = node.videoControls ?? style.videoControls ?? true;
+
+    const embedUrl = videoId
+      ? buildYouTubeEmbedUrl(videoId, {
+          autoplay: Boolean(autoplay),
+          muted: Boolean(muted || autoplay),
+          loop: Boolean(loop),
+          controls: Boolean(controls),
+        })
+      : null;
+
+    return (
+      <div
+        id={`node-dom-${node.id}`}
+        onClick={handleClick}
+        style={{
+          ...computedStyle,
+          width: computedStyle.width || '100%',
+        }}
+        className={nodeClassName}
+      >
+        {actionOverlay}
+
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: cssAspectRatio,
+            borderRadius: resolvedBorderRadius,
+            overflow: 'hidden',
+            backgroundColor: '#000000',
+            boxShadow: computedStyle.boxShadow || '0 6px 20px rgba(0,0,0,0.12)',
+            border: computedStyle.border || '1px solid var(--border-color, #e2e8f0)',
+          }}
+        >
+          {embedUrl ? (
+            <>
+              <iframe
+                title="YouTube Video Player"
+                src={embedUrl}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 0,
+                }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                loading="lazy"
+              />
+              {/* Pointer blocker overlay in Studio Edit mode so designer can select and drag the widget */}
+              {!isPreviewMode && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 2,
+                    cursor: 'pointer',
+                    backgroundColor: 'rgba(0,0,0,0.01)',
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'var(--bg-body, #f8fafc)',
+                color: 'var(--text-secondary, #64748b)',
+                gap: '8px',
+                padding: '16px',
+                textAlign: 'center',
+              }}
+            >
+              <span style={{ fontSize: '2.2rem' }}>🎥</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>Video YouTube Belum Diisi</span>
+              <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>Pilih elemen ini lalu masukkan URL Video YouTube di panel Inspector</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Form Input Field
   if (node.type === 'input') {
     const isGuestNameField = node.inputName === 'guest_name' || node.inputName === 'nama_tamu' || node.isGuestNameInput === true;
     const boundGuestName = isGuestNameField && eventDetails ? (eventDetails.guestName || eventDetails.guest_name || eventDetails.nama_tamu || '') : '';
     const shouldLockName = isGuestNameField || node.isGuestNameInput === true;
-    const inputVal = isPreviewMode && shouldLockName && boundGuestName ? boundGuestName : undefined;
+    const isLocked = isPreviewMode && shouldLockName && Boolean(boundGuestName);
     const displayPlaceholder = !isPreviewMode && shouldLockName ? '🔒 Auto dari {nama_tamu} (Terkunci dari Link Tamu)' : (node.placeholder || 'Ketik nama Anda...');
 
     return (
@@ -2709,21 +3063,20 @@ export function NodeRenderer({
         <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
           <input
             type="text"
-            defaultValue={inputVal}
-            value={inputVal}
+            {...(isLocked ? { value: boundGuestName } : {})}
             placeholder={displayPlaceholder}
             name={node.inputName || 'custom_input'}
             style={{
               ...computedStyle,
               outline: 'none',
               boxSizing: 'border-box',
-              backgroundColor: isPreviewMode && shouldLockName && boundGuestName ? 'rgba(0,0,0,0.03)' : computedStyle.backgroundColor,
-              cursor: isPreviewMode && shouldLockName && boundGuestName ? 'not-allowed' : undefined,
-              paddingRight: isPreviewMode && shouldLockName && boundGuestName ? '2.5rem' : computedStyle.paddingRight,
+              backgroundColor: isLocked ? 'rgba(0,0,0,0.03)' : computedStyle.backgroundColor,
+              cursor: isLocked ? 'not-allowed' : undefined,
+              paddingRight: isLocked ? '2.5rem' : computedStyle.paddingRight,
             }}
-            readOnly={!isPreviewMode || (shouldLockName && !!boundGuestName)}
+            readOnly={!isPreviewMode || isLocked}
           />
-          {isPreviewMode && shouldLockName && boundGuestName && (
+          {isLocked && (
             <span
               title="Nama lengkap terisi otomatis dari link khusus tamu dan terkunci"
               style={{

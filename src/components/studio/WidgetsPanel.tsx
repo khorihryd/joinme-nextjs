@@ -16,6 +16,8 @@ export function WidgetsPanel({ onAddWidget, onAddRootContainer, onInsertVariable
     { type: 'button' as const, label: 'Tombol', icon: '🔘' },
     { type: 'countdown' as const, label: 'Countdown', icon: '⏳' },
     { type: 'map' as const, label: 'Google Map', icon: '🗺️' },
+    { type: 'youtube' as const, label: 'Video YouTube', icon: '🎥' },
+    { type: 'music' as const, label: 'Musik Latar', icon: '🎵' },
     { type: 'divider' as const, label: 'Divider', icon: '➖' },
     { type: 'spacer' as const, label: 'Spacer', icon: '↕️' },
     { type: 'event' as const, label: 'Event', icon: '📅' },
@@ -28,6 +30,7 @@ export function WidgetsPanel({ onAddWidget, onAddRootContainer, onInsertVariable
     { type: 'wishes' as const, label: 'Dinding Ucapan', icon: '💬' },
     { type: 'gift-widget' as const, label: 'Hadiah & Amplop', icon: '🎁' },
     { type: 'thank-you' as const, label: 'Ucapan Terima Kasih', icon: '🙏' },
+    { type: 'navigation' as const, label: 'Navigasi Melayang', icon: '🧭' },
     { type: 'container' as const, label: 'Inner Container', icon: '📦' },
   ];
 

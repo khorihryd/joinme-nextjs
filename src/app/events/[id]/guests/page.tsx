@@ -224,7 +224,7 @@ export default function EventGuestsPage({ params }: { params: Promise<{ id: stri
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
             <span>Portal Ikhtisar</span>
           </Link>
-          <Link href={`/events/${id}/edit`} className="db-menu-item">
+          <Link href={`/studio/${id}`} className="db-menu-item">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             <span>Studio Editor</span>
           </Link>
@@ -336,7 +336,7 @@ export default function EventGuestsPage({ params }: { params: Promise<{ id: stri
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link href={`/events/${id}/edit`} className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.45rem 0.85rem' }}>
+              <Link href={`/studio/${id}`} className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.45rem 0.85rem' }}>
                 ✏️ Edit Acara
               </Link>
               {event?.subdomain && (

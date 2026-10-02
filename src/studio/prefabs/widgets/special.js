@@ -14,45 +14,65 @@ export function getSpecialWidget(nodeType, newWidget, timestamp) {
         overflow: 'hidden',
         margin: '0px 0px 16px 0px'
       };
-      break;
-
-
-    case 'gallery':
-      newWidget.type = 'container';
-      newWidget.children = [
-        {
-          id: `img-gal-1-${timestamp}`,
-          type: 'image',
-          content: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500&auto=format&fit=crop&q=80',
-          showInGallery: true,
-          style: { width: '100%', height: '180px', borderRadius: 10 }
-        },
-        {
-          id: `img-gal-2-${timestamp}`,
-          type: 'image',
-          content: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=500&auto=format&fit=crop&q=80',
-          showInGallery: true,
-          style: { width: '100%', height: '180px', borderRadius: 10 }
-        },
-        {
-          id: `img-gal-3-${timestamp}`,
-          type: 'image',
-          content: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=500&auto=format&fit=crop&q=80',
-          showInGallery: true,
-          style: { width: '100%', height: '180px', borderRadius: 10 }
-        }
+    case 'navigation':
+      newWidget.type = 'navigation';
+      newWidget.label = 'Menu Navigasi Melayang';
+      newWidget.navPosition = 'fixed-bottom';
+      newWidget.navAlignment = 'center';
+      newWidget.navDockShape = 'pill';
+      newWidget.navItemShape = 'circle';
+      newWidget.navSize = 'md';
+      newWidget.navLabelMode = 'tooltip';
+      newWidget.navShowTooltip = true;
+      newWidget.navAdaptiveBgMode = 'auto-section';
+      newWidget.navAdaptiveStyle = 'frosted-tint';
+      newWidget.navDockBg = '#262a2d';
+      newWidget.navDockBorderColor = 'rgba(255,255,255,0.08)';
+      newWidget.navDockBorderWidth = 0;
+      newWidget.navDockShadow = '0 8px 30px rgba(0,0,0,0.25)';
+      newWidget.navActiveBg = '#3a3f44';
+      newWidget.navActiveIconColor = '#ffffff';
+      newWidget.navInactiveBg = '#ffffff';
+      newWidget.navInactiveIconColor = '#262a2d';
+      newWidget.navTooltipBg = '#ffffff';
+      newWidget.navTooltipTextColor = '#1e293b';
+      newWidget.navFontFamily = 'Inter';
+      newWidget.navFontSize = 12;
+      newWidget.navFontWeight = '600';
+      newWidget.navGap = 8;
+      newWidget.navItems = [
+        { id: `nav-home-${timestamp}`, label: 'Home', targetSection: 'cover', iconType: 'home', enabled: true },
+        { id: `nav-couple-${timestamp}`, label: 'Mempelai', targetSection: 'bride_groom', iconType: 'rings', enabled: true },
+        { id: `nav-event-${timestamp}`, label: 'Acara', targetSection: 'event_schedule', iconType: 'calendar', enabled: true },
+        { id: `nav-gallery-${timestamp}`, label: 'Galeri', targetSection: 'gallery', iconType: 'gallery', enabled: true },
+        { id: `nav-story-${timestamp}`, label: 'Cerita', targetSection: 'love_story', iconType: 'heart', enabled: true },
+        { id: `nav-gift-${timestamp}`, label: 'Hadiah', targetSection: 'gift', iconType: 'gift', enabled: true },
+        { id: `nav-wishes-${timestamp}`, label: 'Ucapan', targetSection: 'wishes', iconType: 'message', enabled: true },
       ];
       newWidget.style = {
-        display: 'grid',
-        gridCols: 3,
-        gap: 12,
-        padding: '16px',
-        backgroundColor: 'transparent',
         width: '100%',
-        margin: '0px 0px 16px 0px'
+        margin: '0px',
       };
       break;
 
+    case 'music':
+      newWidget.type = 'music';
+      newWidget.label = 'Musik Latar';
+      newWidget.musicUrl = 'https://assets.mixkit.co/music/preview/mixkit-romantic-wedding-234.mp3';
+      newWidget.musicTitle = 'Romantic Wedding';
+      newWidget.musicArtist = 'Acoustic Love';
+      newWidget.musicAutoplay = true;
+      newWidget.musicLoop = true;
+      newWidget.musicFloating = true;
+      newWidget.musicPosition = 'bottom-right';
+      newWidget.musicButtonBg = '#8B5E3C';
+      newWidget.musicButtonColor = '#ffffff';
+      newWidget.musicSpinAnimation = true;
+      newWidget.style = {
+        width: 'auto',
+        margin: '0px',
+      };
+      break;
 
     case 'event':
       newWidget.type = 'container';
@@ -96,6 +116,7 @@ export function getSpecialWidget(nodeType, newWidget, timestamp) {
             {
               id: `card-event-sample-1-${timestamp}`,
               type: 'container',
+              label: 'Kartu Acara 1 (Akad Nikah)',
               style: {
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -172,6 +193,88 @@ export function getSpecialWidget(nodeType, newWidget, timestamp) {
                   ]
                 }
               ]
+            },
+            {
+              id: `card-event-sample-2-${timestamp}`,
+              type: 'container',
+              label: 'Kartu Acara 2 (Resepsi)',
+              style: {
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8,
+                padding: '20px',
+                backgroundColor: '#ffffff',
+                borderRadius: 14,
+                borderStyle: 'solid',
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
+                width: '100%'
+              },
+              children: [
+                {
+                  id: `event-title-2-${timestamp}`,
+                  type: 'heading',
+                  content: 'Resepsi Pernikahan',
+                  style: { fontSize: 18, color: '#1e293b', fontWeight: 'bold', fontFamily: 'Playfair Display', textAlign: 'center' }
+                },
+                {
+                  id: `event-date-2-${timestamp}`,
+                  type: 'text',
+                  content: '📅 {{event_date}} • 🕘 11:00 - 14:00 WIB',
+                  style: { fontSize: 13, color: '#e36397', fontWeight: '600', fontFamily: 'Inter', textAlign: 'center' }
+                },
+                {
+                  id: `event-loc-2-${timestamp}`,
+                  type: 'text',
+                  content: '📍 {{event_location}}',
+                  style: { fontSize: 13, color: '#334155', fontWeight: 'bold', fontFamily: 'Inter', textAlign: 'center' }
+                },
+                {
+                  id: `event-addr-2-${timestamp}`,
+                  type: 'text',
+                  content: 'Jl. Asia Afrika No. 8, Bandung',
+                  style: { fontSize: 12, color: '#64748b', fontFamily: 'Inter', textAlign: 'center', margin: '0px 0px 8px 0px' }
+                },
+                {
+                  id: `action-row-2-${timestamp}`,
+                  type: 'container',
+                  style: {
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    width: '100%',
+                    backgroundColor: 'transparent',
+                    padding: '0px',
+                    margin: '6px 0px 0px 0px'
+                  },
+                  children: [
+                    {
+                      id: `btn-map-2-${timestamp}`,
+                      type: 'button',
+                      buttonAction: 'google-maps',
+                      buttonIcon: '📍',
+                      iconPosition: 'left',
+                      iconGap: 6,
+                      content: 'Google Maps',
+                      style: { backgroundColor: '#e36397', color: '#ffffff', fontSize: 12, fontWeight: 'bold', padding: '8px 16px', borderRadius: 20, width: 'auto' }
+                    },
+                    {
+                      id: `btn-cal-2-${timestamp}`,
+                      type: 'button',
+                      buttonAction: 'save-calendar',
+                      buttonIcon: '📅',
+                      iconPosition: 'left',
+                      iconGap: 6,
+                      content: 'Simpan Kalender',
+                      style: { backgroundColor: '#3b82f6', color: '#ffffff', fontSize: 12, fontWeight: 'bold', padding: '8px 16px', borderRadius: 20, width: 'auto' }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -188,6 +291,22 @@ export function getSpecialWidget(nodeType, newWidget, timestamp) {
       newWidget.content = '{link_maps}';
       newWidget.buttonUrl = '{link_maps}';
       newWidget.style = { borderRadius: 14, width: '100%', height: '260px' };
+      break;
+
+    case 'youtube':
+      newWidget.content = 'https://www.youtube.com/watch?v=2Vv-BfVoq4g';
+      newWidget.youtubeUrl = 'https://www.youtube.com/watch?v=2Vv-BfVoq4g';
+      newWidget.videoAspectRatio = '16:9';
+      newWidget.videoAutoplay = false;
+      newWidget.videoMuted = false;
+      newWidget.videoLoop = false;
+      newWidget.videoControls = true;
+      newWidget.style = {
+        width: '100%',
+        borderRadius: 14,
+        margin: '0px 0px 16px 0px',
+        boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+      };
       break;
 
 
@@ -424,6 +543,7 @@ export function getSpecialWidget(nodeType, newWidget, timestamp) {
       newWidget.type = 'container';
       newWidget.widgetType = 'gallery-feed';
       newWidget.sectionType = 'gallery';
+      newWidget.label = 'Section Galeri Foto';
       newWidget.style = {
         display: 'flex',
         flexDirection: 'column',

@@ -7,24 +7,24 @@ export function FAQ() {
 
   const faqs = [
     {
-      q: 'Berapa lama proses pembuatan undangan digital di JoinMe?',
-      a: 'Sangat cepat! Anda hanya perlu mendaftar, memilih templat, mengisi data acara pada Wizard 6-Tab, dan undangan Anda siap dibagikan dalam waktu kurang dari 5 menit.',
+      q: 'Bagaimana cara memesan undangan digital di JoinMe?',
+      a: 'Sangat mudah! Pilih template yang Anda sukai di katalog kami, lalu klik tombol "Pesan" atau hubungi kami langsung via WhatsApp. Kirimkan detail acara (nama mempelai/penyelenggara, tanggal, lokasi, foto, dan lagu pilihan), dan tim kami yang akan merancang undangan hingga siap dibagikan.',
     },
     {
-      q: 'Apakah bisa mengganti musik dan foto galeri sendiri?',
-      a: 'Tentu saja! Pada paket Pro dan VIP, Anda dapat mengonfigurasi domain kustom sendiri (misal: www.roniandanti.wedding) untuk langsung mengarah ke undangan digital Anda.',
+      q: 'Berapa lama proses pembuatan undangan?',
+      a: 'Proses pengerjaan biasanya memakan waktu 1x24 jam setelah data acara lengkap dan konfirmasi pembayaran kami terima.',
     },
     {
-      q: 'Apakah tamu bisa mengunggah foto ke situs web undangan?',
-      a: 'Ya! Anda dapat mengaktifkan fitur Galeri Tamu atau Dinding Ucapan di mana tamu dapat mengunggah foto selfie atau foto keseruan selama acara berlangsung.',
+      q: 'Bagaimana metode pembayarannya?',
+      a: 'Pembayaran dilakukan secara mudah melalui transfer bank manual. Nomor rekening dan rincian tagihan akan diinfokan langsung oleh admin via chat WhatsApp.',
     },
     {
-      q: 'Bagaimana cara kerja musik latar belakang?',
-      a: 'Anda dapat mengunggah trek lagu MP3 favorit Anda. Untuk mematuhi kebijakan pemutaran otomatis browser modern, tamu akan melihat ikon melayang berbentuk catatan musik.',
+      q: 'Apakah bisa revisi jika ada kesalahan data acara?',
+      a: 'Tentu saja! Kami menyediakan garansi revisi untuk teks, foto, peta lokasi, maupun lagu latar agar undangan Anda benar-benar sempurna sebelum disebarkan ke para tamu.',
     },
     {
-      q: 'Apakah ada batas jumlah tamu untuk jawaban RSVP?',
-      a: 'Paket Starter kami mencakup maksimal hingga 30 jawaban RSVP. Sementara untuk paket Pro dan VIP, Anda mendapatkan kapasitas daftar tamu dan pengiriman jawaban RSVP tanpa batas.',
+      q: 'Bagaimana cara kerja musik latar dan buku tamu RSVP?',
+      a: 'Undangan web dilengkapi tombol kontrol pemutar musik latar interaktif dan formulir RSVP digital sehingga tamu dapat mengonfirmasi kehadiran dan mengirimkan ucapan doa restu secara langsung.',
     },
   ];
 

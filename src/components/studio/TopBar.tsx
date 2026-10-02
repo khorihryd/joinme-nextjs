@@ -17,9 +17,13 @@ interface TopBarProps {
   onReset: () => void;
   onPreview: () => void;
   saving: boolean;
+  isEvent?: boolean;
+  eventStatus?: 'Draft' | 'Aktif';
+  subdomain?: string;
 }
 
 export function TopBar({
+  title,
   viewportMode,
   setViewportMode,
   showRulers = true,
@@ -31,6 +35,9 @@ export function TopBar({
   onReset,
   onPreview,
   saving,
+  isEvent = false,
+  eventStatus,
+  subdomain,
 }: TopBarProps) {
   const [showSaveDropdown, setShowSaveDropdown] = useState(false);
 
@@ -79,7 +86,42 @@ export function TopBar({
           </svg>
           <span>Join<span className="logo-accent">Me</span> Studio</span>
         </Link>
-        <span className="studio-badge">⚡ Flexbox Canvas</span>
+        {isEvent ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {title || 'Undangan'}
+            </span>
+            {eventStatus && (
+              <span
+                style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: '12px',
+                  backgroundColor: eventStatus === 'Aktif' ? 'rgba(16,185,129,0.15)' : 'rgba(234,179,8,0.15)',
+                  color: eventStatus === 'Aktif' ? '#059669' : '#b45309',
+                  border: `1px solid ${eventStatus === 'Aktif' ? 'rgba(16,185,129,0.3)' : 'rgba(234,179,8,0.3)'}`,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {eventStatus}
+              </span>
+            )}
+            {subdomain && (
+              <a
+                href={`/v/${subdomain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Buka live website: joinme.id/v/${subdomain}`}
+                style={{ fontSize: '0.68rem', color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
+              >
+                <span>🔗 /v/{subdomain}</span>
+              </a>
+            )}
+          </div>
+        ) : (
+          <span className="studio-badge">⚡ Flexbox Canvas</span>
+        )}
       </div>
 
       {/* Viewport Device Mode Switcher */}
@@ -152,71 +194,88 @@ export function TopBar({
           Batal
         </Link>
 
-        {/* Split Save Button with Dropdown */}
-        <div className="split-btn-container" style={{ position: 'relative', display: 'inline-flex', alignItems: 'stretch', borderRadius: '8px', overflow: 'visible', zIndex: 100000, boxShadow: '0 4px 12px rgba(139, 94, 60, 0.15)' }}>
+        {/* Save Button */}
+        {onSaveAsNew && !isEvent ? (
+          <div className="split-btn-container" style={{ position: 'relative', display: 'inline-flex', alignItems: 'stretch', borderRadius: '8px', overflow: 'visible', zIndex: 100000, boxShadow: '0 4px 12px rgba(139, 94, 60, 0.15)' }}>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className="btn btn-primary"
+              style={{ fontSize: '0.8rem', padding: '0.55rem 1.25rem', fontWeight: 800, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s ease' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              {saving ? 'Menyimpan...' : 'Simpan Template'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSaveDropdown(!showSaveDropdown)}
+              className="btn btn-primary"
+              style={{ fontSize: '0.65rem', padding: '0.55rem 0.75rem', fontWeight: 800, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            <div className={`save-dropdown-menu ${showSaveDropdown ? 'show' : ''}`} style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--bg-surface)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05)', minWidth: '260px', padding: '0.5rem', transformOrigin: 'top right' }}>
+              <button
+                type="button"
+                onClick={() => { setShowSaveDropdown(false); onSave(); }}
+                className="dropdown-item"
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', width: '100%', textAlign: 'left', padding: '0.65rem 0.85rem', background: 'none', border: 'none', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--primary)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  Simpan &amp; Perbarui
+                </div>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400, paddingLeft: '1.35rem' }}>Menimpa data template yang sedang aktif.</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setShowSaveDropdown(false); onSaveAsNew && onSaveAsNew(); }}
+                className="dropdown-item"
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', width: '100%', textAlign: 'left', padding: '0.65rem 0.85rem', background: 'none', border: 'none', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s ease', marginTop: '0.25rem' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                  </svg>
+                  Simpan sebagai Baru
+                </div>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400, paddingLeft: '1.35rem' }}>Membuat duplikat template baru secara terpisah.</span>
+              </button>
+            </div>
+          </div>
+        ) : (
           <button
             type="button"
             onClick={onSave}
             disabled={saving}
             className="btn btn-primary"
-            style={{ fontSize: '0.8rem', padding: '0.55rem 1.25rem', fontWeight: 800, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s ease' }}
+            style={{ fontSize: '0.8rem', padding: '0.55rem 1.25rem', fontWeight: 800, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(139, 94, 60, 0.15)' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
               <polyline points="7 3 7 8 15 8"></polyline>
             </svg>
-            {saving ? 'Menyimpan...' : 'Simpan Template'}
+            {saving ? 'Menyimpan...' : isEvent ? 'Simpan Undangan' : 'Simpan Template'}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowSaveDropdown(!showSaveDropdown)}
-            className="btn btn-primary"
-            style={{ fontSize: '0.65rem', padding: '0.55rem 0.75rem', fontWeight: 800, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-
-          {/* Dropdown Menu */}
-          <div className={`save-dropdown-menu ${showSaveDropdown ? 'show' : ''}`} style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--bg-surface)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05)', minWidth: '260px', padding: '0.5rem', transformOrigin: 'top right' }}>
-            <button
-              type="button"
-              onClick={() => { setShowSaveDropdown(false); onSave(); }}
-              className="dropdown-item"
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', width: '100%', textAlign: 'left', padding: '0.65rem 0.85rem', background: 'none', border: 'none', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--primary)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                Simpan &amp; Perbarui
-              </div>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400, paddingLeft: '1.35rem' }}>Menimpa data template yang sedang aktif.</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setShowSaveDropdown(false); onSaveAsNew && onSaveAsNew(); }}
-              className="dropdown-item"
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', width: '100%', textAlign: 'left', padding: '0.65rem 0.85rem', background: 'none', border: 'none', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s ease', marginTop: '0.25rem' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="12" y1="18" x2="12" y2="12"></line>
-                  <line x1="9" y1="15" x2="15" y2="15"></line>
-                </svg>
-                Simpan sebagai Baru
-              </div>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400, paddingLeft: '1.35rem' }}>Membuat duplikat template baru secara terpisah.</span>
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </header>
   );

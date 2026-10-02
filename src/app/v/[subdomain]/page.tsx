@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { NodeRenderer, getOrderedAndFilteredNodes } from '@/components/studio/NodeRenderer';
 import { DEFAULT_NODES, loadNodeFonts, ensureGoogleFontLoaded, getGlobalCssVariables } from '@/store/studio-store';
@@ -166,6 +166,18 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
   };
 
   const sortedNodes = getOrderedAndFilteredNodes(previewNodes, liveEventDetails);
+
+  const hasMusicNode = useMemo(() => {
+    const checkNodes = (list: StudioNode[]): boolean => {
+      for (const n of list) {
+        if (n.type === 'music') return true;
+        if (n.children && checkNodes(n.children)) return true;
+      }
+      return false;
+    };
+    return checkNodes(sortedNodes);
+  }, [sortedNodes]);
+
   const hasMultipleContainers = sortedNodes.length > 1;
   const coverNode = hasMultipleContainers && sortedNodes[0].sectionType === 'cover' ? sortedNodes[0] : null;
   const bodyNodes = coverNode ? sortedNodes.slice(1) : sortedNodes;
@@ -228,7 +240,7 @@ export default function PublicInvitationPage({ params }: { params: Promise<{ sub
       }}
     >
       {/* Background Music Controller */}
-      {isCoverOpened && details.musicUrl && (
+      {isCoverOpened && details.musicUrl && !hasMusicNode && (
         <MusicPlayer
           isPlayingMusic={isPlayingMusic}
           onToggleMusic={() => setIsPlayingMusic(!isPlayingMusic)}

@@ -203,6 +203,7 @@ export function StudioToolbar({
       case 'image': return 'Gambar';
       case 'button': return 'Tombol';
       case 'countdown': return 'Countdown';
+      case 'youtube': return 'Video YouTube';
       case 'divider': return 'Garis Pemisah';
       case 'spacer': return 'Spacer';
       case 'gift-widget': return 'Amplop Digital';
@@ -210,6 +211,8 @@ export function StudioToolbar({
       case 'gallery': return 'Galeri Foto';
       case 'rsvp': return 'Form RSVP';
       case 'wishes': return 'Ucapan Tamu';
+      case 'music': return 'Musik Latar';
+      case 'navigation': return 'Navigasi Melayang';
       default: return String(node.type).toUpperCase();
     }
   };
@@ -222,6 +225,9 @@ export function StudioToolbar({
       case 'image': return '🖼️';
       case 'button': return '🔘';
       case 'countdown': return '⏳';
+      case 'youtube': return '🎥';
+      case 'music': return '🎵';
+      case 'navigation': return '🧭';
       case 'divider': return '➖';
       case 'spacer': return '↕️';
       case 'gift-widget': return '💳';
